@@ -439,14 +439,17 @@ namespace ClassicUO.Game.Scenes
             int maxZ = entity.PriorityZ;
 
             int dropMaxZIndex = -1;
+            int lateral = 0, down = 0;
 
             //if (entity is Mobile mob) //&&  ( (mob.IsMoving && (mob.Steps.Back().Direction & 7) == 2)  || mob.Direction == Direction.East) )
             //{
             //    dropMaxZIndex = 0;
             //}
-
-            int areah = (entity.FrameInfo.Bottom - entity.FrameInfo.Center.Y) / 44;
-            int areaw = (entity.FrameInfo.Right - entity.FrameInfo.Center.X) / 44;
+            if(entity.FrameInfo != null)
+            {
+                down = ((entity.FrameInfo.Bottom - entity.FrameInfo.Location.Y) + (entity.FrameInfo.Bottom - entity.FrameInfo.Location.X)) >> 7;
+                lateral = ((entity.FrameInfo.Right - entity.FrameInfo.Location.X) + (entity.FrameInfo.Right - entity.FrameInfo.Location.Y)) >> 7;
+            }
 
             for (int i = 0; i < 18; i++)
             {
@@ -460,26 +463,26 @@ namespace ClassicUO.Game.Scenes
                         dropMaxZIndex = 0;
                         break;
                     case 1:
-                        if (areaw < 1)
+                        if (lateral < 1)
                             continue;
                         x++;
                         y -= 2;
                         break;
                     case 2:
-                        if (areaw < 2)
+                        if (lateral < 2)
                             continue;
                         x += 2;
                         y -= 2;
                         dropMaxZIndex = 2;
                         break;
                     case 3:
-                        if (areaw < 2 && areah < 2)
+                        if (lateral < 3)
                             continue;
                         x -= 2;
                         y += 3;
                         break;
                     case 4:
-                        if (areaw < 2)
+                        if (lateral < 2)
                             continue;
                         x--;
                         y += 2;
@@ -491,27 +494,27 @@ namespace ClassicUO.Game.Scenes
                         x++;
                         break;
                     case 7:
-                        if (areaw < 1)
+                        if (lateral < 2)
                             continue;
                         x += 2;
                         y--;
                         dropMaxZIndex = 7;
                         break;
                     case 8:
-                        if (areaw < 2)
+                        if (lateral < 2)
                             continue;
                         x += 3;
                         y -= 2;
                         //dropMaxZIndex = 8;
                         break;
                     case 9:
-                        if (areaw < 2 && areah < 2)
+                        if (lateral < 3 && down < 3)
                             continue;
                         x--;
                         y += 3;
                         break;
                     case 10:
-                        if (areaw < 1 && areah < 1)
+                        if (lateral < 1 && down < 2)
                             continue;
                         y += 2;
                         break;
@@ -520,18 +523,18 @@ namespace ClassicUO.Game.Scenes
                         y++;
                         break;
                     case 12:
-                        if (areaw < 1 && areah < 1)
+                        if (lateral < 1 && down < 2)
                             continue;
                         x += 2;
                         break;
                     case 13:
-                        if (areaw < 2 && areah < 2)
+                        if (lateral < 2 && down < 3)
                             continue;
                         x += 3;
                         y--;
                         break;
                     case 14:
-                        if (areah < 3)
+                        if (down < 4)
                             return;
                         y += 3;
                         break;
