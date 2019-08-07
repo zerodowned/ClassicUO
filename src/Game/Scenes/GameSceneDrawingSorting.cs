@@ -361,6 +361,9 @@ namespace ClassicUO.Game.Scenes
                 }
 
 
+                if (obj.Hue >= 0x35)
+                    hue += 20;
+
                 obj.Hue = hue;
 
                 if (ismobile || iscorpse)
@@ -435,10 +438,10 @@ namespace ClassicUO.Game.Scenes
 
             int dropMaxZIndex = -1;
 
-            if (entity is Mobile mob && mob.IsMoving && (mob.Steps.Back().Direction & 7) == 2)
-            {
-                dropMaxZIndex = 0;
-            }
+            //if (entity is Mobile mob) //&&  ( (mob.IsMoving && (mob.Steps.Back().Direction & 7) == 2)  || mob.Direction == Direction.East) )
+            //{
+            //    dropMaxZIndex = 0;
+            //}
 
            
 
@@ -452,6 +455,7 @@ namespace ClassicUO.Game.Scenes
                     case 0:
                         x++;
                         y--;
+                        dropMaxZIndex = 0;
                         break;
                     case 1:
                         x++;
@@ -460,6 +464,7 @@ namespace ClassicUO.Game.Scenes
                     case 2:
                         x += 2;
                         y -= 2;
+                        dropMaxZIndex = 2;
                         break;
                     case 3:
                         x--;
@@ -474,6 +479,7 @@ namespace ClassicUO.Game.Scenes
                     case 6:
                         x += 2;
                         y--;
+                        dropMaxZIndex = 6;
                         break;
                     case 7:
                         x++;
