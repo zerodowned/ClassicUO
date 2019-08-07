@@ -437,19 +437,21 @@ namespace ClassicUO.Game.Scenes
             int maxZ = entity.PriorityZ;
 
             int dropMaxZIndex = -1;
+            int area = 0;
 
             //if (entity is Mobile mob) //&&  ( (mob.IsMoving && (mob.Steps.Back().Direction & 7) == 2)  || mob.Direction == Direction.East) )
             //{
             //    dropMaxZIndex = 0;
             //}
+            if(entity.Texture != null)
+            {
+                area = entity.Texture.Width >> 6;
+            }
 
-           
-
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < 11; i++)
             {
                 int x = charX;
                 int y = charY;
-
                 switch (i)
                 {
                     case 0:
@@ -462,28 +464,52 @@ namespace ClassicUO.Game.Scenes
                         y -= 2;
                         break;
                     case 2:
+                        if (area < 1)
+                            continue;
                         x += 2;
                         y -= 2;
                         dropMaxZIndex = 2;
                         break;
                     case 3:
+                        if (area < 2)
+                            continue;
+                        x -= 2;
+                        y += 3;
+                        break;
+                    case 4:
+                        if (area < 1)
+                            continue;
                         x--;
                         y += 2;
                         break;
-                    case 4:
-                        y++;
-                        break;
                     case 5:
-                        x++;
+                        y++;
                         break;
                     case 6:
-                        x += 2;
-                        y--;
-                        dropMaxZIndex = 6;
+                        x++;
                         break;
                     case 7:
+                        if (area < 1)
+                            continue;
+                        x += 2;
+                        y--;
+                        dropMaxZIndex = 7;
+                        break;
+                    case 8:
+                        if (area < 2)
+                            continue;
+                        x += 3;
+                        y -= 2;
+                        //dropMaxZIndex = 8;
+                        break;
+                    case 9:
                         x++;
                         y++;
+                        break;
+                    case 10:
+                        if (area < 2)
+                            continue;
+                        x += 2;
                         break;
                 }
 
