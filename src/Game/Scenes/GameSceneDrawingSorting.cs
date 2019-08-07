@@ -443,9 +443,9 @@ namespace ClassicUO.Game.Scenes
             //{
             //    dropMaxZIndex = 0;
             //}
-            if(entity.Texture != null)
+            if(entity.FrameInfo != null)
             {
-                area = entity.Texture.Width >> 6;
+                area = entity.FrameInfo.Width >> 6;
             }
 
             for (int i = 0; i < 11; i++)
