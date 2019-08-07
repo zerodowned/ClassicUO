@@ -447,11 +447,12 @@ namespace ClassicUO.Game.Scenes
             //}
             if(entity.FrameInfo != null)
             {
-                down = ((entity.FrameInfo.Bottom - entity.FrameInfo.Location.Y) + (entity.FrameInfo.Bottom - entity.FrameInfo.Location.X)) >> 7;
-                lateral = ((entity.FrameInfo.Right - entity.FrameInfo.Location.X) + (entity.FrameInfo.Right - entity.FrameInfo.Location.Y)) >> 7;
+                down = (entity.FrameInfo.Bottom / 44) >> 1;
+                lateral = (entity.FrameInfo.Right / 44) >> 1;
             }
+            ushort hue = 0x35;
 
-            for (int i = 0; i < 18; i++)
+            for (int i = 0; i < 21; i++)
             {
                 int x = charX;
                 int y = charY;
@@ -478,75 +479,96 @@ namespace ClassicUO.Game.Scenes
                     case 3:
                         if (lateral < 3)
                             continue;
+                        x += 3;
+                        y -= 3;
+                        break;
+                    case 4:
+                        if (lateral < 3)
+                            continue;
                         x -= 2;
                         y += 3;
                         break;
-                    case 4:
+                    case 5:
                         if (lateral < 2)
                             continue;
                         x--;
                         y += 2;
                         break;
-                    case 5://mandatory
+                    case 6://mandatory
                         y++;
                         break;
-                    case 6://mandatory
+                    case 7://mandatory
                         x++;
                         break;
-                    case 7:
+                    case 8:
                         if (lateral < 2)
                             continue;
                         x += 2;
                         y--;
-                        dropMaxZIndex = 7;
+                        dropMaxZIndex = 8;
                         break;
-                    case 8:
-                        if (lateral < 2)
+                    case 9:
+                        if (lateral < 3)
                             continue;
                         x += 3;
                         y -= 2;
                         //dropMaxZIndex = 8;
                         break;
-                    case 9:
-                        if (lateral < 3 && down < 3)
+                    case 10:
+                        if (lateral < 3 && down < 2)
                             continue;
                         x--;
                         y += 3;
                         break;
-                    case 10:
-                        if (lateral < 1 && down < 2)
+                    case 11:
+                        if (lateral < 2 && down < 2)
                             continue;
                         y += 2;
                         break;
-                    case 11://mandatory
+                    case 12://mandatory
                         x++;
                         y++;
                         break;
-                    case 12:
-                        if (lateral < 1 && down < 2)
+                    case 13:
+                        if (lateral < 2 && down < 2)
                             continue;
                         x += 2;
                         break;
-                    case 13:
-                        if (lateral < 2 && down < 3)
+                    case 14:
+                        if (lateral < 3 && down < 2)
                             continue;
                         x += 3;
                         y--;
                         break;
-                    case 14:
-                        if (down < 4)
-                            return;
+                    case 15:
+                        if (lateral < 5 && down < 4)
+                            continue;
+                        x += 4;
+                        y -= 2;
+                        break;
+                    case 16:
+                        if (down < 4 && lateral < 3)
+                            continue;
                         y += 3;
                         break;
-                    case 15:
+                    case 17:
+                        if (down < 2)
+                            return;
                         x++;
                         y += 2;
                         break;
-                    case 16:
+                    case 18:
                         x += 2;
                         y++;
                         break;
-                    case 17:
+                    case 19:
+                        if (down < 4)
+                            continue;
+                        x += 3;
+                        break;
+                    case 20:
+                        if (down < 4 && lateral < 3)
+                            continue;
                         x += 3;
                         break;
                 }
@@ -566,7 +588,8 @@ namespace ClassicUO.Game.Scenes
 
                 if (tile != null)
                 {
-                    AddTileToRenderList(tile.FirstNode, x, y, useObjectHandles, currentMaxZ, 0x35);
+                    AddTileToRenderList(tile.FirstNode, x, y, useObjectHandles, currentMaxZ, hue);
+                    hue += 10;
                 }
             }
 
