@@ -174,7 +174,7 @@ namespace ClassicUO.Game.Scenes
 
         private static readonly StaticTiles _emptyStaticTiles = default;
 
-        private void AddTileToRenderList(GameObject obj, int worldX, int worldY, bool useObjectHandles, int maxZ/*, GameObject entity*/)
+        private void AddTileToRenderList(GameObject obj, int worldX, int worldY, bool useObjectHandles, int maxZ, ushort hue = 20/*, GameObject entity*/)
         {
             /*sbyte HeightChecks = 0;
             if(entity != null)
@@ -360,8 +360,13 @@ namespace ClassicUO.Game.Scenes
                     continue;
                 }
 
+
+                obj.Hue = hue;
+
                 if (ismobile || iscorpse)
+                {
                     AddOffsetCharacterTileToRenderList(obj, useObjectHandles);
+                }
                 else if (!island && itemData.IsFoliage)
                 {
                     bool check = World.Player.X <= worldX && World.Player.Y <= worldY;
@@ -435,6 +440,7 @@ namespace ClassicUO.Game.Scenes
                 dropMaxZIndex = 0;
             }
 
+           
 
             for (int i = 0; i < 8; i++)
             {
@@ -489,7 +495,9 @@ namespace ClassicUO.Game.Scenes
                 var tile = World.Map.GetTile(x, y);
 
                 if (tile != null)
-                    AddTileToRenderList(tile.FirstNode, x, y, useObjectHandles, currentMaxZ);
+                {
+                    AddTileToRenderList(tile.FirstNode, x, y, useObjectHandles, currentMaxZ, 0x35);
+                }
             }
 
             /*int area = 2;
