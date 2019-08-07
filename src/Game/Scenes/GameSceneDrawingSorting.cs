@@ -439,17 +439,14 @@ namespace ClassicUO.Game.Scenes
             int maxZ = entity.PriorityZ;
 
             int dropMaxZIndex = -1;
-            int areaw = 0, areah = 0;
 
             //if (entity is Mobile mob) //&&  ( (mob.IsMoving && (mob.Steps.Back().Direction & 7) == 2)  || mob.Direction == Direction.East) )
             //{
             //    dropMaxZIndex = 0;
             //}
-            if(entity.FrameInfo != null)
-            {
-                areah = (entity.FrameInfo.Bottom - entity.FrameInfo.Center.Y) / 44;
-                areaw = (entity.FrameInfo.Right - entity.FrameInfo.Center.X) / 44;
-            }
+
+            int areah = (entity.FrameInfo.Bottom - entity.FrameInfo.Center.Y) / 44;
+            int areaw = (entity.FrameInfo.Right - entity.FrameInfo.Center.X) / 44;
 
             for (int i = 0; i < 18; i++)
             {
