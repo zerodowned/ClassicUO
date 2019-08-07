@@ -135,7 +135,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                     case Item item:
 
-                        return $"Item ({item.Serial})  graphic: {item.Graphic}  flags: {item.Flags}  amount: {item.Amount}";
+                        return $"Item ({item.Serial})  graphic: {item.Graphic}  flags: {item.Flags}  itemdata: {item.ItemData.Flags}  amount: {item.Amount}";
 
                     case Static st:
 
