@@ -439,23 +439,23 @@ namespace ClassicUO.Game.Scenes
             int maxZ = entity.PriorityZ;
 
             int dropMaxZIndex = -1;
+            int lateral = 0, down = 0;
 
             //if (entity is Mobile mob) //&&  ( (mob.IsMoving && (mob.Steps.Back().Direction & 7) == 2)  || mob.Direction == Direction.East) )
             //{
             //    dropMaxZIndex = 0;
             //}
+            if(entity.FrameInfo != null)
+            {
+                down = (entity.FrameInfo.Bottom / 44) >> 1;
+                lateral = (entity.FrameInfo.Right / 44) >> 1;
+            }
+            ushort hue = 0x35;
 
-            int width = (entity.FrameInfo.Width - entity.FrameInfo.X) >> 5;
-            int height = (entity.FrameInfo.Height - entity.FrameInfo.Y) >> 5;
-
-
-            Console.WriteLine("WIDTH: {0}     HEIGHT: {1}", width, height);
-
-            for (int i = 0; i < 9; i++)
+            for (int i = 0; i < 21; i++)
             {
                 int x = charX;
                 int y = charY;
-
                 switch (i)
                 {
                     case 0://mandatory
@@ -464,116 +464,114 @@ namespace ClassicUO.Game.Scenes
                         dropMaxZIndex = 0;
                         break;
                     case 1:
+                        if (lateral < 1)
+                            continue;
                         x++;
                         y -= 2;
                         break;
                     case 2:
+                        if (lateral < 2)
+                            continue;
                         x += 2;
                         y -= 2;
                         dropMaxZIndex = 2;
                         break;
                     case 3:
+                        if (lateral < 3)
+                            continue;
+                        x += 3;
+                        y -= 3;
+                        break;
+                    case 4:
+                        if (lateral < 3)
+                            continue;
+                        x -= 2;
+                        y += 3;
+                        break;
+                    case 5:
+                        if (lateral < 2)
+                            continue;
                         x--;
                         y += 2;
                         break;
-                    case 4:
+                    case 6://mandatory
                         y++;
                         break;
-                    case 5://mandatory
+                    case 7://mandatory
                         x++;
                         break;
-                    case 6://mandatory
+                    case 8:
+                        if (lateral < 2)
+                            continue;
                         x += 2;
                         y--;
+                        dropMaxZIndex = 8;
                         break;
-                    case 7:
-                        x++;
-                        y++;
-                        dropMaxZIndex = 7;
-                        break;
-
-                    case 8:
-
-                        if (width < 3)
+                    case 9:
+                        if (lateral < 3)
                             continue;
-
                         x += 3;
                         y -= 2;
-
+                        //dropMaxZIndex = 8;
                         break;
-
-                    //case 8:
-                    //    if (width < 2)
-                    //        continue;
-                    //    x += 3;
-                    //    y -= 2;
-                    //    //dropMaxZIndex = 8;
-                    //    break;
-                    //case 9:
-                    //    if (width < 3 && height < 3)
-                    //        continue;
-                    //    x--;
-                    //    y += 3;
-                    //    break;
-                    //case 10:
-                    //    if (width < 1 && height < 2)
-                    //        continue;
-                    //    y += 2;
-                    //    break;
-                    //case 11://mandatory
-                    //    x++;
-                    //    y++;
-                    //    break;
-                    //case 12:
-                    //    if (width < 1 && height < 2)
-                    //        continue;
-                    //    x += 2;
-                    //    break;
-                    //case 13:
-                    //    if (width < 2 && height < 3)
-                    //        continue;
-                    //    x += 3;
-                    //    y--;
-                    //    break;
-                    //case 14:
-                    //    if (height < 4)
-                    //        continue;
-                    //    y += 3;
-                    //    break;
-                    //case 15:
-
-                    //    if (width < 4 && height < 4)
-                    //        continue;
-
-                    //    x++;
-                    //    y += 2;
-                    //    break;
-                    //case 16:
-
-                    //    if (width < 5 && height < 4)
-                    //        continue;
-
-                    //    x += 2;
-                    //    y++;
-                    //    break;
-                    //case 17:
-
-                    //    if (width < 5 && height < 4)
-                    //        continue;
-
-                    //    x += 3;
-                    //    break;
-                    //case 18:
-
-                    //    if (height < 2)
-                    //        continue;
-
-                    //    x += 2;
-                    //    y += 2;
-                    //    break;
+                    case 10:
+                        if (lateral < 3 && down < 2)
+                            continue;
+                        x--;
+                        y += 3;
+                        break;
+                    case 11:
+                        if (lateral < 2 && down < 2)
+                            continue;
+                        y += 2;
+                        break;
+                    case 12://mandatory
+                        x++;
+                        y++;
+                        break;
+                    case 13:
+                        if (lateral < 2 && down < 2)
+                            continue;
+                        x += 2;
+                        break;
+                    case 14:
+                        if (lateral < 3 && down < 2)
+                            continue;
+                        x += 3;
+                        y--;
+                        break;
+                    case 15:
+                        if (lateral < 5 && down < 4)
+                            continue;
+                        x += 4;
+                        y -= 2;
+                        break;
+                    case 16:
+                        if (down < 4 && lateral < 3)
+                            continue;
+                        y += 3;
+                        break;
+                    case 17:
+                        if (down < 2)
+                            return;
+                        x++;
+                        y += 2;
+                        break;
+                    case 18:
+                        x += 2;
+                        y++;
+                        break;
+                    case 19:
+                        if (down < 4)
+                            continue;
+                        x += 3;
+                        break;
+                    case 20:
+                        if (down < 4 && lateral < 3)
+                            continue;
+                        x += 3;
+                        break;
                 }
-
-                //int delta = (charX - x) + (charY - y);
 
                 if (x < _minTile.X || x > _maxTile.X)
                     continue;
@@ -590,7 +588,8 @@ namespace ClassicUO.Game.Scenes
 
                 if (tile != null)
                 {
-                    AddTileToRenderList(tile.FirstNode, x, y, useObjectHandles, currentMaxZ, 0x35);
+                    AddTileToRenderList(tile.FirstNode, x, y, useObjectHandles, currentMaxZ, hue);
+                    hue += 10;
                 }
             }
 
