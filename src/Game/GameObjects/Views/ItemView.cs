@@ -21,6 +21,7 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
 
 using ClassicUO.Game.Data;
@@ -173,6 +174,11 @@ namespace ClassicUO.Game.GameObjects
             if (IsDestroyed || World.CorpseManager.Exists(Serial, 0))
                 return false;
 
+            FrameInfo.X = 0;
+            FrameInfo.Y = 0;
+            FrameInfo.Width = 0;
+            FrameInfo.Height = 0;
+
             byte dir = (byte) ((byte) Layer & 0x7F & 7);
             bool mirror = false;
             FileManager.Animations.GetAnimDirection(ref dir, ref mirror);
@@ -187,6 +193,11 @@ namespace ClassicUO.Game.GameObjects
                 Layer layer = LayerOrder.UsedLayers[dir, i];
                 DrawLayer(batcher, posX, posY, layer, animIndex);
             }
+
+            FrameInfo.X = Math.Abs(FrameInfo.X);
+            FrameInfo.Y = Math.Abs(FrameInfo.Y);
+            FrameInfo.Width = FrameInfo.X + FrameInfo.Width;
+            FrameInfo.Height = FrameInfo.Y + FrameInfo.Height;
 
             return true;
         }
@@ -269,6 +280,22 @@ namespace ClassicUO.Game.GameObjects
                 drawY -= 3;
                 int x = drawX + frame.CenterX;
                 int y = -drawY - (frame.Height + frame.CenterY) + drawCenterY;
+
+                int yy = -(frame.Height + frame.CenterY + 3);
+                int xx = -frame.CenterX;
+
+                if (xx < FrameInfo.X)
+                    FrameInfo.X = xx;
+
+                if (yy < FrameInfo.Y)
+                    FrameInfo.Y = yy;
+
+                if (FrameInfo.Width < xx + frame.Width)
+                    FrameInfo.Width = xx + frame.Width;
+
+                if (FrameInfo.Height < yy + frame.Height)
+                    FrameInfo.Height = yy + frame.Height;
+
                 Texture = frame;
                 Bounds.X = x;
                 Bounds.Y = -y;

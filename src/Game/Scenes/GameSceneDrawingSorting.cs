@@ -451,13 +451,13 @@ namespace ClassicUO.Game.Scenes
                 down = (entity.FrameInfo.Bottom / 44) >> 1;
                 lateral = (entity.FrameInfo.Right / 44) >> 1;
             }
-            else if (entity.Texture is AnimationFrameTexture frameText)//usually corpses are here
-            {
-                charX += (frameText.CenterX << 1) / 44;
-                charY += (frameText.CenterY << 1) / 44;
-                down = (frameText.Bounds.Bottom / 44) >> 1;
-                lateral = (frameText.Bounds.Right / 44) >> 1;
-            }
+            //else if (entity.Texture is AnimationFrameTexture frameText)//usually corpses are here
+            //{
+            //    charX += (frameText.CenterX << 1) / 44;
+            //    charY += (frameText.CenterY << 1) / 44;
+            //    down = (frameText.Bounds.Bottom / 44) >> 1;
+            //    lateral = (frameText.Bounds.Right / 44) >> 1;
+            //}
             ushort hue = 0x35;
 
             for (int i = 0; i < 21; i++)
