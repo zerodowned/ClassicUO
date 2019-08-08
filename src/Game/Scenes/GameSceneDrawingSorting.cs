@@ -439,7 +439,7 @@ namespace ClassicUO.Game.Scenes
             int charY = entity.Y;
             int maxZ = entity.PriorityZ;
 
-            int dropMaxZIndex = -1;
+            int dropMaxZIndex = -1, down = 0, lateral = 0;
 
             //if (entity is Mobile mob) //&&  ( (mob.IsMoving && (mob.Steps.Back().Direction & 7) == 2)  || mob.Direction == Direction.East) )
             //{
@@ -453,7 +453,6 @@ namespace ClassicUO.Game.Scenes
             }
             else if (entity.Texture is AnimationFrameTexture frameText)//usually corpses are here
             {
-                Rectangle r = entity.GetOnScreenRectangle();
                 charX += (frameText.CenterX << 1) / 44;
                 charY += (frameText.CenterY << 1) / 44;
                 down = (frameText.Bounds.Bottom / 44) >> 1;
