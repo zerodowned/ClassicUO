@@ -31,6 +31,7 @@ using ClassicUO.Game.Map;
 using ClassicUO.IO;
 using ClassicUO.IO.Resources;
 using ClassicUO.Utility;
+using ClassicUO.Renderer;
 
 using Microsoft.Xna.Framework;
 
@@ -445,10 +446,19 @@ namespace ClassicUO.Game.Scenes
             //    dropMaxZIndex = 0;
             //}
 
-            int down = (entity.FrameInfo.Bottom / 44) >> 1;
-            int lateral = (entity.FrameInfo.Right / 44) >> 1;
-
-
+            if(entity.FrameInfo != Rectangle.Empty)
+            {
+                down = (entity.FrameInfo.Bottom / 44) >> 1;
+                lateral = (entity.FrameInfo.Right / 44) >> 1;
+            }
+            else if (entity.Texture is AnimationFrameTexture frameText)//usually corpses are here
+            {
+                Rectangle r = entity.GetOnScreenRectangle();
+                charX += (frameText.CenterX << 1) / 44;
+                charY += (frameText.CenterY << 1) / 44;
+                down = (frameText.Bounds.Bottom / 44) >> 1;
+                lateral = (frameText.Bounds.Right / 44) >> 1;
+            }
             ushort hue = 0x35;
 
             for (int i = 0; i < 21; i++)
