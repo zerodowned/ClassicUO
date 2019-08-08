@@ -398,8 +398,10 @@ namespace ClassicUO.Game.UI.Gumps
                         y = (int)((Entity.RealScreenPosition.Y - (artText.ImageRectangle.Height >> 1)) / scale);
                         break;
                     case AnimationFrameTexture frameText:
-                        x = (int)(((Entity.RealScreenPosition.X + ((Entity.FrameInfo.Width >> 1) - frameText.CenterX))  /*(frameText.CenterX > 0 ? -22 : +22)*/) / scale);
-                        y = (int)((Entity.RealScreenPosition.Y - Entity.FrameInfo.Y/*- (frameText.CenterY >> 1) - (frameText.Height >> 1)*/) / scale);
+                        Item it = (Item) Entity;
+
+                        x = (int)(((Entity.RealScreenPosition.X - Entity.FrameInfo.X + (Entity.FrameInfo.Width >> 1) + 22) / scale));
+                        y = (int)((Entity.RealScreenPosition.Y - Entity.FrameInfo.Y) / scale);
                         break;
                     default:
                         x = (int)((Entity.RealScreenPosition.X + 22) / scale);

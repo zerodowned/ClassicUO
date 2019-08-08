@@ -178,7 +178,6 @@ namespace ClassicUO.Game.GameObjects
             FrameInfo.Y = 0;
             FrameInfo.Width = 0;
             FrameInfo.Height = 0;
-
             byte dir = (byte) ((byte) Layer & 0x7F & 7);
             bool mirror = false;
             FileManager.Animations.GetAnimDirection(ref dir, ref mirror);
@@ -283,6 +282,9 @@ namespace ClassicUO.Game.GameObjects
 
                 int yy = -(frame.Height + frame.CenterY + 3);
                 int xx = -frame.CenterX;
+
+                if (IsFlipped)
+                    xx = -(frame.Width - frame.CenterX);
 
                 if (xx < FrameInfo.X)
                     FrameInfo.X = xx;
