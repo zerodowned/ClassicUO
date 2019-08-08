@@ -269,7 +269,7 @@ namespace ClassicUO.Game.Scenes
                             int height = itemData.Height;
 
                             if (height == 0 && obj.Texture != null && obj.Texture.Height >= 80)
-                                height += obj.Texture.Height;
+                                height = obj.Texture.Height;
                             maxObjectZ += height;
                         }
 
@@ -439,17 +439,16 @@ namespace ClassicUO.Game.Scenes
             int maxZ = entity.PriorityZ;
 
             int dropMaxZIndex = -1;
-            int lateral = 0, down = 0;
 
             //if (entity is Mobile mob) //&&  ( (mob.IsMoving && (mob.Steps.Back().Direction & 7) == 2)  || mob.Direction == Direction.East) )
             //{
             //    dropMaxZIndex = 0;
             //}
-            if(entity.FrameInfo != null)
-            {
-                down = (entity.FrameInfo.Bottom / 44) >> 1;
-                lateral = (entity.FrameInfo.Right / 44) >> 1;
-            }
+
+            int down = (entity.FrameInfo.Bottom / 44) >> 1;
+            int lateral = (entity.FrameInfo.Right / 44) >> 1;
+
+
             ushort hue = 0x35;
 
             for (int i = 0; i < 21; i++)
