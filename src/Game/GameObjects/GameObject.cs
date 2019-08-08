@@ -287,6 +287,12 @@ namespace ClassicUO.Game.GameObjects
 
                                 if (Texture is ArtTexture t)
                                     y -= t.ImageRectangle.Height >> 1;
+                                else if (Texture is AnimationFrameTexture animationFrameTexture)
+                                {
+                                    x += (FrameInfo.Width >> 1) - animationFrameTexture.CenterX;
+                                    x -= 22;
+                                    y -= FrameInfo.Y;
+                                }
                                 else
                                     y -= Texture.Height >> 1;
 
