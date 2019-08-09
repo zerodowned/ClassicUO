@@ -239,7 +239,7 @@ namespace ClassicUO.Game.Managers
 
                 Mouse.CancelDoubleClick = true;
             }
-            else if (TargeringType == TargetType.Neutral && selectedEntity is GameObject gobj)
+            else if (selectedEntity is GameObject gobj)
             {
                 Graphic modelNumber = 0;
                 short z = gobj.Z;
@@ -267,6 +267,10 @@ namespace ClassicUO.Game.Managers
                     {
                         z += data.Height;
                     }
+                }
+                else if (gobj is Land land && TargeringType != TargetType.Neutral)
+                {
+                    return;
                 }
 
                 NetClient.Socket.Send(new PTargetXYZ(gobj.X, gobj.Y, z, modelNumber, _targetCursorId, (byte) TargeringType));
