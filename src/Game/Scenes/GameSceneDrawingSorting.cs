@@ -460,7 +460,7 @@ namespace ClassicUO.Game.Scenes
             //}
             ushort hue = 0x35;
 
-            for (int i = 0; i < 21; i++)
+            for (int i = 0; i < 22; i++)
             {
                 int x = charX;
                 int y = charY;
@@ -472,7 +472,7 @@ namespace ClassicUO.Game.Scenes
                         dropMaxZIndex = 0;
                         break;
                     case 1:
-                        if (lateral < 1)
+                        if (lateral < 2)
                             continue;
                         x++;
                         y -= 2;
@@ -523,61 +523,68 @@ namespace ClassicUO.Game.Scenes
                         //dropMaxZIndex = 8;
                         break;
                     case 10:
+                        if (lateral < 4 && down < 3)
+                            continue;
+                        x += 4;
+                        y -= 3;
+                        break;
+                    case 11:
                         if (lateral < 3 && down < 2)
                             continue;
                         x--;
                         y += 3;
                         break;
-                    case 11:
+                    case 12:
                         if (lateral < 2 && down < 2)
                             continue;
                         y += 2;
                         break;
-                    case 12://mandatory
+                    case 13://mandatory
                         x++;
                         y++;
                         break;
-                    case 13:
+                    case 14:
                         if (lateral < 2 && down < 2)
                             continue;
                         x += 2;
                         break;
-                    case 14:
+                    case 15:
                         if (lateral < 3 && down < 2)
                             continue;
                         x += 3;
                         y--;
                         break;
-                    case 15:
+                    case 16:
                         if (lateral < 5 && down < 4)
                             continue;
                         x += 4;
                         y -= 2;
                         break;
-                    case 16:
+                    case 17:
                         if (down < 4 && lateral < 3)
                             continue;
                         y += 3;
                         break;
-                    case 17:
+                    case 18:
                         if (down < 2)
                             return;
                         x++;
                         y += 2;
                         break;
-                    case 18:
+                    case 19:
                         x += 2;
                         y++;
                         break;
-                    case 19:
+                    case 20:
                         if (down < 4)
                             continue;
                         x += 3;
                         break;
-                    case 20:
+                    case 21:
                         if (down < 4 && lateral < 3)
                             continue;
-                        x += 3;
+                        x += 4;
+                        y--;
                         break;
                 }
 
