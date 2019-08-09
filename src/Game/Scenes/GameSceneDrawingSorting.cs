@@ -478,14 +478,14 @@ namespace ClassicUO.Game.Scenes
                         y -= 2;
                         break;
                     case 2:
-                        if (lateral < 2)
+                        if (lateral < 2 && down < 2)
                             continue;
                         x += 2;
                         y -= 2;
                         dropMaxZIndex = 2;
                         break;
                     case 3:
-                        if (lateral < 3)
+                        if (lateral < 3 && down < 2)
                             continue;
                         x += 3;
                         y -= 3;
@@ -509,14 +509,14 @@ namespace ClassicUO.Game.Scenes
                         x++;
                         break;
                     case 8:
-                        if (lateral < 2)
+                        if (lateral < 2 && down < 2)
                             continue;
                         x += 2;
                         y--;
                         dropMaxZIndex = 8;
                         break;
                     case 9:
-                        if (lateral < 3)
+                        if (lateral < 3 && down < 2)
                             continue;
                         x += 3;
                         y -= 2;
