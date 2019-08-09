@@ -252,7 +252,8 @@ namespace ClassicUO.Game
             return texture != null && texture.Contains(TranslatedMousePositionByViewport.X - x, TranslatedMousePositionByViewport.Y - y);
         }
 
-        public static bool IsPointInStretchedLand(Rectangle rect, int x, int y)
+        [MethodImpl(256)]
+        public static bool IsPointInStretchedLand(ref Rectangle rect, int x, int y)
         {
             //y -= 22;
             x += 22;
