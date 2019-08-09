@@ -439,7 +439,7 @@ namespace ClassicUO.Game.Scenes
             int charY = entity.Y;
             int maxZ = entity.PriorityZ;
 
-            int dropMaxZIndex = -1, down = 0, lateral = 0;
+            int dropMaxZIndex = -1, area = 0;
 
             //if (entity is Mobile mob) //&&  ( (mob.IsMoving && (mob.Steps.Back().Direction & 7) == 2)  || mob.Direction == Direction.East) )
             //{
@@ -448,8 +448,13 @@ namespace ClassicUO.Game.Scenes
 
             if(entity.FrameInfo != Rectangle.Empty)
             {
-                down = (entity.FrameInfo.Bottom / 44) >> 1;
-                lateral = (entity.FrameInfo.Right / 44) >> 1;
+                area = Math.Max((entity.FrameInfo.Bottom / 44) >> 1, (entity.FrameInfo.Right / 44) >> 1);
+                if(entity is Mobile m && m.IsMoving)
+                {
+                    byte b = m.Steps.Back().Direction;
+                    if (b > 0 && b < 6)
+                        area++;
+                }
             }
             //else if (entity.Texture is AnimationFrameTexture frameText)//usually corpses are here
             //{
@@ -458,10 +463,10 @@ namespace ClassicUO.Game.Scenes
             //    down = (frameText.Bounds.Bottom / 44) >> 1;
             //    lateral = (frameText.Bounds.Right / 44) >> 1;
             //}
-            ushort hue = 0x35;
 
             for (int i = 0; i < 22; i++)
             {
+                ushort hue = 0x35;
                 int x = charX;
                 int y = charY;
                 switch (i)
@@ -472,32 +477,37 @@ namespace ClassicUO.Game.Scenes
                         dropMaxZIndex = 0;
                         break;
                     case 1:
-                        if (lateral < 2)
+                        hue = 0x45;
+                        if (area < 2)
                             continue;
                         x++;
                         y -= 2;
                         break;
                     case 2:
-                        if (lateral < 2 && down < 2)
+                        hue = 0x45;
+                        if (area < 2)
                             continue;
                         x += 2;
                         y -= 2;
                         dropMaxZIndex = 2;
                         break;
                     case 3:
-                        if (lateral < 3 && down < 2)
+                        hue = 0x55;
+                        if (area < 3)
                             continue;
                         x += 3;
                         y -= 3;
                         break;
                     case 4:
-                        if (lateral < 3)
+                        hue = 0x55;
+                        if (area < 3)
                             continue;
                         x -= 2;
                         y += 3;
                         break;
                     case 5:
-                        if (lateral < 2)
+                        hue = 0x45;
+                        if (area < 2)
                             continue;
                         x--;
                         y += 2;
@@ -509,33 +519,38 @@ namespace ClassicUO.Game.Scenes
                         x++;
                         break;
                     case 8:
-                        if (lateral < 2 && down < 2)
+                        hue = 0x45;
+                        if (area < 2)
                             continue;
                         x += 2;
                         y--;
                         dropMaxZIndex = 8;
                         break;
                     case 9:
-                        if (lateral < 3 && down < 2)
+                        hue = 0x55;
+                        if (area < 3)
                             continue;
                         x += 3;
                         y -= 2;
                         //dropMaxZIndex = 8;
                         break;
                     case 10:
-                        if (lateral < 4 && down < 3)
+                        hue = 0x75;
+                        if (area < 4)
                             continue;
                         x += 4;
                         y -= 3;
                         break;
                     case 11:
-                        if (lateral < 3 && down < 2)
+                        hue = 0x55;
+                        if (area < 3)
                             continue;
                         x--;
                         y += 3;
                         break;
                     case 12:
-                        if (lateral < 2 && down < 2)
+                        hue = 0x45;
+                        if (area < 2)
                             continue;
                         y += 2;
                         break;
@@ -544,45 +559,47 @@ namespace ClassicUO.Game.Scenes
                         y++;
                         break;
                     case 14:
-                        if (lateral < 2 && down < 2)
+                        hue = 0x45;
+                        if (area < 2)
                             continue;
                         x += 2;
                         break;
                     case 15:
-                        if (lateral < 3 && down < 2)
+                        hue = 0x55;
+                        if (area < 3)
                             continue;
                         x += 3;
                         y--;
                         break;
                     case 16:
-                        if (lateral < 5 && down < 4)
+                        hue = 0x75;
+                        if (area < 4)
                             continue;
                         x += 4;
                         y -= 2;
                         break;
                     case 17:
-                        if (down < 4 && lateral < 3)
-                            continue;
+                        hue = 0x75;
+                        if (area < 4)
+                            return;
                         y += 3;
                         break;
                     case 18:
-                        if (down < 2)
-                            return;
+                        hue = 0x75;
                         x++;
                         y += 2;
                         break;
                     case 19:
+                        hue = 0x75;
                         x += 2;
                         y++;
                         break;
                     case 20:
-                        if (down < 4)
-                            continue;
+                        hue = 0x75;
                         x += 3;
                         break;
                     case 21:
-                        if (down < 4 && lateral < 3)
-                            continue;
+                        hue = 0x75;
                         x += 4;
                         y--;
                         break;
@@ -604,7 +621,7 @@ namespace ClassicUO.Game.Scenes
                 if (tile != null)
                 {
                     AddTileToRenderList(tile.FirstNode, x, y, useObjectHandles, currentMaxZ, hue);
-                    hue += 10;
+                    //hue += 10;
                 }
             }
 
