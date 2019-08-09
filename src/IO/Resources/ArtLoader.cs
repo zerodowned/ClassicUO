@@ -167,10 +167,10 @@ namespace ClassicUO.IO.Resources
             ushort[] pixels = new ushort[width * height];
             ushort* ptr = (ushort*) _file.PositionAddress;
             ushort* lineoffsets = ptr;
-            byte* datastart = (byte*) ptr + height * 2;
+            byte* datastart = (byte*) ptr + (height << 1);
             int x = 0;
             int y = 0;
-            ptr = (ushort*) (datastart + lineoffsets[0] * 2);
+            ptr = (ushort*) (datastart + (lineoffsets[0] << 1));
             int minX = width, minY = height, maxX = 0, maxY = 0;
 
             while (y < height)
@@ -205,7 +205,7 @@ namespace ClassicUO.IO.Resources
                 {
                     x = 0;
                     y++;
-                    ptr = (ushort*) (datastart + lineoffsets[y] * 2);
+                    ptr = (ushort*) (datastart + (lineoffsets[y] << 1));
                 }
             }
 
@@ -313,10 +313,10 @@ namespace ClassicUO.IO.Resources
             ushort[] pixels = new ushort[width * height];
             ushort* ptr = (ushort*) _file.PositionAddress;
             ushort* lineoffsets = ptr;
-            byte* datastart = (byte*) ptr + height * 2;
+            byte* datastart = (byte*) ptr + (height << 1);
             int x = 0;
             int y = 0;
-            ptr = (ushort*) (datastart + lineoffsets[0] * 2);
+            ptr = (ushort*) (datastart + (lineoffsets[0] << 1));
             int minX = width, minY = height, maxX = 0, maxY = 0;
 
             while (y < height)
@@ -351,7 +351,7 @@ namespace ClassicUO.IO.Resources
                 {
                     x = 0;
                     y++;
-                    ptr = (ushort*) (datastart + lineoffsets[y] * 2);
+                    ptr = (ushort*) (datastart + (lineoffsets[y] << 1));
                 }
             }
 
@@ -458,7 +458,7 @@ namespace ClassicUO.IO.Resources
             {
                 int start = 22 - (i + 1);
                 int pos = i * 44 + start;
-                int end = start + (i + 1) * 2;
+                int end = start +  ((i + 1) << 1);
 
                 for (int j = start; j < end; j++)
                 {
@@ -473,7 +473,7 @@ namespace ClassicUO.IO.Resources
             for (int i = 0; i < 22; i++)
             {
                 int pos = (i + 22) * 44 + i;
-                int end = i + (22 - i) * 2;
+                int end = i +  ((22 - i) << 1);
 
                 for (int j = i; j < end; j++)
                 {

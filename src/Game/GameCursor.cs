@@ -22,7 +22,7 @@
 #endregion
 
 using System;
-
+using System.Runtime.CompilerServices;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
@@ -275,10 +275,10 @@ namespace ClassicUO.Game
                         id -= 0x206A;
                     int war = World.InGame && World.Player.InWarMode ? 1 : 0;
 
-                    ref readonly CursorInfo info = ref _cursorPixels[war, id];
+                    CursorInfo info = _cursorPixels[war, id];
 
                     fixed (ushort* ptr = info.Pixels)
-                        _surface = SDL.SDL_CreateRGBSurfaceWithFormatFrom((IntPtr) ptr, info.Width, info.Height, 16, 2 * info.Width, SDL.SDL_PIXELFORMAT_ARGB1555);
+                        _surface = SDL.SDL_CreateRGBSurfaceWithFormatFrom((IntPtr) ptr, info.Width, info.Height, 16, info.Width << 1, SDL.SDL_PIXELFORMAT_ARGB1555);
 
                     if (_surface != IntPtr.Zero)
                     {
@@ -569,6 +569,7 @@ namespace ClassicUO.Game
             return current_facing;
         }
 
+        [MethodImpl(256)]
         private static int Sgn(int val)
         {
             int a = 0 < val ? 1 : 0;
@@ -577,7 +578,7 @@ namespace ClassicUO.Game
             return a - b;
         }
 
-        private readonly struct CursorInfo
+        private class CursorInfo
         {
             public CursorInfo(ushort[] pixels, int w, int h)
             {

@@ -23,7 +23,7 @@
 
 using System;
 using System.Collections.Generic;
-
+using System.Runtime.CompilerServices;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Map;
@@ -381,6 +381,7 @@ namespace ClassicUO.Game
             return resultZ != -128;
         }
 
+        [MethodImpl(256)]
         public static void GetNewXY(byte direction, ref int x, ref int y)
         {
             switch (direction & 7)
@@ -504,6 +505,7 @@ namespace ClassicUO.Game
             return passed;
         }
 
+        [MethodImpl(256)]
         private static int GetGoalDistCost(Point point, int cost)
         {
             return Math.Max(Math.Abs(_endPoint.X - point.X), Math.Abs(_endPoint.Y - point.Y));
