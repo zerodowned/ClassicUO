@@ -438,8 +438,8 @@ namespace ClassicUO.Game.Scenes
             int charX = entity.X;
             int charY = entity.Y;
             int maxZ = entity.PriorityZ;
-
             int dropMaxZIndex = -1, area = 0;
+            bool corpse = false;
 
             //if (entity is Mobile mob) //&&  ( (mob.IsMoving && (mob.Steps.Back().Direction & 7) == 2)  || mob.Direction == Direction.East) )
             //{
@@ -454,6 +454,44 @@ namespace ClassicUO.Game.Scenes
                     byte b = m.Steps.Back().Direction;
                     if (b > 0 && b < 6)
                         area++;
+                    else if(b == 7)
+                        area--;
+                }
+                else if(entity is Item it && entity.Texture != null)
+                {
+                    switch(it.Direction)
+                    {
+                        case Direction.Up:
+                            charX += area;
+                            charY += area;
+                            break;
+                        case Direction.North:
+                            charY += area;
+                            break;
+                        case Direction.Right:
+                            charY += area;
+                            charX -= area;
+                            break;
+                        case Direction.East:
+                            charX -= area;
+                            break;
+                        case Direction.Down:
+                            charX -= area;
+                            charY -= area;
+                            break;
+                        case Direction.South:
+                            charY -= area;
+                            break;
+                        case Direction.Left:
+                            charY -= area;
+                            charX += area;
+                            break;
+                        case Direction.West:
+                            charX += area;
+                            break;
+                    }
+                    area = Math.Max(2, area);
+                    corpse = true;
                 }
             }
             //else if (entity.Texture is AnimationFrameTexture frameText)//usually corpses are here
@@ -464,13 +502,17 @@ namespace ClassicUO.Game.Scenes
             //    lateral = (frameText.Bounds.Right / 44) >> 1;
             //}
 
-            for (int i = 0; i < 22; i++)
+            for (int i = -1; i < 22; i++)
             {
                 ushort hue = 0x35;
                 int x = charX;
                 int y = charY;
                 switch (i)
                 {
+                    case -1:
+                        if (!corpse)
+                            continue;
+                        break;
                     case 0://mandatory
                         x++;
                         y--;
@@ -532,7 +574,6 @@ namespace ClassicUO.Game.Scenes
                             continue;
                         x += 3;
                         y -= 2;
-                        //dropMaxZIndex = 8;
                         break;
                     case 10:
                         hue = 0x75;
@@ -621,93 +662,8 @@ namespace ClassicUO.Game.Scenes
                 if (tile != null)
                 {
                     AddTileToRenderList(tile.FirstNode, x, y, useObjectHandles, currentMaxZ, hue);
-                    //hue += 10;
                 }
             }
-
-            /*int area = 2;
-
-            if (entity is Mobile mob)
-            {
-                byte dir;
-                if (mob.IsMoving)
-                {
-                    Mobile.Step s = mob.Steps.Back();
-                    dir = s.Direction;
-                    if (dir > 0 && dir < 6)
-                    {
-                        if (s.Z > entity.Z)
-                            maxZ += s.Z + 5 - entity.Z;
-                    }
-                }
-                else
-                    dir = (byte)mob.Direction;
-
-                if (mob.Texture != null)
-                {
-                    Rectangle r = mob.Texture.Bounds;
-                    //this is a raw optimization, since every object is at least 44*44, we consider the minimum 4096 (optimized to avoid division and use bit shift operands)
-                    //so we can calculate an approximated area occupied by the animation in tiles, and use an area of 2 for priority drawing at minimum
-                    
-                    //area = Math.Max(4096, r.Width * r.Height) >> 11;
-                    //area >>= 2;
-
-                    //if (area > 5)
-                    //    area = 5;
-                    //else if (area < 2)
-                    //    area = 2;
-
-                    
-                    area = Math.Max(r.Width, r.Height);
-
-                    if (area < 32)
-                        area = 44;
-
-                    area >>= 5;
-
-                    if (area > 2)
-                        area >>= 1;
-                    else if (area < 1)
-                        area = 1;
-
-                    //if (area > 3)
-                    //    area = 3;
-                    //if (area >= 2)
-                    //{
-                    //    if (dir % 2 != 0)
-                    //        area--;
-                    //}
-                }
-                else
-                    area = 0;
-            }
-            if (area == 0)
-                return;
-
-            int minX = charX - area;
-            int minY = charY + area;
-            int maxX = charX + area;
-            int maxY = charY - area;
-
-            for (int leadx = minX; leadx <= maxX; leadx++)
-            {
-                int x = leadx, y = minY;
-                while (x <= maxX && y >= maxY)
-                {
-                    if (x != charX || y != charY)
-                    {
-                        Tile tile = World.Map.GetTile(x, y);
-
-                        if (tile != null)
-                        {
-                            AddTileToRenderList(tile.FirstNode, x, y, useObjectHandles, maxZ, entity);
-                        }
-                    }
-                    x++;
-                    y--;
-                }
-            }
-            */
         }
 
         private void GetViewPort()
