@@ -106,7 +106,7 @@ namespace ClassicUO.Game.GameObjects
 
             if (IsStretched)
             {
-                if (SelectedObject.IsPointInStretchedLand(ref Rectangle, x, y + Z * 4))
+                if (SelectedObject.IsPointInStretchedLand(ref Rectangle, x, y + (Z << 2)))
                     SelectedObject.Object = this;
             }
             else
