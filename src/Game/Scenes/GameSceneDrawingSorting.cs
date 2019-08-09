@@ -441,11 +441,6 @@ namespace ClassicUO.Game.Scenes
             int dropMaxZIndex = -1, area = 0;
             bool corpse = false;
 
-            //if (entity is Mobile mob) //&&  ( (mob.IsMoving && (mob.Steps.Back().Direction & 7) == 2)  || mob.Direction == Direction.East) )
-            //{
-            //    dropMaxZIndex = 0;
-            //}
-
             if(entity.FrameInfo != Rectangle.Empty)
             {
                 area = Math.Max((entity.FrameInfo.Bottom / 44) >> 1, (entity.FrameInfo.Right / 44) >> 1);
@@ -462,32 +457,32 @@ namespace ClassicUO.Game.Scenes
                     switch(it.Direction)
                     {
                         case Direction.Up:
-                            charX += area;
-                            charY += area;
+                            charX++;
+                            charY++;
                             break;
                         case Direction.North:
-                            charY += area;
+                            charY++;
                             break;
                         case Direction.Right:
-                            charY += area;
-                            charX -= area;
+                            charY++;
+                            charX--;
                             break;
                         case Direction.East:
-                            charX -= area;
+                            charX--;
                             break;
                         case Direction.Down:
-                            charX -= area;
-                            charY -= area;
+                            charX--;
+                            charY--;
                             break;
                         case Direction.South:
-                            charY -= area;
+                            charY--;
                             break;
                         case Direction.Left:
-                            charY -= area;
-                            charX += area;
+                            charY--;
+                            charX++;
                             break;
                         case Direction.West:
-                            charX += area;
+                            charX++;
                             break;
                     }
                     area = Math.Max(2, area);
