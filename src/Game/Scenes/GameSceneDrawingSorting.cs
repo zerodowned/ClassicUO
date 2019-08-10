@@ -267,11 +267,16 @@ namespace ClassicUO.Game.Scenes
                                 continue;
 
                             //if (HeightChecks <= 0 && (!itemData.IsBridge || ((itemData.Flags & TileFlag.StairBack | TileFlag.StairRight) != 0) || itemData.IsWall))
-                            int height = itemData.Height;
 
-                            if (height == 0 && obj.Texture != null && obj.Texture.Height >= 80)
-                                height = 16;
-                            maxObjectZ += height;
+                            if (!itemData.IsSurface || (itemData.Flags & TileFlag.StairRight) != 0 || (itemData.Flags & TileFlag.StairBack) != 0)
+                            {
+                                int height = itemData.Height;
+
+                                if (height == 0 && obj.Texture != null && obj.Texture.Height >= 80)
+                                    height = 16;
+
+                                maxObjectZ += height;
+                            }
                         }
 
                         break;
