@@ -88,7 +88,7 @@ namespace ClassicUO.Game.GameObjects
 
         public bool IsMale
         {
-            get => _isMale || (Flags & Flags.Female) == 0 || IsOtherMale || IsElfMale || (Graphic < 900 && Graphic % 2 == 0 && !IsOtherFemale && !IsElfFemale);
+            get => _isMale || (Flags & Flags.Female) == 0 || IsOtherMale || IsElfMale;
             set
             {
                 if (_isMale != value)
@@ -99,9 +99,9 @@ namespace ClassicUO.Game.GameObjects
             }
         }
 
-        public bool IsOtherMale => Graphic == 183 || Graphic == 185;
+        public bool IsOtherMale => Graphic == 183 || Graphic == 185 || Graphic == 750 || Graphic == 744 || Graphic == 141 || Graphic == 400 || Graphic == 402;
         public bool IsElfMale => Graphic == 605 || Graphic == 607;
-        public bool IsOtherFemale => Graphic == 184 || Graphic == 186;
+        public bool IsOtherFemale => Graphic == 184 || Graphic == 186 || Graphic == 751 || Graphic == 745 || Graphic == 401 || Graphic == 403;
         public bool IsElfFemale => Graphic == 606 || Graphic == 608;
 
         public RaceType Race
