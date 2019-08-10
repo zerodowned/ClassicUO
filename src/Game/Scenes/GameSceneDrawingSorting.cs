@@ -22,6 +22,7 @@
 #endregion
 
 using System;
+using System.Linq;
 using System.Text;
 
 using ClassicUO.Game.Data;
@@ -175,7 +176,7 @@ namespace ClassicUO.Game.Scenes
 
         private static readonly StaticTiles _emptyStaticTiles = default;
 
-        private void AddTileToRenderList(GameObject obj, int worldX, int worldY, bool useObjectHandles, int maxZ, ushort hue = 20/*, GameObject entity*/)
+        private byte AddTileToRenderList(GameObject obj, int worldX, int worldY, bool useObjectHandles, int maxZ, ushort hue = 20, byte extra = 0xFF)
         {
             /*sbyte HeightChecks = 0;
             if(entity != null)
@@ -189,6 +190,8 @@ namespace ClassicUO.Game.Scenes
                     HeightChecks = -1;
                 }
             }*/
+
+            byte result = 0xFF;
 
             for (; obj != null; obj = obj.Right)
             {
@@ -219,6 +222,14 @@ namespace ClassicUO.Game.Scenes
                 switch (obj)
                 {
                     case Mobile _:
+
+                        if (extra != 0xFF)
+                        {
+                            result = 0;
+
+                            return result;
+                        }
+
                         maxObjectZ += Constants.DEFAULT_CHARACTER_HEIGHT;
                         ismobile = true;
 
@@ -268,12 +279,35 @@ namespace ClassicUO.Game.Scenes
 
                             //if (HeightChecks <= 0 && (!itemData.IsBridge || ((itemData.Flags & TileFlag.StairBack | TileFlag.StairRight) != 0) || itemData.IsWall))
 
-                            if (!itemData.IsSurface /*|| (itemData.Flags & TileFlag.StairRight) != 0 || (itemData.Flags & TileFlag.StairBack) != 0*/)
+                            //if (!itemData.IsSurface || 
+
+                            //    ( (extra == 12 || extra == 17) && ((itemData.Flags & TileFlag.StairRight) != 0 || 
+                            //                                      (itemData.Flags & TileFlag.StairBack) != 0) )
+                            //    )
+
+
+                            //if ((extra == 8 || extra == 15 || extra == 21 ||
+                            //          extra == 1 || extra == 2 || extra == 9 || extra == 16 ||
+                            //          extra == 3 || extra == 10 ||
+                            //          extra == 8 ||
+                            //          extra == 7 ||
+                            //          extra == 14 || 
+                            //          extra == 2) && ((itemData.Flags & TileFlag.StairRight) != 0 ||
+                            //                      (itemData.Flags & TileFlag.StairBack) != 0 || itemData.IsSurface || (itemData.IsWall && itemData.Height < 10)))
+                            //{
+                            //    break;
+                            //}
+
                             {
                                 int height = itemData.Height;
 
                                 if (height == 0 && obj.Texture != null && obj.Texture.Height >= 80)
                                     height = 20;
+
+                                //if ((extra == 8 || extra == 15 || extra == 21 ||
+                                //     extra == 1 || extra == 2 || extra == 9 || extra == 16 ||
+                                //     extra == 3 || extra == 10))
+                                //    maxObjectZ -= 20;
 
                                 maxObjectZ += height;
                             }
@@ -432,11 +466,14 @@ namespace ClassicUO.Game.Scenes
                     int newsize = _renderList.Length + 1000;
                     Array.Resize(ref _renderList, newsize);
                 }
-
+               
                 _renderList[_renderListCount++] = obj;
                 obj.UseInRender = (byte)_renderIndex;
             }
+
+            return result;
         }
+
 
         private void AddOffsetCharacterTileToRenderList(GameObject entity, bool useObjectHandles)
         {
@@ -444,7 +481,6 @@ namespace ClassicUO.Game.Scenes
             int charY = entity.Y;
             int maxZ = entity.PriorityZ;
             int dropMaxZIndex = -1, area = 0;
-            bool corpse = false;
 
             if(entity.FrameInfo != Rectangle.Empty)
             {
@@ -457,62 +493,16 @@ namespace ClassicUO.Game.Scenes
                     else if(b == 7)
                         area--;
                 }
-                else if(entity is Item it && entity.Texture != null)
-                {
-                    switch(it.Direction)
-                    {
-                        case Direction.Up:
-                            charX++;
-                            charY++;
-                            break;
-                        case Direction.North:
-                            charY++;
-                            break;
-                        case Direction.Right:
-                            charY++;
-                            charX--;
-                            break;
-                        case Direction.East:
-                            charX--;
-                            break;
-                        case Direction.Down:
-                            charX--;
-                            charY--;
-                            break;
-                        case Direction.South:
-                            charY--;
-                            break;
-                        case Direction.Left:
-                            charY--;
-                            charX++;
-                            break;
-                        case Direction.West:
-                            charX++;
-                            break;
-                    }
-                    area = Math.Max(2, area);
-                    corpse = true;
-                }
             }
             //else if (entity.Texture is AnimationFrameTexture frameText)//usually corpses are here
-            //{
-            //    charX += (frameText.CenterX << 1) / 44;
-            //    charY += (frameText.CenterY << 1) / 44;
-            //    down = (frameText.Bounds.Bottom / 44) >> 1;
-            //    lateral = (frameText.Bounds.Right / 44) >> 1;
-            //}
 
-            for (int i = -1; i < 22; i++)
+            for (byte i = 0; i < 22; i++)
             {
                 ushort hue = 0x35;
                 int x = charX;
                 int y = charY;
                 switch (i)
                 {
-                    case -1:
-                        if (!corpse)
-                            continue;
-                        break;
                     case 0://mandatory
                         x++;
                         y--;
@@ -531,7 +521,7 @@ namespace ClassicUO.Game.Scenes
                             continue;
                         x += 2;
                         y -= 2;
-                        dropMaxZIndex = 2;
+                        //dropMaxZIndex = 2;
                         break;
                     case 3:
                         hue = 0x55;
@@ -661,7 +651,8 @@ namespace ClassicUO.Game.Scenes
 
                 if (tile != null)
                 {
-                    AddTileToRenderList(tile.FirstNode, x, y, useObjectHandles, currentMaxZ, hue);
+                    if (AddTileToRenderList(tile.FirstNode, x, y, useObjectHandles, currentMaxZ, hue, i) == i)
+                        break;
                 }
             }
         }
