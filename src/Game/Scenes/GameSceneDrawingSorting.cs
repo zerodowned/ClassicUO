@@ -566,7 +566,7 @@ namespace ClassicUO.Game.Scenes
                             continue;
                         x += 2;
                         y--;
-                        dropMaxZIndex = 8;
+                        //dropMaxZIndex = 8;
                         break;
                     case 9:
                         hue = 0x55;
