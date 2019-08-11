@@ -494,13 +494,14 @@ namespace ClassicUO.Game.Scenes
                         area--;
                 }
             }
-            //else if (entity.Texture is AnimationFrameTexture frameText)//usually corpses are here
 
             for (byte i = 0; i < 22; i++)
             {
                 ushort hue = 0x35;
+
                 int x = charX;
                 int y = charY;
+
                 switch (i)
                 {
                     case 0://mandatory
