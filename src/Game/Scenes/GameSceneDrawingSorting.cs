@@ -42,13 +42,12 @@ namespace ClassicUO.Game.Scenes
     {
         private sbyte _maxGroundZ;
         private int _maxZ;
-        private Vector2 _minPixel, _maxPixel;
         private bool _noDrawRoofs;
         private int _objectHandlesCount;
         //private WeakReference<GameObject>[] _renderList = new WeakReference<GameObject>[2000];
 
 
-        private Point _offset, _maxTile, _minTile;
+        private Point _offset, _maxTile, _minTile, _minPixel, _maxPixel;
         private int _oldPlayerX, _oldPlayerY, _oldPlayerZ;
 
         private int _renderIndex = 1;
