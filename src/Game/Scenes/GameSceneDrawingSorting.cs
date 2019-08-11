@@ -487,7 +487,7 @@ namespace ClassicUO.Game.Scenes
                 if(entity is Mobile m && m.IsMoving)
                 {
                     byte b = m.Steps.Back().Direction;
-                    if (b > 0 && b < 6)
+                    if (area > 1 && b > 0 && b < 6)
                         area++;
                     else if(b == 7)
                         area--;
