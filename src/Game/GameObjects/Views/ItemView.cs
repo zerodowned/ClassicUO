@@ -142,7 +142,7 @@ namespace ClassicUO.Game.GameObjects
 
                 if (SelectedObject.LastObject == this && !IsLocked)
                 {
-                    isPartial = false;
+                    isPartial = ItemData.Weight == 255;
                     hue = 0x0035;
                 }
                 else if (IsHidden)
@@ -352,7 +352,7 @@ namespace ClassicUO.Game.GameObjects
             if (!Serial.IsValid && IsMulti && TargetManager.TargetingState == CursorTarget.MultiPlacement)
                 return;
 
-            if (SelectedObject.Object == this)
+            if (SelectedObject.Object == this || CharacterIsBehindFoliage)
                 return;
 
             if (IsCorpse)
