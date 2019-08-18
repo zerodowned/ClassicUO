@@ -22,6 +22,7 @@
 #endregion
 
 using System;
+using System.IO;
 using System.Threading.Tasks;
 
 using ClassicUO.Game.GameObjects;
@@ -43,22 +44,47 @@ namespace ClassicUO.Game.UI.Gumps
     internal class WorldMapGump : ResizableGump
     {
         private UOTexture _mapTexture;
+
         private bool _isTopMost;
         private readonly float[] _zooms = new float[10] { 0.125f, 0.25f, 0.5f, 0.75f, 1f, 1.5f, 2f, 4f, 6f, 8f };
         private int _zoomIndex = 4;
-
         private Point _center, _lastScroll;
         private bool _isScrolling;
+        private bool _flipMap = true;
+        private bool _freeView;
+        private int _mapIndex;
+        private bool _showPartyMembers;
 
         public WorldMapGump() : base(400, 400, 100, 100, 0, 0)
         {
             CanMove = true;
             AcceptMouseInput = true;
-            //CanCloseWithRightClick = false;
+            CanCloseWithRightClick = false;
 
             GameActions.Print("WorldMap loading...", 0x35);
-            Task.Run(Load);
+            Load();
             OnResize();
+
+
+            ContextMenuControl contextMenu = new ContextMenuControl();
+            contextMenu.Add("Flip map", () => _flipMap = !_flipMap, true, _flipMap);
+            contextMenu.Add("Top Most", () => TopMost = !TopMost, true, _isTopMost);
+            contextMenu.Add("Free view", () =>
+            {
+                _freeView = !_freeView;
+
+                if (!_freeView)
+                {
+                    _isScrolling = false;
+                    CanMove = true;
+                }
+            }, true, _freeView);
+            contextMenu.Add("Show party members", () => { _showPartyMembers = !_showPartyMembers; }, true, _showPartyMembers);
+            contextMenu.Add("", null);
+            contextMenu.Add("Close", Dispose);
+
+
+            Add(contextMenu);
         }
 
 
@@ -70,28 +96,47 @@ namespace ClassicUO.Game.UI.Gumps
             if (button != MouseButton.Left || _isScrolling || Keyboard.Alt)
                 return base.OnMouseDoubleClick(x, y, button);
 
-            _isTopMost = !_isTopMost;
-
-            ShowBorder = !_isTopMost;
-
-            ControlInfo.Layer = _isTopMost ? UILayer.Over : UILayer.Default;
-
+            TopMost = !TopMost;
+          
             return true;
+        }
+
+        public bool TopMost
+        {
+            get => _isTopMost;
+            set
+            {
+                _isTopMost = value;
+
+                ShowBorder = !_isTopMost;
+
+                ControlInfo.Layer = _isTopMost ? UILayer.Over : UILayer.Default;
+
+            }
         }
 
         protected override void OnMouseUp(int x, int y, MouseButton button)
         {
-            _isScrolling = false;
-            CanMove = true;
+            if (!_freeView)
+            {
+                _isScrolling = false;
+                CanMove = true;
+            }
+            Engine.UI.GameCursor.IsDraggingCursorForced = false;
+
             base.OnMouseUp(x, y, button);
         }
 
         protected override void OnMouseDown(int x, int y, MouseButton button)
         {
-            if (button == MouseButton.Left && Keyboard.Alt)
+            if ((button == MouseButton.Left && Keyboard.Alt) || _freeView)
             {
+                _lastScroll.X = x;
+                _lastScroll.Y = y;
                 _isScrolling = true;
                 CanMove = false;
+
+                Engine.UI.GameCursor.IsDraggingCursorForced = true;
             }
 
             base.OnMouseDown(x, y, button);
@@ -117,6 +162,12 @@ namespace ClassicUO.Game.UI.Gumps
                 if (_center.Y < 0)
                     _center.Y = 0;
 
+                if (_center.X > FileManager.Map.MapsDefaultSize[World.MapIndex, 0])
+                    _center.X = FileManager.Map.MapsDefaultSize[World.MapIndex, 0];
+
+                if (_center.Y > FileManager.Map.MapsDefaultSize[World.MapIndex, 1])
+                    _center.Y = FileManager.Map.MapsDefaultSize[World.MapIndex, 1];
+
                 _lastScroll.X = x;
                 _lastScroll.Y = y;
             }
@@ -126,132 +177,139 @@ namespace ClassicUO.Game.UI.Gumps
             }
         }
 
+
         public override void Update(double totalMS, double frameMS)
         {
             base.Update(totalMS, frameMS);
 
-          
+            if (_mapIndex != World.MapIndex)
+            {
+                Load();
+            }
         }
 
-        private unsafe void Load()
+        private unsafe Task Load()
         {
-            int size = FileManager.Map.MapsDefaultSize[World.MapIndex, 0] * FileManager.Map.MapsDefaultSize[World.MapIndex, 1];
-            uint[] buffer = new uint[size];
-            int maxBlock = size - 1;
+            _mapIndex = World.MapIndex;
 
-            for (int bx = 0; bx < FileManager.Map.MapBlocksSize[World.MapIndex, 0]; bx++)
-            {
-                int mapX = bx << 3;
+            return Task.Run(() => 
+            { 
+                int size = FileManager.Map.MapsDefaultSize[World.MapIndex, 0] * FileManager.Map.MapsDefaultSize[World.MapIndex, 1];
+                uint[] buffer = new uint[size];
+                int maxBlock = size - 1;
 
-                for (int by = 0; by < FileManager.Map.MapBlocksSize[World.MapIndex, 1]; by++)
+                for (int bx = 0; bx < FileManager.Map.MapBlocksSize[World.MapIndex, 0]; bx++)
                 {
-                    ref IndexMap indexMap = ref World.Map.GetIndex(bx, by);
+                    int mapX = bx << 3;
 
-                    if (indexMap.MapAddress == 0)
-                        continue;
-
-                    int mapY = by << 3;
-                    MapBlock info = new MapBlock();
-                    MapCells* infoCells = (MapCells*) &info.Cells;
-                    MapBlock* mapBlock = (MapBlock*) indexMap.MapAddress;
-                    MapCells* cells = (MapCells*) &mapBlock->Cells;
-                    int pos = 0;
-
-                    for (int y = 0; y < 8; y++)
+                    for (int by = 0; by < FileManager.Map.MapBlocksSize[World.MapIndex, 1]; by++)
                     {
-                        for (int x = 0; x < 8; x++)
+                        ref IndexMap indexMap = ref World.Map.GetIndex(bx, by);
+
+                        if (indexMap.MapAddress == 0)
+                            continue;
+
+                        int mapY = by << 3;
+                        MapBlock info = new MapBlock();
+                        MapCells* infoCells = (MapCells*) &info.Cells;
+                        MapBlock* mapBlock = (MapBlock*) indexMap.MapAddress;
+                        MapCells* cells = (MapCells*) &mapBlock->Cells;
+                        int pos = 0;
+
+                        for (int y = 0; y < 8; y++)
                         {
-                            ref MapCells cell = ref cells[pos];
-                            ref MapCells infoCell = ref infoCells[pos];
-                            infoCell.TileID = cell.TileID;
-                            infoCell.Z = cell.Z;
-                            pos++;
-                        }
-                    }
-
-                    StaticsBlock* sb = (StaticsBlock*) indexMap.StaticAddress;
-
-                    if (sb != null)
-                    {
-                        int count = (int) indexMap.StaticCount;
-
-                        for (int c = 0; c < count; c++)
-                        {
-                            ref readonly StaticsBlock staticBlock = ref sb[c];
-
-                            if (staticBlock.Color != 0 && staticBlock.Color != 0xFFFF && !GameObjectHelper.IsNoDrawable(staticBlock.Color))
+                            for (int x = 0; x < 8; x++)
                             {
-                                pos = (staticBlock.Y << 3) + staticBlock.X;
-                                ref MapCells cell = ref infoCells[pos];
+                                ref MapCells cell = ref cells[pos];
+                                ref MapCells infoCell = ref infoCells[pos];
+                                infoCell.TileID = cell.TileID;
+                                infoCell.Z = cell.Z;
+                                pos++;
+                            }
+                        }
 
-                                if (cell.Z <= staticBlock.Z)
+                        StaticsBlock* sb = (StaticsBlock*) indexMap.StaticAddress;
+
+                        if (sb != null)
+                        {
+                            int count = (int) indexMap.StaticCount;
+
+                            for (int c = 0; c < count; c++)
+                            {
+                                ref readonly StaticsBlock staticBlock = ref sb[c];
+
+                                if (staticBlock.Color != 0 && staticBlock.Color != 0xFFFF && !GameObjectHelper.IsNoDrawable(staticBlock.Color))
                                 {
-                                    cell.TileID = (ushort) (staticBlock.Color + 0x4000);
-                                    cell.Z = staticBlock.Z;
+                                    pos = (staticBlock.Y << 3) + staticBlock.X;
+                                    ref MapCells cell = ref infoCells[pos];
+
+                                    if (cell.Z <= staticBlock.Z)
+                                    {
+                                        cell.TileID = (ushort) (staticBlock.Color + 0x4000);
+                                        cell.Z = staticBlock.Z;
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    pos = 0;
+                        pos = 0;
 
-                    for (int y = 0; y < 8; y++)
-                    {
-                        int block = (mapY + y) * FileManager.Map.MapsDefaultSize[World.MapIndex, 0] + mapX;
-
-                        for (int x = 0; x < 8; x++)
+                        for (int y = 0; y < 8; y++)
                         {
+                            int block = (mapY + y) * FileManager.Map.MapsDefaultSize[World.MapIndex, 0] + mapX;
 
-                            ref readonly var c = ref infoCells[pos];
-                            ushort color = (ushort)(0x8000 | FileManager.Hues.GetRadarColorData(c.TileID));
-
-                            Color cc;
-
-                            if (x > 0)
+                            for (int x = 0; x < 8; x++)
                             {
-                                int index = (y << 3) + (x - 1);
+                                ref readonly var c = ref infoCells[pos];
+                                ushort color = (ushort)(0x8000 | FileManager.Hues.GetRadarColorData(c.TileID));
+                                Color cc;
 
-                                if (c.Z < infoCells[index].Z)
+                                if (x > 0)
                                 {
-                                    cc = new Color((((color >> 10) & 31) / 31f) * 80 / 100,
-                                                   (((color >> 5) & 31) / 31f) * 80 / 100,
-                                                   ((color & 31) / 31f) * 80 / 100);
+                                    int index = (y << 3) + (x - 1);
 
-                                }
-                                else if (c.Z > infoCells[index].Z)
-                                {
-                                    cc = new Color((((color >> 10) & 31) / 31f) * 100 / 80,
-                                                   (((color >> 5) & 31) / 31f) * 100 / 80,
-                                                   ((color & 31) / 31f) * 100 / 80);
+                                    if (c.Z < infoCells[index].Z)
+                                    {
+                                        cc = new Color((((color >> 10) & 31) / 31f) * 80 / 100,
+                                                       (((color >> 5) & 31) / 31f) * 80 / 100,
+                                                       ((color & 31) / 31f) * 80 / 100);
+
+                                    }
+                                    else if (c.Z > infoCells[index].Z)
+                                    {
+                                        cc = new Color((((color >> 10) & 31) / 31f) * 100 / 80,
+                                                       (((color >> 5) & 31) / 31f) * 100 / 80,
+                                                       ((color & 31) / 31f) * 100 / 80);
+                                    }
+                                    else
+                                        cc = new Color((((color >> 10) & 31) / 31f),
+                                                       (((color >> 5) & 31) / 31f),
+                                                       ((color & 31) / 31f));
                                 }
                                 else
+                                {
                                     cc = new Color((((color >> 10) & 31) / 31f),
                                                    (((color >> 5) & 31) / 31f),
                                                    ((color & 31) / 31f));
+                                }
+
+                                buffer[block] = cc.PackedValue;
+
+                                if (y < 7 && x < 7 && block < maxBlock)
+                                    buffer[block + 1] = cc.PackedValue;
+
+                                block++;
+                                pos++;
                             }
-                            else
-                            {
-                                cc = new Color((((color >> 10) & 31) / 31f),
-                                               (((color >> 5) & 31) / 31f),
-                                               ((color & 31) / 31f));
-                            }
-
-                            buffer[block] = cc.PackedValue;
-
-                            if (y < 7 && x < 7 && block < maxBlock)
-                                buffer[block + 1] = cc.PackedValue;
-
-                            block++;
-                            pos++;
                         }
                     }
                 }
-            }
 
-            _mapTexture = new UOTexture32(FileManager.Map.MapsDefaultSize[World.MapIndex, 0], FileManager.Map.MapsDefaultSize[World.MapIndex, 1]);
-            _mapTexture.SetData(buffer);
+                _mapTexture = new UOTexture32(FileManager.Map.MapsDefaultSize[World.MapIndex, 0], FileManager.Map.MapsDefaultSize[World.MapIndex, 1]);
+                _mapTexture.SetData(buffer);
 
-            GameActions.Print("WorldMap loaded!", 0x48);
+                GameActions.Print("WorldMap loaded!", 0x48);
+            });
         }
 
 
@@ -290,7 +348,7 @@ namespace ClassicUO.Game.UI.Gumps
 
         public override bool Draw(UltimaBatcher2D batcher, int x, int y)
         {
-            if (!_isScrolling)
+            if (!_isScrolling && !_freeView)
             {
                 _center.X = World.Player.X;
                 _center.Y = World.Player.Y;
@@ -328,7 +386,6 @@ namespace ClassicUO.Game.UI.Gumps
 
                 int offset = size >> 1;
 
-
                 batcher.Draw2D(_mapTexture, (x - offset) + halfWidth, (y - offset) + halfHeight,
                                size, size,
 
@@ -338,7 +395,7 @@ namespace ClassicUO.Game.UI.Gumps
                                sw,
                                sh,
 
-                               ref _hueVector, 45);
+                               ref _hueVector, _flipMap ? 45 : 0);
 
                 batcher.EnableScissorTest(false);
 
@@ -351,6 +408,22 @@ namespace ClassicUO.Game.UI.Gumps
             {
                 if (mobile != World.Player)
                     DrawMobile(batcher, mobile, gX, gY, halfWidth, halfHeight, Zoom, Color.Red);
+            }
+
+            if (_showPartyMembers)
+            {
+                for (int i = 0; i < 10; i++)
+                {
+                    var partyMember = World.Party.Members[i];
+
+                    if (partyMember != null && partyMember.Serial.IsValid)
+                    {
+                        var mob = World.Mobiles.Get(partyMember.Serial);
+
+                        if (mob != null)
+                            DrawMobile(batcher, mob, gX, gY, halfWidth, halfHeight, Zoom, Color.Yellow);
+                    }
+                }
             }
 
             DrawMobile(batcher, World.Player, gX, gY, halfWidth, halfHeight, Zoom, Color.White);
@@ -369,7 +442,7 @@ namespace ClassicUO.Game.UI.Gumps
             rotX += x + width;
             rotY += y + height;
 
-            const int DOT_SIZE = 5;
+            const int DOT_SIZE = 4;
 
             if (rotX < x)
                 rotX = x;
@@ -384,7 +457,7 @@ namespace ClassicUO.Game.UI.Gumps
                 rotY = y + Height - 8 - DOT_SIZE;
 
 
-            batcher.Draw2D(Textures.GetTexture(color), rotX, rotY, DOT_SIZE, DOT_SIZE, ref _hueVector);
+            batcher.Draw2D(Textures.GetTexture(color), rotX - (DOT_SIZE >> 1), rotY - (DOT_SIZE >> 1), DOT_SIZE, DOT_SIZE, ref _hueVector);
         }
 
         public override void Dispose()
