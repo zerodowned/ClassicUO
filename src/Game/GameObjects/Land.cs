@@ -25,6 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
+using ClassicUO.Game.Managers;
 using ClassicUO.IO;
 using ClassicUO.IO.Resources;
 
@@ -110,7 +111,7 @@ namespace ClassicUO.Game.GameObjects
             if (IsStretched)
             {
                 int x = (currentZ << 2) + 1;
-                int y = zTop << 2;
+                int y = (zTop << 2);
                 int w = (zRight << 2) - x;
                 int h = (zBottom << 2) + 1 - y;
 

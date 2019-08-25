@@ -111,7 +111,7 @@ namespace ClassicUO.Game.GameObjects
             }
             else
             {
-                if (SelectedObject.IsPointInLand(Texture, Graphic, x - Bounds.X, y - Bounds.Y))
+                if (SelectedObject.IsPointInLand(Texture, x - Bounds.X, y - Bounds.Y))
                     SelectedObject.Object = this;
             }
         }
@@ -130,8 +130,8 @@ namespace ClassicUO.Game.GameObjects
                 IsStretched = true;
                 UpdateZ(
                     map.GetTileZ(x, y + 1),
-                    map.GetTileZ(x + 1, y + 1), 
-                    map.GetTileZ(x + 1, y), 
+                    map.GetTileZ(x + 1, y + 1),
+                    map.GetTileZ(x + 1, y),
                     z);
 
                 Vector3[,,] vec = new Vector3[3, 3, 4];
@@ -199,15 +199,15 @@ namespace ClassicUO.Game.GameObjects
                 j = 1;
 
                 // 0
-               SumAndNormalize(
-                    ref vec,
-                    i - 1, j - 1, 2,
-                    i - 1, j, 1,
-                    i, j - 1, 3,
-                    i, j, 0,
-                    out Normals[0]);
+                SumAndNormalize(
+                     ref vec,
+                     i - 1, j - 1, 2,
+                     i - 1, j, 1,
+                     i, j - 1, 3,
+                     i, j, 0,
+                     out Normals[0]);
 
-               // 1
+                // 1
                 SumAndNormalize(
                     ref vec,
                     i, j - 1, 2,
@@ -239,7 +239,7 @@ namespace ClassicUO.Game.GameObjects
 
         [MethodImpl(256)]
         private static void SumAndNormalize(
-            ref Vector3[,,] vec, 
+            ref Vector3[,,] vec,
             int index0_x, int index0_y, int index0_z,
             int index1_x, int index1_y, int index1_z,
             int index2_x, int index2_y, int index2_z,
