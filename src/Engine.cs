@@ -486,7 +486,12 @@ namespace ClassicUO
             // NOTE: This is very important to get correct path of the assembly to properly run in the mono environment
             // @see: https://stackoverflow.com/questions/39601742/mono-executes-program-with-wrong-current-directory
             // @see: https://stackoverflow.com/questions/1658518/getting-the-absolute-path-of-the-executable-using-c/17836681
-            ExePath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location); // Environment.CurrentDirectory;
+
+#if NETCOREAPP3_0
+            ExePath = Environment.CurrentDirectory;
+#else
+            ExePath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+#endif
             Console.WriteLine("ExePath: {0}", ExePath);
 
 #if !DEBUG
@@ -499,7 +504,7 @@ namespace ClassicUO
                 sb.AppendFormat("ClassicUO - v{0}\nOS: {1} {2}\nThread: {3}\n\n", Version, Environment.OSVersion.Platform, Environment.Is64BitOperatingSystem ? "x64" : "x86", Thread.CurrentThread.Name);
 #endif
                 sb.AppendFormat("Exception:\n{0}", e.ExceptionObject);
-
+               
                 Log.Message(LogTypes.Panic, e.ExceptionObject.ToString());
                 string path = Path.Combine(ExePath, "Logs");
 

@@ -104,7 +104,13 @@ namespace ClassicUO.Game.UI.Controls
             }
         }
 
-        public GumpPic(List<string> parts) : this(int.Parse(parts[1]), int.Parse(parts[2]), Graphic.Parse(parts[3]), (ushort) (parts.Count > 4 ? TransformHue((ushort) (Hue.Parse(parts[4].Substring(parts[4].IndexOf('=') + 1)) + 1)) : 0))
+        public GumpPic(List<string> parts) : this(int.Parse(parts[1]), int.Parse(parts[2]), Graphic.Parse(parts[3]), (ushort) (parts.Count > 4 ?
+#if NETCOREAPP3_0
+                TransformHue((ushort)(Hue.Parse( parts[4][ (parts[4].IndexOf('=') + 1)..] ) + 1)) : 0)
+#else
+                TransformHue((ushort) (Hue.Parse(parts[4].Substring(parts[4].IndexOf('=') + 1)) + 1)) : 0)
+#endif
+            )
         {
         }
 
