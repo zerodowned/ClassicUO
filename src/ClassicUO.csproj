@@ -7,11 +7,12 @@
     <RootNamespace>ClassicUO</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>8</LangVersion>
-    <ApplicationIcon />
+    <ApplicationIcon>cuoicon.ico</ApplicationIcon>
     <StartupObject />
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <PublishSingleFile>true</PublishSingleFile>  
-    <PublishTrimmed>true</PublishTrimmed>
+    <Version>0.1.2.1</Version>  
+    <Description>An open source implementation of the Ultima Online Classic Client</Description>  
+    <PackageIconUrl></PackageIconUrl>
   </PropertyGroup>
 
 

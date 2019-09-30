@@ -118,8 +118,13 @@ namespace ClassicUO.IO.Resources
 
                 if (pos != -1)
                 {
+#if NETCOREAPP3_0
+                    arguments.Add(arg[..pos]);
+                    arg = arg[(pos + 1)..];
+#else
                     arguments.Add(arg.Substring(0, pos));
                     arg = arg.Substring(pos + 1);
+#endif
                 }
                 else
                 {
@@ -145,7 +150,15 @@ namespace ClassicUO.IO.Resources
 
                 if (a.Length > 1 && a[0] == '#')
                 {
-                    if (int.TryParse(a.Substring(1), out int id1))
+                    if (
+                        int.TryParse(
+#if NETCOREAPP3_0
+                        a[1..]
+#else
+                        a.Substring(1)
+#endif
+                        , 
+                        out int id1))
                         arguments[i] = GetString(id1) ?? string.Empty;
                     else
                         arguments[i] = a;

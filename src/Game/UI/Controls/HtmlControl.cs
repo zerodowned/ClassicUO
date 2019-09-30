@@ -30,7 +30,7 @@ using ClassicUO.IO.Resources;
 using ClassicUO.Renderer;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
-
+using ClassicUO.Utility.Platforms;
 using Microsoft.Xna.Framework;
 
 namespace ClassicUO.Game.UI.Controls
@@ -244,7 +244,7 @@ namespace ClassicUO.Game.UI.Controls
                         if (inbounds && FileManager.Fonts.GetWebLink(link.LinkID, out WebLink result))
                         {
                             Log.Message(LogTypes.Info, "LINK CLICKED: " + result.Link);
-                            Process.Start(result.Link);
+                            Browser.OpenBrowser(result.Link);
 
                             break;
                         }

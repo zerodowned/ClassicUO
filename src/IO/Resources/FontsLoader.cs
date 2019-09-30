@@ -2482,8 +2482,19 @@ namespace ClassicUO.IO.Resources
 
         private void TrimHTMLString(ref string str)
         {
-            if (str.Length >= 2 && str[0] == '"' && str[str.Length - 1] == '"')
+            if (str.Length >= 2 && str[0] == '"' &&
+#if NETCOREAPP3_0
+                str[^1]
+#else
+                str[str.Length - 1]
+#endif
+
+                == '"')
+#if NETCOREAPP3_0
+                str = str[1..^1];
+#else
                 str = str.Substring(1, str.Length - 2);
+#endif
         }
 
         private HTMLDataInfo GetHTMLInfoFromTag(HTML_TAG_TYPE tag)
