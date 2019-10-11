@@ -21,6 +21,8 @@
 
 #endregion
 
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
 
@@ -63,6 +65,7 @@ namespace ClassicUO.Game.Scenes
         private UseItemQueue _useItemQueue = new UseItemQueue();
         private Vector4 _vectorClear = new Vector4(Vector3.Zero, 1);
         private WorldViewport _viewPortGump;
+        private Weather _weather;
 
         public bool UpdateDrawPosition { get; set; }
 
@@ -95,7 +98,8 @@ namespace ClassicUO.Game.Scenes
         public Texture2D ViewportTexture => _renderTarget;
 
         public Texture2D Darkness => _darkness;
-        
+
+        public Weather Weather => _weather;
 
         public bool UseLights => Engine.Profile.Current != null && Engine.Profile.Current.UseCustomLightLevel ? World.Light.Personal < World.Light.Overall : World.Light.RealPersonal < World.Light.RealOverall;
 
@@ -134,6 +138,7 @@ namespace ClassicUO.Game.Scenes
             Macros = new MacroManager(Engine.Profile.Current.Macros);
             InfoBars = new InfoBarManager();
             _healthLinesManager = new HealthLinesManager();
+            _weather = new Weather();
 
             WorldViewportGump viewport = new WorldViewportGump(this);
 
@@ -271,6 +276,7 @@ namespace ClassicUO.Game.Scenes
             _renderTarget?.Dispose();
             _darkness?.Dispose();
             CommandManager.UnRegisterAll();
+            _weather.Reset();
 
             Engine.UI?.Clear();
             World.Clear();
@@ -443,11 +449,27 @@ namespace ClassicUO.Game.Scenes
                 }
             }
 
+
+            UpdateTextServerEntities(World.Mobiles);
+            UpdateTextServerEntities(World.Items);
+
             _renderIndex++;
 
             if (_renderIndex >= 100)
                 _renderIndex = 1;
             UpdateDrawPosition = false;
+        }
+
+        private void UpdateTextServerEntities(IEnumerable<Entity> entities)
+        {
+            foreach (Entity e in entities)
+            {
+                if (e.UseInRender != _renderIndex && e.TextContainer != null)
+                {
+                    e.UpdateRealScreenPosition(_offset.X, _offset.Y);
+                    e.UseInRender = (byte)_renderIndex;
+                }
+            }
         }
 
         public override void Update(double totalMS, double frameMS)
@@ -471,15 +493,7 @@ namespace ClassicUO.Game.Scenes
             if (!World.InGame)
                 return;
 
-            if (_renderTarget == null || _renderTarget.Width != (int) (Engine.Profile.Current.GameWindowSize.X * Scale) || _renderTarget.Height != (int) (Engine.Profile.Current.GameWindowSize.Y * Scale))
-            {
-                _renderTarget?.Dispose();
-                _darkness?.Dispose();
-
-                _renderTarget = new RenderTarget2D(Engine.Batcher.GraphicsDevice, (int) (Engine.Profile.Current.GameWindowSize.X * Scale), (int) (Engine.Profile.Current.GameWindowSize.Y * Scale), false, SurfaceFormat.Color, DepthFormat.Depth24Stencil8, 0, RenderTargetUsage.DiscardContents);
-                _darkness = new RenderTarget2D(Engine.Batcher.GraphicsDevice, (int) (Engine.Profile.Current.GameWindowSize.X * Scale), (int) (Engine.Profile.Current.GameWindowSize.Y * Scale), false, SurfaceFormat.Color, DepthFormat.Depth24Stencil8, 0, RenderTargetUsage.DiscardContents);
-            }
-
+            
             World.Update(totalMS, frameMS);
             Pathfinder.ProcessAutoWalk();
 
@@ -643,16 +657,6 @@ namespace ClassicUO.Game.Scenes
         }
 
 
-        //DepthStencilState s2 = new DepthStencilState
-        //{
-        //    StencilEnable = true,
-        //    StencilFunction = CompareFunction.NotEqual,
-        //    StencilPass = StencilOperation.Keep,
-        //    StencilFail = StencilOperation.Keep,
-        //    StencilDepthBufferFail = StencilOperation.Keep,
-        //    ReferenceStencil = 0,
-        //    DepthBufferEnable = false,
-        //};
 
         private void DrawWorld(UltimaBatcher2D batcher)
         {
@@ -663,9 +667,12 @@ namespace ClassicUO.Game.Scenes
 
             //if (CircleOfTransparency.Circle == null)
             //    CircleOfTransparency.Create(200);
-            //CircleOfTransparency.Circle.Draw(batcher, Engine.WindowWidth >> 1, Engine.WindowHeight >> 1);
+            //CircleOfTransparency.Circle.Draw(batcher,
+            //                                 ((Engine.Profile.Current.GameWindowSize.X / 2)),
+            //                                 ((Engine.Profile.Current.GameWindowSize.Y / 2)));
 
-            //batcher.GraphicsDevice.Clear(ClearOptions.Stencil, new Vector4(0, 0, 0, 1), 0, 0);
+            //batcher.GraphicsDevice.Clear(ClearOptions.Stencil | ClearOptions.Target | ClearOptions.DepthBuffer, Color.Black, 0, 0);
+
 
             batcher.SetBrightlight(Engine.Profile.Current.Brighlight);
 
@@ -693,17 +700,20 @@ namespace ClassicUO.Game.Scenes
                     }
                 }
 
-
                 if (_multi != null && TargetManager.IsTargeting && TargetManager.TargetingState == CursorTarget.MultiPlacement)
                     _multi.Draw(batcher, _multi.RealScreenPosition.X, _multi.RealScreenPosition.Y);
             }
 
             //batcher.SetStencil(null);
-
             batcher.End();
 
-
             DrawLights(batcher);
+
+
+            // draw weather
+            batcher.Begin();
+            _weather.Draw(batcher, 0, 0 /*Engine.Profile.Current.GameWindowPosition.X, Engine.Profile.Current.GameWindowPosition.Y*/);
+            batcher.End();
 
             batcher.GraphicsDevice.SetRenderTarget(null);
         }
@@ -712,7 +722,9 @@ namespace ClassicUO.Game.Scenes
 
         private void DrawLights(UltimaBatcher2D batcher)
         {
-            batcher.GraphicsDevice.SetRenderTarget(null);
+            if (_deathScreenActive || !UseLights)
+                return;
+
             batcher.GraphicsDevice.SetRenderTarget(_darkness);
 
             var lightColor = World.Light.IsometricLevel;
@@ -722,11 +734,8 @@ namespace ClassicUO.Game.Scenes
 
             _vectorClear.X = _vectorClear.Y = _vectorClear.Z = lightColor;
 
-            batcher.GraphicsDevice.Clear(Color.Black);
-            batcher.GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer | ClearOptions.Stencil, _vectorClear, 0, 0);
-
-            if (_deathScreenActive || !UseLights)
-                return;
+            batcher.GraphicsDevice.Clear(ClearOptions.Target, Color.Black, 0, 0);
+            batcher.GraphicsDevice.Clear(ClearOptions.Target, _vectorClear, 0, 0);
 
             batcher.Begin();
             batcher.SetBlendState(BlendState.Additive);

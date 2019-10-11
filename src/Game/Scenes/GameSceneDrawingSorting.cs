@@ -33,6 +33,7 @@ using ClassicUO.IO.Resources;
 using ClassicUO.Utility;
 
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace ClassicUO.Game.Scenes
 {
@@ -308,7 +309,9 @@ namespace ClassicUO.Game.Scenes
                 obj.CurrentRenderIndex = _renderIndex;
 
                 if (!island)
-                    obj.UpdateTextCoords();
+                {
+                    obj.UpdateTextCoordsV();
+                }
                 else
                     goto SKIP_INTERNAL_CHECK;
 
@@ -685,7 +688,18 @@ namespace ClassicUO.Game.Scenes
             int maxPixlesY = (int) newMaxY;
 
             if (UpdateDrawPosition || oldDrawOffsetX != winDrawOffsetX || oldDrawOffsetY != winDrawOffsetY)
+            {
                 UpdateDrawPosition = true;
+
+                if (_renderTarget == null || _renderTarget.Width != (int)(winGameWidth * Scale) || _renderTarget.Height != (int)(winGameHeight * Scale))
+                {
+                    _renderTarget?.Dispose();
+                    _darkness?.Dispose();
+
+                    _renderTarget = new RenderTarget2D(Engine.Batcher.GraphicsDevice, (int)(winGameWidth * Scale), (int)(winGameHeight * Scale), false, SurfaceFormat.Color, DepthFormat.Depth24Stencil8, 0, RenderTargetUsage.DiscardContents);
+                    _darkness = new RenderTarget2D(Engine.Batcher.GraphicsDevice, (int)(winGameWidth * Scale), (int)(winGameHeight * Scale), false, SurfaceFormat.Color, DepthFormat.Depth24Stencil8, 0, RenderTargetUsage.DiscardContents);
+                }
+            }
 
             _minTile.X = realMinRangeX;
             _minTile.Y = realMinRangeY;
