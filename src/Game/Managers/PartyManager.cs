@@ -1,4 +1,4 @@
-﻿#region license
+#region license
 
 //  Copyright (C) 2019 ClassicUO Development Community on Github
 //
@@ -22,6 +22,8 @@
 #endregion
 
 using System;
+
+using ClassicUO.Configuration;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Network;
 
@@ -45,9 +47,13 @@ namespace ClassicUO.Game.Managers
         {
             byte code = p.ReadByte();
 
+            bool add = false;
+
             switch (code)
             {
                 case 1:
+                    add = true;
+                    goto case 2;
                 case 2:
                     byte count = p.ReadByte();
 
@@ -61,7 +67,7 @@ namespace ClassicUO.Game.Managers
                             if (Members[i] == null || Members[i].Serial == 0)
                                 break;
 
-                            HealthBarGump gump = Engine.UI.GetGump<HealthBarGump>(Members[i].Serial);
+                            BaseHealthBarGump gump = UIManager.GetGump<BaseHealthBarGump>(Members[i].Serial);
 
 
                             if (gump != null)
@@ -74,12 +80,17 @@ namespace ClassicUO.Game.Managers
                         }
 
                         Clear();
-                        Engine.UI.GetGump<PartyGumpAdvanced>()?.Update();
+                        UIManager.GetGump<PartyGumpAdvanced>()?.Update();
 
                         break;
                     }
 
                     Clear();
+
+                    if (!add)
+                    {
+                        UIManager.GetGump<BaseHealthBarGump>(p.ReadUInt())?.Update();
+                    }
 
                     for (int i = 0; i < count; i++)
                     {
@@ -89,8 +100,7 @@ namespace ClassicUO.Game.Managers
                         if (i == 0)
                             Leader = serial;
 
-
-                        HealthBarGump gump = Engine.UI.GetGump<HealthBarGump>(serial);
+                        BaseHealthBarGump gump = UIManager.GetGump<BaseHealthBarGump>(serial);
 
                         if (gump != null)
                         {
@@ -105,10 +115,10 @@ namespace ClassicUO.Game.Managers
                         }
                     }
 
-                    Engine.UI.GetGump<PartyGumpAdvanced>()?.Update();
+                    UIManager.GetGump<PartyGumpAdvanced>()?.Update();
 
                     break;
-
+                
                 case 3:
                 case 4:
                     Serial ser = p.ReadUInt();
@@ -118,7 +128,7 @@ namespace ClassicUO.Game.Managers
                     {
                         if (Members[i] != null && Members[i].Serial == ser)
                         {
-                            Chat.HandleMessage(null, name, Members[i].Name, Engine.Profile.Current.PartyMessageHue, MessageType.Party, 3);
+                            Chat.HandleMessage(null, name, Members[i].Name, ProfileManager.Current.PartyMessageHue, MessageType.Party, 3);
 
                             break;
                         }
@@ -129,9 +139,9 @@ namespace ClassicUO.Game.Managers
                 case 7:
                     Inviter = p.ReadUInt();
 
-                    if (Engine.Profile.Current.PartyInviteGump)
+                    if (ProfileManager.Current.PartyInviteGump)
                     {
-                        Engine.UI.Add(new PartyInviteGump(Inviter));
+                        UIManager.Add(new PartyInviteGump(Inviter));
                     }
                     break;
             }
@@ -154,7 +164,7 @@ namespace ClassicUO.Game.Managers
                 Members[i] = null;
         }
     }
-    
+
     internal class PartyMember : IEquatable<PartyMember>
     {
         private string _name;

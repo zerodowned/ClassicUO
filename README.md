@@ -56,23 +56,20 @@ Open a terminal instance and put the following commands:
 # Building (macOS)
 All the commands should be executed in terminal. All global package installs should be done only if not yet installed.
 
-1. Install Homebrew, a package manager for macOS (if not yet installed):
+1. Install Homebrew, a package manager for macOS:
 Follow instructions on https://brew.sh/
 
-2. Install Mono (https://www.mono-project.com/):
+2. Install Mono, a cross platform, open source .NET framework (https://www.mono-project.com/):
 `brew install mono`
 
-3. Install Paket, a dependency manager for .NET and mono projects (https://fsprojects.github.io/Paket/):
-`brew install paket`
+3. Install NuGet, a package manager for .NET (https://www.nuget.org/):
+`brew install nuget`
 
-4. Navigate to ClassicUO root folder:
+4. Navigate to your ClassicUO root folder:
 `cd /your/path/to/ClassicUO`
 
-5. Initialize Paket environment:
-`paket init`
-
-6. Install required/missing dependencies:
-`paket add Newtonsoft.Json --version 12.0.2`
+5. Restore required packages:
+`nuget restore`
 
 7. Build:
   - Debug version: `msbuild /t:Rebuild`
@@ -82,10 +79,8 @@ Follow instructions on https://brew.sh/
   - Debug version: `./bin/Debug/ClassicUO-mono.sh`
   - Release version: `./bin/Release/ClassicUO-mono.sh`
 
-Other useful commands:
-- `msbuild /t:Clean`
-- `msbuild /t:Clean /p:Configuration=Release`
-- `msbuild /t:RestorePackages`
+X. [Optional] If you want to run a debugger for .NET (in VS Code, for example), install .NET SDK:
+`brew cask install dotnet-sdk`
 
 # Contribute
 Everyone is welcome to contribute! The GitHub issues and project tracker are kept up to date with tasks that need work.
@@ -98,6 +93,5 @@ The code itself has been written using the following projects as a reference:
 * [UltimaXNA](https://github.com/ZaneDubya/UltimaXNA)
 * [ServUO](https://github.com/servuo/servuo)
 
-This work is released under the GPLv3 license. This project does not distribute any copyrighted game assets. In order to run this client you'll need to legally obtain a copy of version 7.0.59.8 or earlier of the Ultima Online Classic Client.
-
+This work is released under the GPLv3 license. This project does not distribute any copyrighted game assets. In order to run this client you'll need to legally obtain a copy of the Ultima Online Classic Client.
 Ultima Online(R) © 2019 Electronic Arts Inc. All Rights Reserved.

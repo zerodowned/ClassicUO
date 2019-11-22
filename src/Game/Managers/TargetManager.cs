@@ -23,6 +23,7 @@
 
 using System;
 
+using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Scenes;
@@ -60,7 +61,7 @@ namespace ClassicUO.Game.Managers
 
     internal class MultiTargetInfo
     {
-        public ushort XOff, YOff, ZOff, Model, Hue;
+        public readonly ushort XOff, YOff, ZOff, Model, Hue;
 
         public MultiTargetInfo(ushort model, ushort x, ushort y, ushort z, ushort hue)
         {
@@ -69,11 +70,7 @@ namespace ClassicUO.Game.Managers
             YOff = y;
             ZOff = z;
             Hue = hue;
-
-            Offset = new Position(XOff, YOff, (sbyte)ZOff);
         }
-
-        public readonly Position Offset;
     }
 
     internal static class TargetManager
@@ -124,7 +121,7 @@ namespace ClassicUO.Game.Managers
             IsTargeting = cursorType < TargetType.Cancel;
 
             if (IsTargeting)
-                Engine.UI.RemoveTargetLineGump(LastTarget);
+                UIManager.RemoveTargetLineGump(LastTarget);
             else if (lastTargetting)
             {
                 CancelTarget();
@@ -146,8 +143,11 @@ namespace ClassicUO.Game.Managers
         public static void SetTargetingMulti(Serial deedSerial, ushort model, ushort x, ushort y, ushort z, ushort hue)
         {
             SetTargeting(CursorTarget.MultiPlacement, deedSerial, TargetType.Neutral);
-            MultiTargetInfo = new MultiTargetInfo(model, x, y, z, hue);
+
+            if (model != 0)
+                MultiTargetInfo = new MultiTargetInfo(model, x, y, z, hue);
         }
+
 
         private static void TargetXYZ(GameObject selectedEntity)
         {
@@ -171,14 +171,14 @@ namespace ClassicUO.Game.Managers
 
             if (selectedEntity is GameEffect effect && effect.Source != null)
                 selectedEntity = effect.Source;
-            else if (selectedEntity is MessageInfo overhead && overhead.Owner != null)
+            else if (selectedEntity is TextOverhead overhead && overhead.Owner != null)
                 selectedEntity = overhead.Owner;
 
             if (TargetingState == CursorTarget.SetGrabBag)
             {
                 if (selectedEntity is Item item)
                 {
-                    Engine.Profile.Current.GrabBagSerial = item.Serial;
+                    ProfileManager.Current.GrabBagSerial = item.Serial;
                     GameActions.Print($"Grab Bag set: {item.Serial}");
                 }
 
@@ -203,8 +203,8 @@ namespace ClassicUO.Game.Managers
             {
                 if (selectedEntity != World.Player)
                 {
-                    Engine.UI.RemoveTargetLineGump(LastAttack);
-                    Engine.UI.RemoveTargetLineGump(LastTarget);
+                    UIManager.RemoveTargetLineGump(LastAttack);
+                    UIManager.RemoveTargetLineGump(LastTarget);
                     LastTarget = entity.Serial;
                 }
 
@@ -212,7 +212,7 @@ namespace ClassicUO.Game.Managers
                     _enqueuedAction(entity.Serial, entity.Graphic, entity.X, entity.Y, entity.Z, entity is Item it && it.OnGround || entity.Serial.IsMobile);
                 else
                 {
-                    if (Engine.Profile.Current.EnabledCriminalActionQuery && TargeringType == TargetType.Harmful)
+                    if (ProfileManager.Current.EnabledCriminalActionQuery && TargeringType == TargetType.Harmful)
                     {
                         Mobile m = World.Mobiles.Get(entity);
 
@@ -228,7 +228,7 @@ namespace ClassicUO.Game.Managers
                                                                            }
                                                                        });
 
-                            Engine.UI.Add(messageBox);
+                            UIManager.Add(messageBox);
 
                             return;
                         }
@@ -282,6 +282,199 @@ namespace ClassicUO.Game.Managers
             Mouse.CancelDoubleClick = true;
             MultiTargetInfo = null;
             ClearTargetingWithoutTargetCancelPacket();
+        }
+
+        public static bool IsMobileSelectableAsTarget(Serial serial, int type)
+        {
+            Mobile mobile = World.Mobiles.Get(serial);
+
+            if (mobile == null)
+                return false;
+
+            if (mobile == World.Player)
+                return false;
+
+            if (Math.Abs(mobile.Z - World.Player.Z) >= 20)
+                return false;
+
+            if (mobile.Distance > 12)
+                return false;
+
+            if (type >= 0 && type != 4)
+            {
+                // 0 - Hostile (only hostile mobiles: gray, criminal, enemy, murderer)
+                if (
+                    type == 0 &&
+                    mobile.NotorietyFlag != NotorietyFlag.Gray &&
+                    mobile.NotorietyFlag != NotorietyFlag.Criminal &&
+                    mobile.NotorietyFlag != NotorietyFlag.Enemy &&
+                    mobile.NotorietyFlag != NotorietyFlag.Murderer
+                )
+                    return false;
+
+                // 1 - Party (only party members)
+                if (type == 1 && !World.Party.Contains(mobile))
+                    return false;
+
+                // 2 - Follower (only your followers)
+                // TODO: Find a better way to determine follower instead of checking if it is "renamable"
+                if (type == 2 && (mobile.NotorietyFlag != NotorietyFlag.Ally || !mobile.IsRenamable))
+                    return false;
+
+                // 3 - Object (no mobiles, only objects (items)?!)
+                if (type == 3)
+                    return false;
+
+                // 4 - Mobile (any mobiles)
+                // No need to check anything here
+            }
+
+            return true;
+        }
+
+        public static void SetLastTarget(Serial serial)
+        {
+            Mobile target = World.Mobiles.Get(serial);
+
+            if (target == null)
+                return;
+
+            GameActions.MessageOverhead($"Target: {target.Name}", Notoriety.GetHue(target.NotorietyFlag), World.Player);
+            UIManager.RemoveTargetLineGump(TargetManager.LastTarget);
+            UIManager.RemoveTargetLineGump(TargetManager.LastAttack);
+            TargetManager.LastTarget = target.Serial;
+            UIManager.SetTargetLineGump(TargetManager.LastTarget);
+        }
+
+        public static void SelectNextMobile(int type = -1)
+        {
+            Mobile target = null;
+            Mobile firstMobile = null;
+            bool currentTargetFound = false;
+
+            foreach (Mobile mobile in World.Mobiles)
+            {
+                if (mobile == null)
+                    continue;
+
+                if (!IsMobileSelectableAsTarget(mobile.Serial, type))
+                    continue;
+
+                if (TargetManager.LastTarget != null && TargetManager.LastTarget == mobile.Serial)
+                {
+                    currentTargetFound = true;
+                    continue;
+                }
+
+                if (firstMobile == null)
+                    firstMobile = mobile;
+
+                if (!currentTargetFound)
+                    continue;
+
+                target = mobile;
+                break;
+            }
+
+            if (target == null && firstMobile != null)
+                target = firstMobile;
+
+            if (target != null)
+                SetLastTarget(target.Serial);
+            else
+                GameActions.Print("No new target found");
+        }
+
+        public static void SelectPreviousMobile(int type = -1)
+        {
+            Mobile target = null;
+            Mobile lastMobile = null;
+            bool currentTargetFound = false;
+
+            foreach (Mobile mobile in World.Mobiles)
+            {
+                if (mobile == null)
+                    continue;
+
+                if (!IsMobileSelectableAsTarget(mobile.Serial, type))
+                    continue;
+
+                if (!currentTargetFound && lastMobile != null)
+                    target = lastMobile;
+
+                if (TargetManager.LastTarget != null && TargetManager.LastTarget == mobile.Serial)
+                {
+                    currentTargetFound = true;
+                    continue;
+                }
+
+                lastMobile = mobile;
+            }
+
+            if (target == null && lastMobile != null)
+                target = lastMobile;
+
+            if (target != null)
+                SetLastTarget(target.Serial);
+            else
+                GameActions.Print("No new target found");
+        }
+
+        public static void SelectNearestMobile(int type = -1)
+        {
+            Mobile target = null;
+            int closestDist = ushort.MaxValue;
+            Mobile firstMobile = null;
+            bool currentTargetFound = false;
+
+            // NOTE: This first cycle is required to first determine closest distance
+            // that we will use to rotate our nearest group of mobiles
+            foreach (Mobile mobile in World.Mobiles)
+            {
+                if (mobile == null)
+                    continue;
+
+                if (!IsMobileSelectableAsTarget(mobile.Serial, type))
+                    continue;
+
+                if (mobile.Distance < closestDist)
+                    closestDist = mobile.Distance;
+            }
+
+            foreach (Mobile mobile in World.Mobiles)
+            {
+                if (mobile == null)
+                    continue;
+
+                if (!IsMobileSelectableAsTarget(mobile.Serial, type))
+                    continue;
+
+                if (mobile.Distance > closestDist)
+                    continue;
+
+                if (TargetManager.LastTarget != null && TargetManager.LastTarget == mobile.Serial)
+                {
+                    currentTargetFound = true;
+                    continue;
+                }
+
+                if (firstMobile == null)
+                    firstMobile = mobile;
+
+                if (!currentTargetFound)
+                    continue;
+
+                target = mobile;
+                break;
+            }
+
+            if (target == null && firstMobile != null)
+                target = firstMobile;
+
+            if (target != null)
+                SetLastTarget(target.Serial);
+            else
+                GameActions.Print("No new target found");
         }
     }
 }

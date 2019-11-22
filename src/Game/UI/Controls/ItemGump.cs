@@ -23,6 +23,7 @@
 
 using System;
 
+using ClassicUO.Configuration;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;
@@ -30,6 +31,7 @@ using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Input;
 using ClassicUO.IO;
 using ClassicUO.Renderer;
+using ClassicUO.Game.Data;
 
 using Microsoft.Xna.Framework;
 
@@ -39,21 +41,19 @@ namespace ClassicUO.Game.UI.Controls
     {
         protected bool _clickedCanDrag;
 
-        private Point _lastClickPosition;
         private float _picUpTime;
         private float _sClickTime;
         private bool _sendClickIfNotDClick;
 
-        public ItemGump(Serial serial)
+        public ItemGump(Item item)
         {
-            Item item = World.Items.Get(serial);
-
             if (item == null)
             {
                 Dispose();
                 return;
             }
 
+            Item = item;
             AcceptMouseInput = true;
             X = item.X;
             Y = item.Y;
@@ -64,7 +64,7 @@ namespace ClassicUO.Game.UI.Controls
 
             Width = texture.Width;
             Height = texture.Height;
-            LocalSerial = serial;
+            LocalSerial = item;
 
             WantUpdateSize = false;
         }
@@ -74,12 +74,11 @@ namespace ClassicUO.Game.UI.Controls
 
         public bool CanPickUp { get; set; }
 
+        public Item Item { get; }
 
         public override void Update(double totalMS, double frameMS)
         {
-            Item item = World.Items.Get(LocalSerial);
-
-            if (item == null)
+            if (Item == null || Item.IsDestroyed)
             {
                 Dispose();
             }
@@ -107,22 +106,20 @@ namespace ClassicUO.Game.UI.Controls
 
         public override bool Draw(UltimaBatcher2D batcher, int x, int y)
         {
-            Item item = World.Items.Get(LocalSerial);
-
-            if (item == null)
+            if (Item == null || Item.IsDestroyed)
             {
                 Dispose();
             }
 
-            if (IsDisposed)
+            if (IsDisposed || !Item.AllowedToDraw)
                 return false;
 
             ResetHueVector();
-            ShaderHuesTraslator.GetHueVector(ref _hueVector, MouseIsOver && HighlightOnMouseOver ? 0x0035 : item.Hue, item.ItemData.IsPartialHue, 0, true);
+            ShaderHuesTraslator.GetHueVector(ref _hueVector, MouseIsOver && HighlightOnMouseOver ? 0x0035 : Item.Hue, Item.ItemData.IsPartialHue, 0, true);
 
             batcher.Draw2D(Texture, x, y, Width, Height, ref _hueVector);
 
-            if (item.Amount > 1 && item.ItemData.IsStackable && item.DisplayedGraphic == item.Graphic)
+            if (Item.Amount > 1 && Item.ItemData.IsStackable && Item.DisplayedGraphic == Item.Graphic)
                 batcher.Draw2D(Texture, x + 5, y + 5, Width, Height, ref _hueVector);
 
             return base.Draw(batcher, x, y);
@@ -130,9 +127,9 @@ namespace ClassicUO.Game.UI.Controls
 
         public override bool Contains(int x, int y)
         {
-            if (Engine.Profile.Current != null && Engine.Profile.Current.ScaleItemsInsideContainers)
+            if (ProfileManager.Current != null && ProfileManager.Current.ScaleItemsInsideContainers)
             {
-                float scale = Engine.UI.ContainerScale;
+                float scale = UIManager.ContainerScale;
 
                 x = (int)(x / scale);
                 y = (int)(y / scale);
@@ -141,9 +138,7 @@ namespace ClassicUO.Game.UI.Controls
             if (Texture.Contains(x, y))
                 return true;
 
-            Item item = World.Items.Get(LocalSerial);
-
-            if (item == null)
+            if (Item == null || Item.IsDestroyed)
             {
                 Dispose();
             }
@@ -151,7 +146,7 @@ namespace ClassicUO.Game.UI.Controls
             if (IsDisposed)
                 return false;
 
-            if (!item.IsCoin && item.Amount > 1 && item.ItemData.IsStackable)
+            if (!Item.IsCoin && Item.Amount > 1 && Item.ItemData.IsStackable)
             {
                 if (Texture.Contains(x - 5, y - 5))
                     return true;
@@ -172,7 +167,7 @@ namespace ClassicUO.Game.UI.Controls
             }
 
             _clickedCanDrag = true;
-            _picUpTime = Engine.Ticks + 500f;
+            _picUpTime = Time.Ticks + 500f;
         }
 
         protected override void OnMouseUp(int x, int y, MouseButton button)
@@ -181,13 +176,11 @@ namespace ClassicUO.Game.UI.Controls
 
             if (button == MouseButton.Left)
             {
-                GameScene gs = Engine.SceneManager.GetScene<GameScene>();
+                GameScene gs = CUOEnviroment.Client.GetScene<GameScene>();
                 if (gs == null)
                     return;
 
-                Item item = World.Items.Get(LocalSerial);
-
-                if (item == null)
+                if (Item == null || Item.IsDestroyed)
                 {
                     Dispose();
                 }
@@ -197,20 +190,23 @@ namespace ClassicUO.Game.UI.Controls
 
                 if (TargetManager.IsTargeting)
                 {
-                    if (Mouse.IsDragging && Mouse.LDroppedOffset != Point.Zero)
+                    _clickedCanDrag = false;
+
+                    if (Mouse.IsDragging && CanPickup())
                     {
-                        if (!gs.IsHoldingItem || !gs.IsMouseOverUI) return;
+                        if (!gs.IsHoldingItem || !gs.IsMouseOverUI) 
+                            return;
 
-                        SelectedObject.Object = item;
+                        SelectedObject.Object = Item;
 
-                        if (item.ItemData.IsContainer)
-                            gs.DropHeldItemToContainer(item);
-                        else if (gs.HeldItem.Graphic == item.Graphic && gs.HeldItem.IsStackable)
-                            gs.MergeHeldItem(item);
+                        if (Item.ItemData.IsContainer)
+                            gs.DropHeldItemToContainer(Item);
+                        else if (gs.HeldItem.Graphic == Item.Graphic && gs.HeldItem.IsStackable)
+                            gs.MergeHeldItem(Item);
                         else
                         {
-                            if (item.Container.IsItem)
-                                gs.DropHeldItemToContainer(World.Items.Get(item.Container), X + (Mouse.Position.X - ScreenCoordinateX), Y + (Mouse.Position.Y - ScreenCoordinateY));
+                            if (Item.Container.IsItem)
+                                gs.DropHeldItemToContainer(World.Items.Get(Item.Container), X + (Mouse.Position.X - ScreenCoordinateX), Y + (Mouse.Position.Y - ScreenCoordinateY));
                         }
 
                         return;
@@ -222,35 +218,35 @@ namespace ClassicUO.Game.UI.Controls
                         case CursorTarget.Object:
                         case CursorTarget.Grab:
                         case CursorTarget.SetGrabBag:
-                            SelectedObject.Object = item;
+                            SelectedObject.Object = Item;
 
 
-                            if (item != null)
+                            if (Item != null)
                             {
-                                TargetManager.TargetGameObject(item);
+                                TargetManager.TargetGameObject(Item);
                                 Mouse.LastLeftButtonClickTime = 0;
                             }
 
                             break;
 
                         case CursorTarget.SetTargetClientSide:
-                            SelectedObject.Object = item;
+                            SelectedObject.Object = Item;
 
-                            if (item != null)
+                            if (Item != null)
                             {
-                                TargetManager.TargetGameObject(item);
+                                TargetManager.TargetGameObject(Item);
                                 Mouse.LastLeftButtonClickTime = 0;
-                                Engine.UI.Add(new InfoGump(item));
+                                UIManager.Add(new InfoGump(Item));
                             }
 
                             break;
 
                         case CursorTarget.HueCommandTarget:
-                            SelectedObject.Object = item;
+                            SelectedObject.Object = Item;
 
-                            if (item != null)
+                            if (Item != null)
                             {
-                                CommandManager.OnHueTarget(item);
+                                CommandManager.OnHueTarget(Item);
                             }
 
                             break;
@@ -265,31 +261,28 @@ namespace ClassicUO.Game.UI.Controls
                         {
                             _clickedCanDrag = false;
                             _sendClickIfNotDClick = true;
-                            float totalMS = Engine.Ticks;
+                            float totalMS = Time.Ticks;
                             _sClickTime = totalMS + Mouse.MOUSE_DELAY_DOUBLE_CLICK;
-                            _lastClickPosition.X = Mouse.Position.X;
-                            _lastClickPosition.Y = Mouse.Position.Y;
                         }
                     }
                     else
                     {
-                        SelectedObject.Object = item;
+                        SelectedObject.Object = Item;
 
-                        if (item.ItemData.IsContainer)
-                            gs.DropHeldItemToContainer(item);
-                        else if (gs.HeldItem.Graphic == item.Graphic && gs.HeldItem.IsStackable)
-                            gs.MergeHeldItem(item);
+                        if (Item.ItemData.IsContainer)
+                            gs.DropHeldItemToContainer(Item);
+                        else if (gs.HeldItem.Graphic == Item.Graphic && gs.HeldItem.IsStackable)
+                            gs.MergeHeldItem(Item);
                         else
                         {
-                            if (item.Container.IsItem)
-                                gs.DropHeldItemToContainer(World.Items.Get(item.Container), X + (Mouse.Position.X - ScreenCoordinateX), Y + (Mouse.Position.Y - ScreenCoordinateY));
+                            if (Item.Container.IsItem)
+                                gs.DropHeldItemToContainer(World.Items.Get(Item.Container), X + (Mouse.Position.X - ScreenCoordinateX), Y + (Mouse.Position.Y - ScreenCoordinateY));
                         }
                     }
                     
                 }
 
                 _clickedCanDrag = false;
-
             }
         }
 
@@ -297,16 +290,22 @@ namespace ClassicUO.Game.UI.Controls
         {
             if (_clickedCanDrag)
             {
-                Point offset = Mouse.LDroppedOffset;
-                var split = Engine.UI.GetGump<SplitMenuGump>(LocalSerial);
-
-                if (split != null || Math.Abs(offset.X) > Constants.MIN_PICKUP_DRAG_DISTANCE_PIXELS || Math.Abs(offset.Y) > Constants.MIN_PICKUP_DRAG_DISTANCE_PIXELS)
+                if (CanPickup())
                 {
-                    split?.Dispose();
                     _clickedCanDrag = false;
                     AttempPickUp();
                 }
             }
+        }
+
+        private bool CanPickup()
+        {
+            Point offset = Mouse.LDroppedOffset;
+            var split = UIManager.GetGump<SplitMenuGump>(LocalSerial);
+
+            split?.Dispose();
+
+            return (split != null || (Math.Abs(offset.X) > Constants.MIN_PICKUP_DRAG_DISTANCE_PIXELS || Math.Abs(offset.Y) > Constants.MIN_PICKUP_DRAG_DISTANCE_PIXELS));
         }
 
 
@@ -314,11 +313,22 @@ namespace ClassicUO.Game.UI.Controls
         {
             if (button != MouseButton.Left)
                 return false;
+ 
+            Item container;
 
-            GameActions.DoubleClick(LocalSerial);
+            if ( !Input.Keyboard.Ctrl &&
+                ProfileManager.Current.DoubleClickToLootInsideContainers &&
+                Item != null && !Item.IsDestroyed &&
+                !Item.ItemData.IsContainer && Item.Items.Count == 0 &&
+                (container = World.Items.Get(Item.RootContainer)) != null &&
+                container != World.Player.Equipment[(int) Layer.Backpack]
+            ){
+                GameActions.GrabItem(Item, Item.Amount);
+            } else
+                GameActions.DoubleClick(LocalSerial);
+ 
             _sendClickIfNotDClick = false;
-            _lastClickPosition = Point.Zero;
-
+ 
             return true;
         }
 
@@ -327,23 +337,39 @@ namespace ClassicUO.Game.UI.Controls
         {
             if (CanPickUp)
             {
+                Rectangle bounds = FileManager.Art.GetTexture(Item.DisplayedGraphic).Bounds;
+                int centerX = bounds.Width >> 1;
+                int centerY = bounds.Height >> 1;
+
                 if (this is ItemGumpPaperdoll)
                 {
-                    Item item = World.Items.Get(LocalSerial);
-
-                    if (item == null)
-                    {
+                    if (Item == null || Item.IsDestroyed)
                         Dispose();
-                    }
 
                     if (IsDisposed)
                         return;
 
-                    Rectangle bounds = FileManager.Art.GetTexture(item.DisplayedGraphic).Bounds;
-                    GameActions.PickUp(LocalSerial, bounds.Width >> 1, bounds.Height >> 1);
+                    GameActions.PickUp(LocalSerial, centerX, centerY);
                 }
                 else
-                    GameActions.PickUp(LocalSerial, Point.Zero);
+                {
+                    if (ProfileManager.Current != null && ProfileManager.Current.ScaleItemsInsideContainers)
+                    {
+                        float scale = UIManager.ContainerScale;
+                        centerX = (int) (centerX * scale);
+                        centerY = (int) (centerY * scale);
+                    }
+
+                    if (ProfileManager.Current != null && ProfileManager.Current.RelativeDragAndDropItems)
+                    {
+                        Point p = new Point(centerX - (Mouse.Position.X - ScreenCoordinateX), centerY - (Mouse.Position.Y - ScreenCoordinateY));
+                        GameActions.PickUp(LocalSerial, centerX, centerY, offset: p);
+                    }
+                    else
+                    {
+                        GameActions.PickUp(LocalSerial, centerX, centerY);
+                    }
+                }
             }
         }
     }

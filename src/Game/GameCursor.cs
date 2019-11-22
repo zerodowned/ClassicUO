@@ -22,7 +22,9 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 
+using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
@@ -33,6 +35,7 @@ using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Input;
 using ClassicUO.IO;
 using ClassicUO.Renderer;
+using ClassicUO.Utility.Collections;
 
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -68,7 +71,6 @@ namespace ClassicUO.Game
         private ItemHold _itemHold;
         private bool _needGraphicUpdate = true;
         private Point _offset;
-        private Rectangle _rect;
 
         public GameCursor()
         {
@@ -91,7 +93,7 @@ namespace ClassicUO.Game
                 }
             }
 
-            _aura = new Texture2D(Engine.Batcher.GraphicsDevice, ww, hh);
+            _aura = new Texture2D(CUOEnviroment.Client.GraphicsDevice, ww, hh);
             _aura.SetData(data);
 
             _tooltip = new Tooltip();
@@ -247,15 +249,24 @@ namespace ClassicUO.Game
         public bool IsDraggingCursorForced { get; set; }
 
 
-        public void SetDraggedItem(ItemHold hold)
+        public void SetDraggedItem(ItemHold hold, Point? offset)
         {
             _itemHold = hold;
             _draggedItemTexture = FileManager.Art.GetTexture(_itemHold.DisplayedGraphic);
-            _offset.X = _draggedItemTexture.Width >> 1;
-            _offset.Y = _draggedItemTexture.Height >> 1;
+            if (_draggedItemTexture == null)
+                return;
 
-            _rect.Width = _draggedItemTexture.Width;
-            _rect.Height = _draggedItemTexture.Height;
+            float scale = 1;
+            if (ProfileManager.Current != null && ProfileManager.Current.ScaleItemsInsideContainers)
+                scale = UIManager.ContainerScale;
+
+            _offset.X = (int) ((_draggedItemTexture.Width >> 1) * scale);
+            _offset.Y = (int) ((_draggedItemTexture.Height >> 1) * scale);
+
+            if (offset.HasValue)
+            {
+                _offset -= offset.Value;
+            }
         }
 
         public unsafe void Update(double totalMS, double frameMS)
@@ -266,7 +277,7 @@ namespace ClassicUO.Game
             {
                 _needGraphicUpdate = false;
 
-                if (Engine.GlobalSettings.RunMouseInASeparateThread)
+                if (Settings.GlobalSettings.RunMouseInASeparateThread)
                 {
                     if (_cursor != IntPtr.Zero)
                         SDL.SDL_FreeCursor(_cursor);
@@ -303,9 +314,63 @@ namespace ClassicUO.Game
         private static Vector3 _vec = Vector3.Zero;
         public void Draw(UltimaBatcher2D sb)
         {
-            if (TargetManager.IsTargeting && Engine.Profile.Current != null)
+            if (TargetManager.IsTargeting && ProfileManager.Current != null)
             {
-                if (Engine.Profile.Current.AuraOnMouse)
+                if (TargetManager.TargetingState == CursorTarget.MultiPlacement)
+                {
+                    if (World.CustomHouseManager != null && World.CustomHouseManager.SelectedGraphic != 0)
+                    {
+                        Vector3 hue = Vector3.Zero;
+
+                        RawList<CustomBuildObject> list = new RawList<CustomBuildObject>();
+
+                        if (!World.CustomHouseManager.CanBuildHere(list, out var type))
+                        {
+                            hue.X = 0x0021;
+                            hue.Y = 1;
+                        }
+
+                        if (list.Count != 0)
+                        {
+                            if (SelectedObject.LastObject is GameObject selectedObj)
+                            {
+                                int z = 0;
+
+                                if (selectedObj.Z < World.CustomHouseManager.MinHouseZ)
+                                {
+                                    if (selectedObj.X >= World.CustomHouseManager.StartPos.X && selectedObj.X <= World.CustomHouseManager.EndPos.X - 1 &&
+                                        selectedObj.Y >= World.CustomHouseManager.StartPos.Y && selectedObj.Y <= World.CustomHouseManager.EndPos.Y - 1)
+                                    {
+                                        if (type != CUSTOM_HOUSE_BUILD_TYPE.CHBT_STAIR)
+                                            z += 7;
+                                    }
+                                }                           
+
+                                int startX = selectedObj.RealScreenPosition.X + Math.Max(0, ProfileManager.Current.GameWindowPosition.X);
+                                int startY = selectedObj.RealScreenPosition.Y + Math.Max(0, ProfileManager.Current.GameWindowPosition.Y);
+
+                                GameScene gs = CUOEnviroment.Client.GetScene<GameScene>();
+                                float scale = gs?.Scale ?? 1;
+
+                                foreach (CustomBuildObject item in list)
+                                {
+                                    int x = startX + (item.X - item.Y) * 22;
+                                    int y = startY + (item.X + item.Y) * 22 - ((item.Z + z) * 4);
+
+                                    var texture = FileManager.Art.GetTexture(item.Graphic);
+
+                                    x -= ((texture.Width >> 1) - 22);
+                                    y -= ((texture.Height - 44));
+
+                                    sb.Draw2D(texture, (int)(x / scale), (int)(y / scale), texture.Width / scale, texture.Height / scale, ref hue);
+                                    //sb.DrawSprite(texture, x, y, false, ref hue);
+                                }
+                            }                           
+                        }
+                    }
+                }
+
+                if (ProfileManager.Current.AuraOnMouse)
                 {
                     ushort id = Graphic;
 
@@ -338,9 +403,9 @@ namespace ClassicUO.Game
                     sb.Draw2D(_aura, Mouse.Position.X + hotX - (25 >> 1), Mouse.Position.Y + hotY - (25 >> 1), ref _auraVector);
                 }
 
-                if (Engine.Profile.Current.ShowTargetRangeIndicator)
+                if (ProfileManager.Current.ShowTargetRangeIndicator)
                 {
-                    GameScene gs = Engine.SceneManager.GetScene<GameScene>();
+                    GameScene gs = CUOEnviroment.Client.GetScene<GameScene>();
 
                     if (gs != null && gs.IsMouseOverViewport)
                     {
@@ -357,25 +422,30 @@ namespace ClassicUO.Game
            
             if (_itemHold != null && _itemHold.Enabled && !_itemHold.Dropped)
             {
+                float scale = 1;
+
+                if (ProfileManager.Current != null && ProfileManager.Current.ScaleItemsInsideContainers)
+                    scale = UIManager.ContainerScale;
+
                 int x = Mouse.Position.X - _offset.X;
                 int y = Mouse.Position.Y - _offset.Y;
 
                 Vector3 hue = Vector3.Zero;
                 ShaderHuesTraslator.GetHueVector(ref hue, _itemHold.Hue, _itemHold.IsPartialHue, _itemHold.HasAlpha ? .5f : 0);
 
-                sb.Draw2D(_draggedItemTexture, x, y, _rect.X, _rect.Y, _rect.Width, _rect.Height, ref hue);
+                sb.Draw2D(_draggedItemTexture, x, y, _draggedItemTexture.Width * scale, _draggedItemTexture.Height * scale, ref hue);
 
                 if (_itemHold.Amount > 1 && _itemHold.DisplayedGraphic == _itemHold.Graphic && _itemHold.IsStackable)
                 {
                     x += 5;
                     y += 5;
-                    sb.Draw2D(_draggedItemTexture, x, y, _rect.X, _rect.Y, _rect.Width, _rect.Height, ref hue);
+                    sb.Draw2D(_draggedItemTexture, x, y, _draggedItemTexture.Width * scale, _draggedItemTexture.Height * scale, ref hue);
                 }
             }
 
             DrawToolTip(sb, Mouse.Position);
 
-            if (!Engine.GlobalSettings.RunMouseInASeparateThread)
+            if (!Settings.GlobalSettings.RunMouseInASeparateThread)
             {
                 ushort graphic = Graphic;
 
@@ -394,7 +464,7 @@ namespace ClassicUO.Game
 
         private void DrawToolTip(UltimaBatcher2D batcher, Point position)
         {
-            if (Engine.SceneManager.CurrentScene is GameScene gs)
+            if (CUOEnviroment.Client.Scene is GameScene gs)
             {
                 if (!World.ClientFeatures.TooltipsEnabled || gs.IsHoldingItem)
                 {
@@ -412,11 +482,11 @@ namespace ClassicUO.Game
                         return;
                     }
 
-                    if (Engine.UI.IsMouseOverAControl)
+                    if (UIManager.IsMouseOverAControl)
                     {
                         Entity it = null;
 
-                        switch (Engine.UI.MouseOverControl)
+                        switch (UIManager.MouseOverControl)
                         {
                             //case EquipmentSlot equipmentSlot:
                             //    it = equipmentSlot.Item;
@@ -450,15 +520,15 @@ namespace ClassicUO.Game
                 }
             }
 
-            if (Engine.UI.IsMouseOverAControl && Engine.UI.MouseOverControl != null && Engine.UI.MouseOverControl.HasTooltip && !Mouse.IsDragging)
+            if (UIManager.IsMouseOverAControl && UIManager.MouseOverControl != null && UIManager.MouseOverControl.HasTooltip && !Mouse.IsDragging)
             {
-                if (Engine.UI.MouseOverControl.Tooltip is string text)
+                if (UIManager.MouseOverControl.Tooltip is string text)
                 {
                     if (_tooltip.Text != text)
                         _tooltip.Clear();
 
                     if (_tooltip.IsEmpty)
-                        _tooltip.SetText(text, Engine.UI.MouseOverControl.TooltipMaxLength);
+                        _tooltip.SetText(text, UIManager.MouseOverControl.TooltipMaxLength);
 
                     _tooltip.Draw(batcher, position.X, position.Y + 24);
                 }
@@ -472,31 +542,31 @@ namespace ClassicUO.Game
 
             if (TargetManager.IsTargeting)
             {
-                GameScene gs = Engine.SceneManager.GetScene<GameScene>();
+                GameScene gs = CUOEnviroment.Client.GetScene<GameScene>();
 
                 if (gs != null && !gs.IsHoldingItem)
                     return _cursorData[war, 12];
             }
 
-            if (Engine.UI.IsDragging || IsDraggingCursorForced)
+            if (UIManager.IsDragging || IsDraggingCursorForced)
                 return _cursorData[war, 8];
 
             if (IsLoading)
                 return _cursorData[war, 13];
 
-            if (Engine.UI.MouseOverControl is AbstractTextBox t && t.IsEditable)
+            if (UIManager.MouseOverControl is AbstractTextBox t && t.IsEditable)
                 return _cursorData[war, 14];
 
             ushort result = _cursorData[war, 9];
 
-            if (!Engine.UI.IsMouseOverWorld)
+            if (!UIManager.IsMouseOverWorld)
                 return result;
 
-            if (Engine.Profile.Current == null)
+            if (ProfileManager.Current == null)
                 return result;
 
-            int windowCenterX = Engine.Profile.Current.GameWindowPosition.X + (Engine.Profile.Current.GameWindowSize.X >> 1);
-            int windowCenterY = Engine.Profile.Current.GameWindowPosition.Y + (Engine.Profile.Current.GameWindowSize.Y >> 1);
+            int windowCenterX = ProfileManager.Current.GameWindowPosition.X + (ProfileManager.Current.GameWindowSize.X >> 1);
+            int windowCenterY = ProfileManager.Current.GameWindowPosition.Y + (ProfileManager.Current.GameWindowSize.Y >> 1);
 
             return _cursorData[war, GetMouseDirection(windowCenterX, windowCenterY, Mouse.Position.X, Mouse.Position.Y, 1)];
         }

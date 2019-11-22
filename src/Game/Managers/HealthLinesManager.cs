@@ -21,6 +21,7 @@
 
 #endregion
 
+using ClassicUO.Configuration;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.IO;
 using ClassicUO.Renderer;
@@ -32,7 +33,7 @@ namespace ClassicUO.Game.Managers
 {
     internal class HealthLinesManager
     {
-        public bool IsEnabled => Engine.Profile.Current != null && Engine.Profile.Current.ShowMobilesHP;
+        public bool IsEnabled => ProfileManager.Current != null && ProfileManager.Current.ShowMobilesHP;
 
 
         private Vector3 _vectorHue = Vector3.Zero;
@@ -51,26 +52,26 @@ namespace ClassicUO.Game.Managers
             if (!IsEnabled)
                 return;
 
-            const int BAR_WIDTH = 27;
+            const int BAR_WIDTH = 28;
             const int BAR_HEIGHT = 3;
             const int BAR_WIDTH_HALF = BAR_WIDTH >> 1;
             const int BAR_HEIGHT_HALF = BAR_HEIGHT >> 1;
 
-            int screenX = Engine.Profile.Current.GameWindowPosition.X;
-            int screenY = Engine.Profile.Current.GameWindowPosition.Y;
-            int screenW = Engine.Profile.Current.GameWindowSize.X;
-            int screenH = Engine.Profile.Current.GameWindowSize.Y;
+            int screenX = ProfileManager.Current.GameWindowPosition.X;
+            int screenY = ProfileManager.Current.GameWindowPosition.Y;
+            int screenW = ProfileManager.Current.GameWindowSize.X;
+            int screenH = ProfileManager.Current.GameWindowSize.Y;
 
             
 
             Color color;
 
-            int mode = Engine.Profile.Current.MobileHPType;
+            int mode = ProfileManager.Current.MobileHPType;
 
             if (mode < 0)
                 return;
 
-            int showWhen = Engine.Profile.Current.MobileHPShowWhen;
+            int showWhen = ProfileManager.Current.MobileHPShowWhen;
 
             foreach (Mobile mobile in World.Mobiles)
             {
@@ -86,12 +87,8 @@ namespace ClassicUO.Game.Managers
                 int x = screenX + mobile.RealScreenPosition.X;
                 int y = screenY + mobile.RealScreenPosition.Y;
 
-                x += (int) mobile.Offset.X + 22;
-                y += (int) (mobile.Offset.Y - mobile.Offset.Z) + 22 + 5;
-
-                x += 5;
-
-               
+                x += (int) mobile.Offset.X + 22 ;
+                y += (int) (mobile.Offset.Y - mobile.Offset.Z) + 22;
 
                 x = (int) (x / scale);
                 y = (int) (y / scale);
@@ -99,6 +96,9 @@ namespace ClassicUO.Game.Managers
                 y -= (int) (screenY / scale);
                 x += screenX;
                 y += screenY;
+
+                x += 5;
+                y += 5;
 
                 x -= BAR_WIDTH_HALF;
                 y -= BAR_HEIGHT_HALF;
@@ -148,8 +148,9 @@ namespace ClassicUO.Game.Managers
                             xx -= (mobile.HitsTexture.Width >> 1) + 3;
                             xx += 22;
                             yy -= mobile.HitsTexture.Height / 1;
+                            if (mobile.ObjectHandlesOpened)
+                                yy -= 22;
 
-                         
                             if (!(xx < screenX || xx > screenX + screenW - mobile.HitsTexture.Width || yy < screenY || yy > screenY + screenH))
                                 mobile.HitsTexture.Draw(batcher, xx, yy);
                         }
@@ -162,7 +163,7 @@ namespace ClassicUO.Game.Managers
                 if (y < screenY || y > screenY + screenH - BAR_HEIGHT)
                     continue;
 
-                if (mode >= 1)
+                if (mode >= 1 && TargetManager.LastTarget != mobile)
                 {
                     if (max > 0)
                     {

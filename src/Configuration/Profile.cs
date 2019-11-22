@@ -1,11 +1,11 @@
-﻿#region license
+#region license
 
 //  Copyright (C) 2019 ClassicUO Development Community on Github
 //
 //	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+//	The goal of this is to develop a lightweight client considering
+//	new technologies.
+//
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
@@ -25,6 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
+using ClassicUO.Game;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Utility;
@@ -111,7 +112,7 @@ namespace ClassicUO.Configuration
         [JsonProperty] public int FieldsType { get; set; } // 0 = normal, 1 = static, 2 = tile
         [JsonProperty] public bool NoColorObjectsOutOfRange { get; set; }
         [JsonProperty] public bool UseCircleOfTransparency { get; set; }
-        [JsonProperty] public int CircleOfTransparencyRadius { get; set; } = 5;
+        [JsonProperty] public int CircleOfTransparencyRadius { get; set; } = Constants.MAX_CIRCLE_OF_TRANSPARENCY_RADIUS / 2;
         [JsonProperty] public int VendorGumpHeight { get; set; } = 60; //original vendor gump size
         [JsonProperty] public float ScaleZoom { get; set; } = 1.0f;
         [JsonProperty] public float RestoreScaleValue { get; set; } = 1.0f;
@@ -129,7 +130,9 @@ namespace ClassicUO.Configuration
 
         // movements
         [JsonProperty] public bool EnablePathfind { get; set; }
+        [JsonProperty] public bool UseShiftToPathfind { get; set; }
         [JsonProperty] public bool AlwaysRun { get; set; }
+        [JsonProperty] public bool AlwaysRunUnlessHidden { get; set; }
         [JsonProperty] public bool SmoothMovements { get; set; } = true;
         [JsonProperty] public bool HoldDownKeyTab { get; set; } = true;
         [JsonProperty] public bool HoldDownKeyAltToCloseAnchored { get; set; } = true;
@@ -142,10 +145,12 @@ namespace ClassicUO.Configuration
         [JsonProperty] public Point GameWindowPosition { get; set; } = new Point(10, 10);
         [JsonProperty] public bool GameWindowLock { get; set; }
         [JsonProperty] public bool GameWindowFullSize { get; set; }
+        [JsonProperty] public bool WindowBorderless { get; set; } = false;
         [JsonProperty] public Point GameWindowSize { get; set; } = new Point(600, 480);
         [JsonProperty] public Point TopbarGumpPosition { get; set; } = new Point(0, 0);
         [JsonProperty] public bool TopbarGumpIsMinimized { get; set; }
         [JsonProperty] public bool TopbarGumpIsDisabled { get; set; }
+        [JsonProperty] public bool UseAlternativeLights { get; set; }
         [JsonProperty] public bool UseCustomLightLevel { get; set; }
         [JsonProperty] public byte LightLevel { get; set; }
         [JsonProperty] public bool UseColoredLights { get; set; } = true;
@@ -154,6 +159,7 @@ namespace ClassicUO.Configuration
         [JsonProperty] public bool ActivateChatAfterEnter { get; set; }
         [JsonProperty] public bool ActivateChatAdditionalButtons { get; set; } = true;
         [JsonProperty] public bool ActivateChatShiftEnterSupport { get; set; } = true;
+        [JsonProperty] public bool UseObjectsFading { get; set; } = true;
 
         // Experimental
         [JsonProperty] public bool EnableSelectionArea { get; set; }
@@ -162,11 +168,13 @@ namespace ClassicUO.Configuration
         [JsonProperty] public bool DebugGumpIsMinimized { get; set; } = true;
         [JsonProperty] public bool RestoreLastGameSize { get; set; }
         [JsonProperty] public bool CastSpellsByOneClick { get; set; }
+        [JsonProperty] public bool BuffBarTime { get; set; }
         [JsonProperty] public bool AutoOpenDoors { get; set; }
         [JsonProperty] public bool SmoothDoors { get; set; }
         [JsonProperty] public bool AutoOpenCorpses { get; set; }
         [JsonProperty] public int AutoOpenCorpseRange { get; set; } = 2;
         [JsonProperty] public int CorpseOpenOptions { get; set; } = 3;
+        [JsonProperty] public bool SkipEmptyCorpse { get; set; }
         [JsonProperty] public bool DisableDefaultHotkeys { get; set; }
         [JsonProperty] public bool DisableArrowBtn { get; set; }
         [JsonProperty] public bool DisableTabBtn { get; set; }
@@ -181,6 +189,8 @@ namespace ClassicUO.Configuration
         [JsonProperty] public bool NameOverheadToggled { get; set; } = false;
         [JsonProperty] public bool ShowTargetRangeIndicator { get; set; }
         [JsonProperty] public bool PartyInviteGump { get; set; }
+        [JsonProperty] public bool CustomBarsToggled { get; set; }
+        [JsonProperty] public bool CBBlackBGToggled { get; set; }
 
         [JsonProperty] public bool ShowInfoBar { get; set; }
         [JsonProperty] public int InfoBarHighlightType { get; set; } // 0 = text colour changes, 1 = underline
@@ -193,8 +203,6 @@ namespace ClassicUO.Configuration
             new InfoBarItem("Stam", InfoBarVars.Stamina, 0x22E),
             new InfoBarItem("Weight", InfoBarVars.Weight, 0x3D2),
         };
-
-        [JsonProperty] public int MaxFPS { get; set; } = 60;
 
         [JsonProperty]
         public Macro[] Macros { get; set; } =
@@ -274,6 +282,9 @@ namespace ClassicUO.Configuration
         [JsonProperty] public bool PartyAura { get; set; }
 
         [JsonProperty] public bool UseXBR { get; set; } = true;
+
+        [JsonProperty] public bool HideChatGradient { get; set; } = false;
+
         [JsonProperty] public bool StandardSkillsGump { get; set; } = true;
 
         [JsonProperty] public bool ShowNewMobileNameIncoming { get; set; } = true;
@@ -298,9 +309,13 @@ namespace ClassicUO.Configuration
 
         [JsonProperty] public bool ScaleItemsInsideContainers { get; set; }
 
+        [JsonProperty] public bool DoubleClickToLootInsideContainers { get; set; }
 
-        internal static string ProfilePath { get; } = Path.Combine(Engine.ExePath, "Data", "Profiles");
-        internal static string DataPath { get; } = Path.Combine(Engine.ExePath, "Data");
+        [JsonProperty] public bool RelativeDragAndDropItems { get; set; }
+
+
+        internal static string ProfilePath { get; } = Path.Combine(CUOEnviroment.ExecutablePath, "Data", "Profiles");
+        internal static string DataPath { get; } = Path.Combine(CUOEnviroment.ExecutablePath, "Data");
 
         public void Save(List<Gump> gumps = null)
         {
@@ -313,9 +328,9 @@ namespace ClassicUO.Configuration
             if (string.IsNullOrEmpty(CharacterName))
                 throw new InvalidDataException();
 
-            string path = FileSystemHelper.CreateFolderIfNotExists(ProfilePath, Username, ServerName, CharacterName);
+            string path = FileSystemHelper.CreateFolderIfNotExists(ProfilePath, Username.Trim(), ServerName.Trim(), CharacterName.Trim());
 
-            Log.Message(LogTypes.Trace, $"Saving path:\t\t{path}");
+            Log.Trace( $"Saving path:\t\t{path}");
 
             // Save profile settings
             ConfigurationResolver.Save(this, Path.Combine(path, "profile.json"), new JsonSerializerSettings
@@ -327,14 +342,14 @@ namespace ClassicUO.Configuration
             // Save opened gumps
             SaveGumps(path, gumps);
 
-            Log.Message(LogTypes.Trace, "Saving done!");
+            Log.Trace( "Saving done!");
         }
 
         private void SaveGumps(string path, List<Gump> gumps)
         {
             using (BinaryWriter writer = new BinaryWriter(File.Create(Path.Combine(path, "gumps.bin"))))
             {
-                const uint VERSION = 2;
+                const uint VERSION = 3;
 
                 writer.Write(VERSION);
                 writer.Write(0);
@@ -362,7 +377,7 @@ namespace ClassicUO.Configuration
             }
 
             using (BinaryWriter writer = new BinaryWriter(File.Create(Path.Combine(path, "anchors.bin"))))
-                Engine.UI.AnchorManager.Save(writer);
+                UIManager.AnchorManager.Save(writer);
 
             using (BinaryWriter writer = new BinaryWriter(File.Create(Path.Combine(path, "skillsgroups.bin"))))
                 SkillsGroupManager.Save(writer);
@@ -371,7 +386,7 @@ namespace ClassicUO.Configuration
         public static uint GumpsVersion { get; private set; }
         public List<Gump> ReadGumps()
         {
-            string path = FileSystemHelper.CreateFolderIfNotExists(ProfilePath, Username, ServerName, CharacterName);
+            string path = FileSystemHelper.CreateFolderIfNotExists(ProfilePath, Username.Trim(), ServerName.Trim(), CharacterName.Trim());
 
             string binpath = Path.Combine(path, "gumps.bin");
 
@@ -391,7 +406,7 @@ namespace ClassicUO.Configuration
                 catch (Exception e)
                 {
                     SkillsGroupManager.LoadDefault();
-                    Log.Message(LogTypes.Error, e.StackTrace);
+                    Log.Error( e.StackTrace);
                 }
             }
 
@@ -425,13 +440,13 @@ namespace ClassicUO.Configuration
                             //gump.SetInScreen();
 
                             if (gump.LocalSerial != 0)
-                                Engine.UI.SavePosition(gump.LocalSerial, new Point(x, y));
+                                UIManager.SavePosition(gump.LocalSerial, new Point(x, y));
 
                             if (!gump.IsDisposed) gumps.Add(gump);
                         }
                         catch (Exception e)
                         {
-                            Log.Message(LogTypes.Error, e.StackTrace);
+                            Log.Error( e.StackTrace);
                         }
                     }
                 }
@@ -445,11 +460,11 @@ namespace ClassicUO.Configuration
                 try
                 {
                     using (BinaryReader reader = new BinaryReader(File.OpenRead(anchorsPath)))
-                        Engine.UI.AnchorManager.Restore(reader, gumps);
+                        UIManager.AnchorManager.Restore(reader, gumps);
                 }
                 catch (Exception e)
                 {
-                    Log.Message(LogTypes.Error, e.StackTrace);
+                    Log.Error( e.StackTrace);
                 }
             }
 

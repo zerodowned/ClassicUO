@@ -21,6 +21,8 @@
 
 #endregion
 
+using ClassicUO.Configuration;
+using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Input;
@@ -33,10 +35,18 @@ namespace ClassicUO.Game.UI.Controls
 {
     internal class WorldViewport : Control
     {
-        private readonly BlendState _blend = new BlendState
+        private readonly BlendState _darknessBlend = new BlendState
         {
             ColorSourceBlend = Blend.Zero,
             ColorDestinationBlend = Blend.SourceColor,
+
+            ColorBlendFunction = BlendFunction.Add
+        };
+
+        private readonly BlendState _altLightsBlend = new BlendState
+        {
+            ColorSourceBlend = Blend.DestinationColor,
+            ColorDestinationBlend = Blend.One,
 
             ColorBlendFunction = BlendFunction.Add
         };
@@ -54,11 +64,14 @@ namespace ClassicUO.Game.UI.Controls
             _scene = scene;
             AcceptMouseInput = true;
 
-            _xBR = new XBREffect(Engine.Instance.GraphicsDevice);
+            _xBR = new XBREffect(CUOEnviroment.Client.GraphicsDevice);
         }
 
         public override bool Draw(UltimaBatcher2D batcher, int x, int y)
         {
+            if (_scene.ViewportTexture == null)
+                return false;
+
             Rectangle rectangle = ScissorStack.CalculateScissors(Matrix.Identity, x, y, Width, Height);
 
             if (ScissorStack.PushScissors(rectangle))
@@ -67,7 +80,7 @@ namespace ClassicUO.Game.UI.Controls
 
                 ResetHueVector();
 
-                if (Engine.Profile.Current != null && Engine.Profile.Current.UseXBR)
+                if (ProfileManager.Current != null && ProfileManager.Current.UseXBR)
                 {
                     // draw regular world
                     _xBR.SetSize(_scene.ViewportTexture.Width, _scene.ViewportTexture.Height);
@@ -85,10 +98,18 @@ namespace ClassicUO.Game.UI.Controls
 
 
                 // draw lights
-                if (_scene.UseLights)
+                if (_scene.UseAltLights)
                 {
-                    batcher.SetBlendState(_blend);
-                    batcher.Draw2D(_scene.Darkness, x, y, Width, Height, ref _hueVector);
+                    batcher.SetBlendState(_altLightsBlend);
+                    _hueVector.Z = 0.5f;
+                    batcher.Draw2D(_scene.LightRenderTarget, x, y, Width, Height, ref _hueVector);
+                    _hueVector.Z = 0;
+                    batcher.SetBlendState(null);
+                } 
+                else if (_scene.UseLights)
+                {
+                    batcher.SetBlendState(_darknessBlend);
+                    batcher.Draw2D(_scene.LightRenderTarget, x, y, Width, Height, ref _hueVector);
                     batcher.SetBlendState(null);
                 }
 
@@ -109,20 +130,21 @@ namespace ClassicUO.Game.UI.Controls
         public override void Dispose()
         {
             _xBR?.Dispose();
-            _blend?.Dispose();
+            _darknessBlend?.Dispose();
+            _altLightsBlend?.Dispose();
             base.Dispose();
         }
 
         protected override void OnMouseUp(int x, int y, MouseButton button)
         {
-            if (!Engine.UI.IsMouseOverWorld && Engine.UI.MouseOverControl != null)
+            if (!UIManager.IsMouseOverWorld && UIManager.MouseOverControl != null)
             {
-                var p = Engine.UI.MouseOverControl.GetFirstControlAcceptKeyboardInput();
+                var p = UIManager.MouseOverControl.GetFirstControlAcceptKeyboardInput();
                 p?.SetKeyboardFocus();
             }
             else
             {
-                if (!(Engine.UI.KeyboardFocusControl is TextBox tb && tb.Parent is WorldViewportGump))
+                if (!(UIManager.KeyboardFocusControl is TextBox tb && tb.Parent is WorldViewportGump))
                     Parent.GetFirstControlAcceptKeyboardInput()?.SetKeyboardFocus();
             }
 

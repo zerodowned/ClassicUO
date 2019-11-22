@@ -25,54 +25,35 @@ namespace ClassicUO.Game.GameObjects
 {
     internal sealed partial class AnimatedItemEffect : GameEffect
     {
-        public AnimatedItemEffect(Graphic graphic, Hue hue, int duration)
+        public AnimatedItemEffect(Graphic graphic, Hue hue, int duration, int speed)
         {
             Graphic = graphic;
             Hue = hue;
-            Duration = duration > 0 ? Engine.Ticks + duration : -1;
+            Duration = duration > 0 ? Time.Ticks + duration : -1;
+            Speed = speed;
             Load();
         }
 
-        public AnimatedItemEffect(GameObject source, Graphic graphic, Hue hue, int duration) : this(graphic, hue, duration)
+        public AnimatedItemEffect(GameObject source, Graphic graphic, Hue hue, int duration, int speed) : this(graphic, hue, duration, speed)
         {
             SetSource(source);
         }
 
-        public AnimatedItemEffect(Serial source, Graphic graphic, Hue hue, int duration) : this(source, 0, 0, 0, graphic, hue, duration)
+        public AnimatedItemEffect(Serial source, Graphic graphic, Hue hue, int duration, int speed) : this(source, 0, 0, 0, graphic, hue, duration, speed)
         {
         }
 
-        public AnimatedItemEffect(int sourceX, int sourceY, int sourceZ, Graphic graphic, Hue hue, int duration) : this(graphic, hue, duration)
+        public AnimatedItemEffect(int sourceX, int sourceY, int sourceZ, Graphic graphic, Hue hue, int duration, int speed) : this(graphic, hue, duration, speed)
         {
             SetSource(sourceX, sourceY, sourceZ);
         }
 
-        public AnimatedItemEffect(Serial sourceSerial, int sourceX, int sourceY, int sourceZ, Graphic graphic, Hue hue, int duration) : this(graphic, hue, duration)
+        public AnimatedItemEffect(Serial sourceSerial, int sourceX, int sourceY, int sourceZ, Graphic graphic, Hue hue, int duration, int speed) : this(graphic, hue, duration, speed)
         {
-            sbyte zSrc = (sbyte) sourceZ;
             Entity source = World.Get(sourceSerial);
 
-            if (source != null)
-            {
-                if (sourceSerial.IsMobile)
-                {
-                    Mobile mob = (Mobile) source;
-
-                    //if (mob != World.Player && !mob.IsMoving && (sourceX != 0 || sourceY != 0 || sourceZ != 0))
-                    //    mob.Position = new Position((ushort) sourceX, (ushort) sourceY, zSrc);
-                    SetSource(mob);
-                }
-                else if (sourceSerial.IsItem)
-                {
-                    Item item = (Item) source;
-                    //if (sourceX != 0 || sourceY != 0 || sourceZ != 0)
-                    //    item.Position = new Position((ushort) sourceX, (ushort) sourceY, zSrc);
-
-                    SetSource(item);
-                }
-                else
-                    SetSource(sourceX, sourceY, sourceZ);
-            }
+            if (source != null && sourceSerial.IsValid)
+                SetSource(source);
             else
                 SetSource(sourceX, sourceY, sourceZ);
         }
@@ -87,7 +68,7 @@ namespace ClassicUO.Game.GameObjects
 
                 if (Source != null) Offset = Source.Offset;
 
-                if (Position.X != x || Position.Y != y || Position.Z != z)
+                if (X != x || Y != y || Z != z)
                 {
                     Position = new Position((ushort) x, (ushort) y, (sbyte) z);
                     AddToTile();

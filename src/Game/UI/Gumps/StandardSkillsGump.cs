@@ -26,6 +26,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
+using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;
@@ -41,10 +42,8 @@ using SDL2;
 
 namespace ClassicUO.Game.UI.Gumps
 {
-    internal class StandardSkillsGump : MinimizableGump
+    internal class StandardSkillsGump : Gump
     {
-        internal override GumpPic Iconized { get; } = new GumpPic(0, 0, 0x839, 0);
-        internal override HitBox IconizerArea { get; } = new HitBox(160, 0, 23, 24);
         private readonly SkillControl[] _allSkillControls;
         private readonly GumpPic _bottomComment;
         private readonly GumpPic _bottomLine;
@@ -57,6 +56,9 @@ namespace ClassicUO.Game.UI.Gumps
         private readonly Label _skillsLabelSum;
         internal Checkbox _checkReal, _checkCaps;
         private const int _diffY = 22;
+        private GumpPic _gumpPic;
+        private HitBox _hitBox;
+        private bool _isMinimized;
 
         public StandardSkillsGump() : base(Constants.SKILLSTD_LOCALSERIAL, 0)
         {
@@ -65,7 +67,8 @@ namespace ClassicUO.Game.UI.Gumps
             CanMove = true;
             Height = 200 + _diffY;
 
-            Add(new GumpPic(160, 0, 0x82D, 0));
+            Add(_gumpPic = new GumpPic(160, 0, 0x82D, 0));
+            _gumpPic.MouseDoubleClick += _picBase_MouseDoubleClick;
             _scrollArea = new ExpandableScroll(0, _diffY, Height, 0x1F40)
             {
                 TitleGumpID = 0x0834,
@@ -101,8 +104,62 @@ namespace ClassicUO.Game.UI.Gumps
             foreach (KeyValuePair<string, List<int>> k in SkillsGroupManager.Groups)
                 AddSkillsToGroup(k.Key, k.Value.OrderBy(s => s, _instance).ToList());
 
+
+            _hitBox = new HitBox(160, 0, 23, 24);
+            Add(_hitBox);
+            _hitBox.MouseUp += _hitBox_MouseUp;
         }
 
+      
+        public bool IsMinimized
+        {
+            get => _isMinimized;
+            set
+            {
+                if (_isMinimized != value)
+                {
+                    _isMinimized = value;
+
+                    _gumpPic.Graphic = value ? (Graphic)0x839 : (Graphic)0x82D;
+
+                    if (value)
+                    {
+                        _gumpPic.X = 0;
+                    }
+                    else
+                    {
+                        _gumpPic.X = 160;
+                    }
+
+                    foreach (var c in Children)
+                    {
+                        if (!c.IsInitialized)
+                            c.Initialize();
+                        c.IsVisible = !value;
+                    }
+
+                    _gumpPic.IsVisible = true;
+                    WantUpdateSize = true;
+                }
+            }
+        }
+
+
+        private void _picBase_MouseDoubleClick(object sender, MouseDoubleClickEventArgs e)
+        {
+            if (e.Button == MouseButton.Left && IsMinimized)
+            {
+                IsMinimized = false;
+            }
+        }
+
+        private void _hitBox_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButton.Left && !IsMinimized)
+            {
+                IsMinimized = true;
+            }
+        }
 
         public override void OnButtonClick(int buttonID)
         {
@@ -171,7 +228,7 @@ namespace ClassicUO.Game.UI.Gumps
                     {
                         if (i == 0)
                         {
-                            Engine.UI.Add(new MessageBoxGump(200, 150, "Cannot delete this group.", null));
+                            UIManager.Add(new MessageBoxGump(200, 150, "Cannot delete this group.", null));
                             break;
                         }
 
@@ -219,21 +276,19 @@ namespace ClassicUO.Game.UI.Gumps
             _checkReal.Y = _newGroupButton.Y - 6;
             _checkCaps.Y = _newGroupButton.Y + 7;
 
-            _container.ForceUpdate();
-
             base.Update(totalMS, frameMS);
         }
 
         public void ForceUpdate(int skillIndex)
         {
             if (skillIndex < _allSkillControls.Length)
-                _allSkillControls[skillIndex]?.UpdateSkillValue(Engine.UI.GetGump<StandardSkillsGump>());
+                _allSkillControls[skillIndex]?.UpdateSkillValue(UIManager.GetGump<StandardSkillsGump>());
             _skillsLabelSum.Text = World.Player.Skills.Sum(s => _checkReal.IsChecked ? s.Base : s.Value).ToString("F1");
         }
 
         private void UpdateGump(object sender, EventArgs e)
         {
-            StandardSkillsGump skg = Engine.UI.GetGump<StandardSkillsGump>();
+            StandardSkillsGump skg = UIManager.GetGump<StandardSkillsGump>();
             for (int i = 0; i < _allSkillControls.Length; i++) _allSkillControls[i]?.UpdateSkillValue(skg);
             _skillsLabelSum.Text = World.Player.Skills.Sum(s => _checkReal.IsChecked ? s.Base : s.Value).ToString("F1");
         }
@@ -246,11 +301,19 @@ namespace ClassicUO.Game.UI.Gumps
             writer.Write(_boxes.Count);
 
             for (int i = 0; i < _boxes.Count; i++) writer.Write(_boxes[i].Opened);
+            writer.Write(IsMinimized);
         }
 
         public override void Restore(BinaryReader reader)
         {
             base.Restore(reader);
+
+            if (Configuration.Profile.GumpsVersion == 2)
+            {
+                reader.ReadUInt32();
+                IsMinimized = reader.ReadBoolean();
+            }
+
             _scrollArea.Height = _scrollArea.SpecialHeight = reader.ReadInt32();
 
             int count = reader.ReadInt32();
@@ -261,6 +324,11 @@ namespace ClassicUO.Game.UI.Gumps
 
                 if (i < _boxes.Count)
                     _boxes[i].Opened = opened;
+            }
+
+            if (Profile.GumpsVersion >= 3)
+            {
+                IsMinimized = reader.ReadBoolean();
             }
         }
 
@@ -295,7 +363,7 @@ namespace ClassicUO.Game.UI.Gumps
                 if (skill.IsClickable)
                 {
                     Button button = new Button(0, 0x0837, 0x0838, 0x0837);
-                    button.MouseUp += (ss, e) => { GameActions.UseSkill(skillIndexIndex); };
+                    button.MouseUp += (ss, e) => { if (IsVisible) GameActions.UseSkill(skillIndexIndex); };
                     Add(button);
                 }
 
@@ -313,20 +381,23 @@ namespace ClassicUO.Game.UI.Gumps
 
                 _lock.MouseUp += (sender, e) =>
                 {
-                    byte slock = (byte) skill.Lock;
+                    if (IsVisible)
+                    {
+                        byte slock = (byte)skill.Lock;
 
-                    if (slock < 2)
-                        slock++;
-                    else
-                        slock = 0;
+                        if (slock < 2)
+                            slock++;
+                        else
+                            slock = 0;
 
-                    skill.Lock = (Lock) slock;
+                        skill.Lock = (Lock)slock;
 
-                    GameActions.ChangeSkillLockStatus((ushort) skill.Index, slock);
+                        GameActions.ChangeSkillLockStatus((ushort)skill.Index, slock);
 
-                    ushort graphic = GetLockValue(skill.Lock);
-                    _lock.Graphic = graphic;
-                    _lock.Texture = FileManager.Gumps.GetTexture(graphic);
+                        ushort graphic = GetLockValue(skill.Lock);
+                        _lock.Graphic = graphic;
+                        _lock.Texture = FileManager.Gumps.GetTexture(graphic);
+                    }
                 };
                 Add(_lock);
 
@@ -374,7 +445,7 @@ namespace ClassicUO.Game.UI.Gumps
                 if (CanMove)
                     return;
 
-                var c = Engine.UI.MouseOverControl;
+                var c = UIManager.MouseOverControl;
 
                 if (c != null && c != this)
                 {
@@ -415,13 +486,13 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     uint serial = (uint) (World.Player + _skillIndex + 1);
 
-                    if (Engine.UI.GetGump<SkillButtonGump>(serial) != null)
-                        Engine.UI.Remove<SkillButtonGump>(serial);
+                    if (UIManager.GetGump<SkillButtonGump>(serial) != null)
+                        UIManager.Remove<SkillButtonGump>(serial);
 
                     SkillButtonGump skillButtonGump = new SkillButtonGump(World.Player.Skills[_skillIndex], Mouse.Position.X, Mouse.Position.Y);
-                    Engine.UI.Add(skillButtonGump);
+                    UIManager.Add(skillButtonGump);
                     Rectangle rect = FileManager.Gumps.GetTexture(0x24B8).Bounds;
-                    Engine.UI.AttemptDragControl(skillButtonGump, new Point(Mouse.Position.X + (rect.Width >> 1), Mouse.Position.Y + (rect.Height >> 1)), true);
+                    UIManager.AttemptDragControl(skillButtonGump, new Point(Mouse.Position.X + (rect.Width >> 1), Mouse.Position.Y + (rect.Height >> 1)), true);
                 }
 
                 base.OnMouseOver(x, y);
