@@ -159,7 +159,7 @@ namespace ClassicUO.Utility
             writer.Write(Encoding.UTF8.GetBytes(str));
         }
 
-        public static void ExtractToDirectory(this ZipArchive archive, string destinationDirectoryName, bool overwrite)
+        public static void ExtractToDirectoryEx(this ZipArchive archive, string destinationDirectoryName, bool overwrite)
         {
             if (!overwrite)
             {

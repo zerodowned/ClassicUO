@@ -227,7 +227,7 @@ namespace ClassicUO.Network
                     try
                     {
                         using (ZipArchive zip = new ZipArchive(File.OpenRead(zipFile)))
-                            zip.ExtractToDirectory(tempPath, true);
+                            zip.ExtractToDirectoryEx(tempPath, true);
 
                         File.Delete(zipFile);
                     }

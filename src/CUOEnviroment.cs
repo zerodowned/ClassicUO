@@ -22,8 +22,12 @@ namespace ClassicUO
 
         public static readonly bool IsUnix = Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX;
         public static readonly Version Version = Assembly.GetExecutingAssembly().GetName().Version;
-        public static readonly string ExecutablePath = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
 
+#if NETCOREAPP3_0
+        public static readonly string ExecutablePath = Environment.CurrentDirectory;
+#else
+        public static readonly string ExecutablePath = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
+#endif
         public static GameController Client;
         public static bool DisableUpdateWindowCaption;
     }
