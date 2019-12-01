@@ -511,7 +511,7 @@ namespace ClassicUO.Game.Scenes
             if(entity.FrameInfo != Rectangle.Empty)
             {
                 area = Math.Max((entity.FrameInfo.Bottom / 44) >> 1, (entity.FrameInfo.Right / 44) >> 1);
-                if(area > 1 && entity is Mobile m && m.IsMoving)
+                if(area > 1 && entity is Mobile m && m.Steps.Count != 0)
                 {
                     byte b = m.Steps.Back().Direction;
                     if (b > 0 && b < 6)
