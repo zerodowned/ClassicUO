@@ -23,124 +23,150 @@
 
 using System;
 
+using ClassicUO.Configuration;
+
+using Microsoft.Xna.Framework;
+
 namespace ClassicUO.Game.GameObjects
 {
     internal sealed partial class MovingEffect : GameEffect
     {
         private uint _lastMoveTime;
+        private int _distance;
+        //private Vector2 _velocity;
 
-        public MovingEffect(Graphic graphic, Hue hue)
+        private MovingEffect(Graphic graphic, Hue hue)
         {
             Hue = hue;
             Graphic = graphic;
             Load();
         }
 
-        public MovingEffect(GameObject source, GameObject target, Graphic graphic, Hue hue) : this(graphic, hue)
+        public MovingEffect(Serial src, Serial trg, int xSource, int ySource, int zSource, int xTarget, int yTarget, int zTarget, Graphic graphic, Hue hue, bool fixedDir, byte speed) : this(graphic, hue)
         {
-            SetSource(source);
-            SetTarget(target);
-        }
-
-        public MovingEffect(int xSource, int ySource, int zSource, GameObject target, Graphic graphic, Hue hue) : this(graphic, hue)
-        {
-            SetSource(xSource, ySource, zSource);
-            SetTarget(target);
-        }
-
-        public MovingEffect(int xSource, int ySource, int zSource, int xTarg, int yTarg, int zTarg, Graphic graphic, Hue hue) : this(graphic, hue)
-        {
-            SetSource(xSource, ySource, zSource);
-            SetTarget(xTarg, yTarg, zTarg);
-        }
-
-        public MovingEffect(Serial src, Serial trg, int xSource, int ySource, int zSource, int xTarget, int yTarget, int zTarget, Graphic graphic, Hue hue, bool fixedDir) : this(graphic, hue)
-        {
-            sbyte zSourceB = (sbyte) zSource;
-            sbyte zTargB = (sbyte) zTarget;
             FixedDir = fixedDir;
+            MovingDelay = (byte) (20 - speed);
 
-            if (src.IsValid)
-            {
-                Entity source = World.Get(src);
+            Entity source = World.Get(src);
 
-                if (source is Mobile mobile)
-                {
-                    SetSource(mobile.Position.X, mobile.Position.Y, mobile.Position.Z);
-
-                    //if (mobile != World.Player && !mobile.IsMoving && (xSource | ySource | zSource) != 0)
-                    //    mobile.Position = new Position((ushort) xSource, (ushort) ySource, zSourceB);
-                }
-                else if (source is Item)
-                {
-                    SetSource(source.Position.X, source.Position.Y, source.Position.Z);
-
-                    //if ((xSource | ySource | zSource) != 0)
-                    //    source.Position = new Position((ushort) xSource, (ushort) ySource, zSourceB);
-                }
-                else
-                    SetSource(xSource, ySource, zSourceB);
-            }
+            if (src.IsValid && source != null)
+                SetSource(source);
             else
                 SetSource(xSource, ySource, zSource);
 
-            if (trg.IsValid)
-            {
-                Entity target = World.Get(trg);
 
-                if (target is Mobile mobile)
-                {
-                    SetTarget(target);
+            Entity target = World.Get(trg);
 
-                    //if (mobile != World.Player && !mobile.IsMoving && (xTarget | yTarget | zTarget) != 0)
-                    //    mobile.Position = new Position((ushort) xTarget, (ushort) yTarget, zTargB);
-                }
-                else if (target is Item)
-                {
-                    SetTarget(target);
-
-                    //if ((xTarget | yTarget | zTarget) != 0)
-                    //    target.Position = new Position((ushort) xTarget, (ushort) yTarget, zTargB);
-                }
-                else
-                    SetTarget(xTarget, yTarget, zTargB);
-            }
+            if (trg.IsValid && target != null)
+                SetTarget(target);
             else
-                SetTarget(xTarget, yTarget, zTargB);
+                SetTarget(xTarget, yTarget, zTarget);
+
+
+
+            Calculate(true);
         }
 
-        public float AngleToTarget { get; set; }
+        public float AngleToTarget;
+        public bool Explode;
+        public readonly bool FixedDir;
+        public byte MovingDelay = 10;
 
-        public bool Explode { get; set; }
 
-        public bool FixedDir { get; private set; }
+        private void Calculate(bool angle)
+        {
+            int playerX = World.Player.X;
+            int playerY = World.Player.Y;
+            int playerZ = World.Player.Z;
 
-        public byte MovingDelay { get; set; } = 20;
+            int screenCenterX = ProfileManager.Current.GameWindowPosition.X + (ProfileManager.Current.GameWindowSize.X >> 1);
+            int screenCenterY = ProfileManager.Current.GameWindowPosition.Y + (ProfileManager.Current.GameWindowSize.Y >> 1);
+
+
+            (int sX, int sY, int sZ) = GetSource();
+            int offsetSourceX = sX - playerX;
+            int offsetSourceY = sY - playerY;
+            int offsetSourceZ = sZ - playerZ;
+
+            int screenSourceX = screenCenterX + (offsetSourceX - offsetSourceY) * 22;
+            int screenSourceY = screenCenterY + (offsetSourceX + offsetSourceY) * 22 - offsetSourceZ * 4;
+
+
+            (int tX, int tY, int tZ) = GetTarget();
+            int offsetTargetX = tX - playerX;
+            int offsetTargetY = tY - playerY;
+            int offsetTargetZ = tZ - playerZ;
+
+            int screenTargetX = screenCenterX + (offsetTargetX - offsetTargetY) * 22;
+            int screenTargetY = screenCenterY + (offsetTargetX + offsetTargetY) * 22 - offsetTargetZ * 4;
+
+
+            _distance = (int) Math.Sqrt(Math.Pow(screenSourceX - screenTargetX, 2) + Math.Pow(screenSourceY - screenTargetY, 2));
+
+            //_velocity.X = (screenTargetX - screenSourceX) * (MovingDelay / (float) _distance);
+            //_velocity.Y = (screenTargetY - screenSourceY) * (MovingDelay / (float) _distance);
+
+            //Vector2.Normalize(ref _velocity, out _velocity);
+
+            if (angle)
+                AngleToTarget = (float) -Math.Atan2(screenTargetY - screenSourceY, screenTargetX - screenSourceX);
+        }
 
 
         public override void Update(double totalMS, double frameMS)
         {
-            if (_lastMoveTime > Engine.Ticks)
+            if (_lastMoveTime > Time.Ticks)
                 return;
 
-            _lastMoveTime = Engine.Ticks + MovingDelay;
             base.Update(totalMS, frameMS);
-            (int sx, int sy, int sz) = GetSource();
-            (int tx, int ty, int tz) = GetTarget();
-            int screenCenterX = Engine.Profile.Current.GameWindowPosition.X + (Engine.Profile.Current.GameWindowSize.X >> 1);
-            int screenCenterY = Engine.Profile.Current.GameWindowPosition.Y + (Engine.Profile.Current.GameWindowSize.Y >> 1);
+
+            _lastMoveTime = Time.Ticks + MovingDelay;
+
+            if (Target != null && Target.IsDestroyed)
+            {
+                Destroy();
+                return;
+            }
+
+
             int playerX = World.Player.X;
             int playerY = World.Player.Y;
-            int offsetX = sx - playerX;
-            int offsetY = sy - playerY;
-            int drawX = screenCenterX + (offsetX - offsetY) * 22;
-            int drawY = screenCenterY + (offsetX + offsetY) * 22;
-            int realDrawX = drawX + (int) Offset.X;
-            int realDrawY = drawY + (int) Offset.Y;
-            int offsetDestX = tx - playerX;
-            int offsetDestY = ty - playerY;
-            int drawDestX = screenCenterX + (offsetDestX - offsetDestY) * 22;
-            int drawDestY = screenCenterY + (offsetDestX + offsetDestY) * 22;
+            int playerZ = World.Player.Z;
+
+            int screenCenterX = ProfileManager.Current.GameWindowPosition.X + (ProfileManager.Current.GameWindowSize.X >> 1);
+            int screenCenterY = ProfileManager.Current.GameWindowPosition.Y + (ProfileManager.Current.GameWindowSize.Y >> 1);
+
+
+            (int sX, int sY, int sZ) = GetSource();
+            int offsetSourceX = sX - playerX;
+            int offsetSourceY = sY - playerY;
+            int offsetSourceZ = sZ - playerZ;
+
+            int screenSourceX = screenCenterX + (offsetSourceX - offsetSourceY) * 22;
+            int screenSourceY = screenCenterY + (offsetSourceX + offsetSourceY) * 22 - offsetSourceZ * 4;
+
+
+            (int tX, int tY, int tZ) = GetTarget();
+            int offsetTargetX = tX - playerX;
+            int offsetTargetY = tY - playerY;
+            int offsetTargetZ = tZ - playerZ;
+
+            int screenTargetX = screenCenterX + (offsetTargetX - offsetTargetY) * 22;
+            int screenTargetY = screenCenterY + (offsetTargetX + offsetTargetY) * 22 - offsetTargetZ * 4;
+
+
+            int offX = (screenSourceX - screenTargetX) + (int) (Offset.X);
+            int offY = (screenSourceY - screenTargetY) + (int) (Offset.Y);
+
+
+            int startX = screenSourceX + offX;
+            int startY = screenSourceY + offY;
+
+
+            int realDrawX = screenSourceX + (int) (Offset.X);
+            int realDrawY = screenSourceY + (int) (Offset.Y);
+            int drawDestX = screenTargetX;
+            int drawDestY = screenTargetY;
 
             int[] deltaXY =
             {
@@ -214,84 +240,36 @@ namespace ClassicUO.Game.GameObjects
             int newX = playerX + newCoordX;
             int newY = playerY + newCoordY;
 
-            if ( (newX == tx && newY == ty && sz == tz) || (Target != null && Target.IsDestroyed))
+            if (newX == tX && newY == tY)
             {
-                if (Explode)
-                {
-                    //Position = new Position(Position.X, Position.Y, (sbyte) tz);
-                    //Tile = World.Map.GetTile(tx, ty);
-                }
-
                 Destroy();
+                return;
             }
-            else
+
+
+            int newDrawX = screenCenterX + (newCoordX - newCoordY) * 22;
+            int newDrawY = screenCenterY + ((newCoordX + newCoordY) * 22 - (offsetSourceZ * 4));
+            Offset.X = realDrawX - newDrawX;
+            Offset.Y = realDrawY - newDrawY;
+            IsPositionChanged = true;
+
+
+            int distanceNow = (int) Math.Sqrt(Math.Pow(startX - screenTargetX, 2) + Math.Pow(startY - screenTargetY, 2));
+
+            if (distanceNow <= _distance)
             {
-                int newDrawX = screenCenterX + (newCoordX - newCoordY) * 22;
-                int newDrawY = screenCenterY + (newCoordX + newCoordY) * 22;
-                IsPositionChanged = true;
-                Offset.X = realDrawX - newDrawX;
-                Offset.Y = realDrawY - newDrawY;
-                bool wantUpdateInRenderList = false;
-                int countX = drawDestX - (newDrawX + (int) Offset.X);
-                int countY = drawDestY - (newDrawY + (int) Offset.Y);
-
-                if (sz != tz)
-                {
-                    int stepsCountX = countX / (tempXY[x] + 1);
-                    int stepsCountY = countY / (tempXY[(x + 1) % 2] + 1);
-
-                    if (stepsCountX < stepsCountY)
-                        stepsCountX = stepsCountY;
-
-                    if (stepsCountX <= 0)
-                        stepsCountX = 1;
-                    int totalOffsetZ = 0;
-                    bool incZ = sz < tz;
-
-                    if (incZ)
-                        totalOffsetZ = (tz - sz) << 2;
-                    else
-                        totalOffsetZ = (sz - tz) << 2;
-                    totalOffsetZ /= stepsCountX;
-
-                    if (totalOffsetZ == 0)
-                        totalOffsetZ = 1;
-                    Offset.Z += totalOffsetZ;
-
-                    if (Offset.Z >= 4)
-                    {
-                        const int COUNT_Z = 1;
-
-                        if (incZ)
-                            sz += COUNT_Z;
-                        else
-                            sz -= COUNT_Z;
-
-                        if (sz == tz)
-                            Offset.Z = 0;
-                        else
-                            Offset.Z %= 8;
-                        wantUpdateInRenderList = true;
-                    }
-                }
-
-                countY -= (int) Offset.Z + ((tz - sz) << 2);
-                if (!FixedDir)
-                {
-                    float angle = (float)(Math.Atan2(countY, countX) * 57.295780);
-                    AngleToTarget = -(float)(angle * Math.PI) / 180.0f;
-                }
-
-                if (sx != newX || sy != newY)
-                {
-                    sx = newX;
-                    sy = newY;
-
-                    wantUpdateInRenderList = true;
-                }
-
-                if (wantUpdateInRenderList) SetSource(sx, sy, sz);
+                Destroy();
+                return;
             }
+
+            if (newX != sX || newY != sY)
+            {
+                SetSource(newX, newY, sZ);
+                Calculate(false);
+            }
+
+            //Offset.X += _velocity.X/* * (float) frameMS*/;
+            //Offset.Y += _velocity.Y/* * (float) frameMS*/;
         }
 
         private static void TileOffsetOnMonitorToXY(ref int ofsX, ref int ofsY, ref int x, ref int y)

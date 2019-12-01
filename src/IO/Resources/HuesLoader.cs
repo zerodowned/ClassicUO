@@ -31,7 +31,7 @@ using ClassicUO.Utility;
 
 namespace ClassicUO.IO.Resources
 {
-    internal class HuesLoader : ResourceLoader
+    internal class HuesLoader : UOFileLoader
     {
         public HuesGroup[] HuesRange { get; private set; }
 
@@ -47,8 +47,7 @@ namespace ClassicUO.IO.Resources
             {
                 string path = Path.Combine(FileManager.UoFolderPath, "hues.mul");
 
-                if (!File.Exists(path))
-                    throw new FileNotFoundException();
+                FileSystemHelper.EnsureFileExists(path);
 
                 UOFileMul file = new UOFileMul(path);
                 int groupSize = Marshal.SizeOf<HuesGroup>();
@@ -62,8 +61,7 @@ namespace ClassicUO.IO.Resources
 
                 path = Path.Combine(FileManager.UoFolderPath, "radarcol.mul");
 
-                if (!File.Exists(path))
-                    throw new FileNotFoundException();
+                FileSystemHelper.EnsureFileExists(path);
 
                 UOFileMul radarcol = new UOFileMul(path);
                 RadarCol = radarcol.ReadArray<ushort>((int) radarcol.Length >> 1);
@@ -171,6 +169,7 @@ namespace ClassicUO.IO.Resources
         {
             if (color != 0 && color < HuesCount)
             {
+                color -= 1;
                 int g = color >> 3;
                 int e = color % 8;
 

@@ -71,7 +71,7 @@ namespace ClassicUO.Network
                 if (localEntry.AddressList.Length > 0)
                 {
 #pragma warning disable 618
-                    address = (uint) localEntry.AddressList.FirstOrDefault(s => s.AddressFamily == AddressFamily.InterNetwork).Address;
+                    address = (uint)localEntry.AddressList.FirstOrDefault(s => s.AddressFamily == AddressFamily.InterNetwork).Address;
 #pragma warning restore 618
                 }
                 else
@@ -100,7 +100,7 @@ namespace ClassicUO.Network
                 LoginSocket.Statistics.TotalPacketsReceived++;
             }
             else
-                Log.Message(LogTypes.Error, "Attempt to write into a dead socket");
+                Log.Error( "Attempt to write into a dead socket");
         }
 
         public bool Connect(string ip, ushort port)
@@ -126,7 +126,7 @@ namespace ClassicUO.Network
 
         private void Connect(IPEndPoint endpoint)
         {
-            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { ReceiveBufferSize = BUFF_SIZE };
             _socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, 1);
             _recvBuffer = new byte[BUFF_SIZE];
             _incompletePacketBuffer = new byte[BUFF_SIZE];
@@ -147,12 +147,12 @@ namespace ClassicUO.Network
                 if (e.SocketError == SocketError.Success)
                 {
                     Connected.Raise();
-                    Statistics.ConnectedFrom = Engine.CurrDateTime;
+                    Statistics.ConnectedFrom = DateTime.Now;
                     StartRecv();
                 }
                 else
                 {
-                    Log.Message(LogTypes.Error, e.SocketError.ToString());
+                    Log.Error( e.SocketError.ToString());
                     Disconnect(e.SocketError);
                 }
             };
@@ -284,7 +284,7 @@ namespace ClassicUO.Network
         private static void LogPacket(byte[] buffer, bool toServer)
         {
             if (_logFile == null)
-                _logFile = new LogFile(FileSystemHelper.CreateFolderIfNotExists(Engine.ExePath, "Logs", "Network"), "packets.log");
+                _logFile = new LogFile(FileSystemHelper.CreateFolderIfNotExists(CUOEnviroment.ExecutablePath, "Logs", "Network"), "packets.log");
 
             int length = buffer.Length;
             int pos = 0;
@@ -474,7 +474,7 @@ namespace ClassicUO.Network
 
                 default:
 
-                    Log.Message(LogTypes.Panic, "The last operation completed on the socket was not a receive or send");
+                    Log.Panic("The last operation completed on the socket was not a receive or send");
 
                     break;
             }
@@ -509,7 +509,7 @@ namespace ClassicUO.Network
             {
                 _count++;
                 if (_count > 1)
-                    Log.Message(LogTypes.Panic, "Double-Access to buffer! Report this error in #BUGS-HUB in CUO Channel!");
+                    Log.Panic("Double-Access to buffer! Report this error in #BUGS-HUB in CUO Channel!");
                 Statistics.TotalBytesReceived += (uint)bytesLen;
                 byte[] buffer = _recvBuffer;
 
@@ -566,14 +566,15 @@ namespace ClassicUO.Network
 
         private void StartSend()
         {
-            if (!_socket.SendAsync(_sendEventArgs)) IO_Socket(null, _sendEventArgs);
+            if (!_socket.SendAsync(_sendEventArgs))
+                IO_Socket(null, _sendEventArgs);
         }
 
         private void ProcessSend(SocketAsyncEventArgs e)
         {
             if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
             {
-                Statistics.TotalBytesSended += (uint) e.BytesTransferred;
+                Statistics.TotalBytesSended += (uint)e.BytesTransferred;
                 Statistics.TotalPacketsSended++;
             }
             else

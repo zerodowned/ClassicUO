@@ -56,29 +56,31 @@ namespace ClassicUO.Game.Managers
 
         public void Add(GraphicEffectType type, Serial source, Serial target, Graphic graphic, Hue hue, Position srcPos, Position targPos, byte speed, int duration, bool fixedDir, bool doesExplode, bool hasparticles, GraphicEffectBlendMode blendmode)
         {
-            if (hasparticles) Log.Message(LogTypes.Warning, "Unhandled particles in an effects packet.");
+            if (hasparticles) Log.Warn( "Unhandled particles in an effects packet.");
             GameEffect effect = null;
+
+            if (hue != 0)
+                hue++;
+
+            duration *= Constants.ITEM_EFFECT_ANIMATION_DELAY;
 
             switch (type)
             {
                 case GraphicEffectType.Moving:
-
                     if (graphic <= 0)
                         return;
 
                     if (speed == 0)
                         speed++;
-
-                    effect = new MovingEffect(source, target, srcPos.X, srcPos.Y, srcPos.Z, targPos.X, targPos.Y, targPos.Z, graphic, hue, fixedDir)
+                    
+                    effect = new MovingEffect(source, target, srcPos.X, srcPos.Y, srcPos.Z, targPos.X, targPos.Y, targPos.Z, graphic, hue, fixedDir, speed)
                     {
                         Blend = blendmode,
-                        MovingDelay = (byte)(speed)
                     };
 
                     if (doesExplode)
-                        effect.AddChildEffect(new AnimatedItemEffect(target, targPos.X, targPos.Y, targPos.Z, 0x36Cb, hue, 9));
+                        effect.AddChildEffect(new AnimatedItemEffect(target, targPos.X, targPos.Y, targPos.Z, 0x36Cb, hue, 9, speed));
 
-                    effect.Update(Engine.Ticks, 0);
                     break;
 
                 case GraphicEffectType.Lightning:
@@ -91,7 +93,7 @@ namespace ClassicUO.Game.Managers
                     if (graphic <= 0)
                         return;
 
-                    effect = new AnimatedItemEffect(srcPos.X, srcPos.Y, srcPos.Z, graphic, hue, duration)
+                    effect = new AnimatedItemEffect(srcPos.X, srcPos.Y, srcPos.Z, graphic, hue, duration, speed)
                     {
                         Blend = blendmode
                     };
@@ -103,20 +105,20 @@ namespace ClassicUO.Game.Managers
                     if (graphic <= 0)
                         return;
 
-                    effect = new AnimatedItemEffect(source, srcPos.X, srcPos.Y, srcPos.Z, graphic, hue, duration)
+                    effect = new AnimatedItemEffect(source, srcPos.X, srcPos.Y, srcPos.Z, graphic, hue, duration, speed)
                     {
-                        Blend = blendmode
+                        Blend = blendmode,
                     };
 
                     break;
 
                 case GraphicEffectType.ScreenFade:
-                    Log.Message(LogTypes.Warning, "Unhandled 'Screen Fade' effect.");
+                    Log.Warn( "Unhandled 'Screen Fade' effect.");
 
                     break;
 
                 default:
-                    Log.Message(LogTypes.Warning, "Unhandled effect.");
+                    Log.Warn( "Unhandled effect.");
 
                     return;
             }

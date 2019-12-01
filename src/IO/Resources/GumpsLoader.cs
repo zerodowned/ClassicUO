@@ -31,7 +31,7 @@ using ClassicUO.Renderer;
 
 namespace ClassicUO.IO.Resources
 {
-    internal class GumpsLoader : ResourceLoader<UOTexture16>
+    internal class GumpsLoader : UOFileLoader<UOTexture16>
     {
         private UOFile _file;
 
@@ -183,7 +183,7 @@ namespace ClassicUO.IO.Resources
                     //}
 
                     for (int j = 0; j < count; j++)
-                        pixels[pos++] = hue;
+                        pixels[pos++] = hue == 0 && count == 1 ? (ushort)1 : hue;//avoid single zero pixels
                 }
             }
 

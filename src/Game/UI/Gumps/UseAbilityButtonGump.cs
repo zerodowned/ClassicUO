@@ -24,6 +24,7 @@
 using System.IO;
 
 using ClassicUO.Game.Data;
+using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using ClassicUO.Renderer;
@@ -47,7 +48,7 @@ namespace ClassicUO.Game.UI.Gumps
         public UseAbilityButtonGump(AbilityDefinition def, bool primary) : this()
         {
             _isPrimary = primary;
-            Engine.UI.GetGump<UseAbilityButtonGump>((uint) def.Index)?.Dispose();
+            UIManager.GetGump<UseAbilityButtonGump>((uint) def.Index)?.Dispose();
             _definition = def;
             BuildGump();
         }
@@ -92,7 +93,7 @@ namespace ClassicUO.Game.UI.Gumps
 
             int index = ((byte) World.Player.Abilities[_isPrimary ? 0 : 1] & 0x7F) - 1;
 
-            AbilityDefinition def = AbilityData.Abilities[index];
+            ref readonly AbilityDefinition def = ref AbilityData.Abilities[index];
 
             if (_definition.Index != def.Index)
             {

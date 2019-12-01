@@ -24,6 +24,7 @@
 using System;
 using System.Linq;
 
+using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;
@@ -40,160 +41,50 @@ using MathHelper = ClassicUO.Utility.MathHelper;
 
 namespace ClassicUO.Game.GameObjects
 {
-    public enum RaceType : byte
-    {
-        HUMAN = 1,
-        ELF,
-        GARGOYLE
-    }
-
-    public enum CharacterSpeedType
-    {
-        Normal,
-        FastUnmount,
-        CantRun,
-        FastUnmountAndCantRun
-    }
-
-
-
     internal partial class Mobile : Entity
     {
         private bool _isDead;
-        private bool _isRenamable;
         private bool _isSA_Poisoned;
-        private ushort _mana;
-        private ushort _manaMax;
-        private NotorietyFlag _notorietyFlag;
-        private RaceType _race;
-        private ushort _stamina;
-        private ushort _staminaMax;
         private long _lastAnimationIdleDelay;
 
         public Mobile(Serial serial) : base(serial)
         {
-            LastAnimationChangeTime = Engine.Ticks;
+            LastAnimationChangeTime = Time.Ticks;
             CalculateRandomIdleTime();
         }
 
         public Deque<Step> Steps { get; } = new Deque<Step>(Constants.MAX_STEP_COUNT);
 
-        public CharacterSpeedType SpeedMode { get; internal set; } = CharacterSpeedType.Normal;
+        public CharacterSpeedType SpeedMode = CharacterSpeedType.Normal;
 
-        public long DeathScreenTimer { get; set; }
+        public long DeathScreenTimer;
 
         private bool _isMale;
 
         public bool IsMale
         {
-            get => _isMale || (Flags & Flags.Female) == 0 || IsOtherMale || IsElfMale || IsGargoyleMale;
-            set
-            {
-                if (_isMale != value)
-                {
-                    _isMale = value;
-                    _delta |= Delta.Appearance;
-                }
-            }
+            get => _isMale || (Flags & Flags.Female) == 0 || IsOtherMale || IsElfMale || (Graphic < 900 && Graphic % 2 == 0 && !IsOtherFemale && !IsElfFemale);
+            set => _isMale = value;
         }
 
-        public bool IsOtherMale => Graphic == 183 || Graphic == 185 || Graphic == 750 || Graphic == 744 || Graphic == 141 || Graphic == 400 || Graphic == 402;
+        public bool IsOtherMale => Graphic == 183 || Graphic == 185;
         public bool IsElfMale => Graphic == 605 || Graphic == 607;
-        public bool IsGargoyleMale => Graphic == 666 || Graphic == 694;
-        public bool IsOtherFemale => Graphic == 184 || Graphic == 186 || Graphic == 751 || Graphic == 745 || Graphic == 401 || Graphic == 403;
+        public bool IsOtherFemale => Graphic == 184 || Graphic == 186;
         public bool IsElfFemale => Graphic == 606 || Graphic == 608;
-        public bool IsGargoyleFemale => Graphic == 667 || Graphic == 695;
 
-        public RaceType Race
-        {
-            get => _race;
-            set
-            {
-                if (_race != value)
-                {
-                    _race = value;
-                    _delta |= Delta.Appearance;
-                }
-            }
-        }
-       
-        public ushort Mana
-        {
-            get => _mana;
-            set
-            {
-                if (_mana != value)
-                {
-                    _mana = value;
-                    _delta |= Delta.Mana;
-                }
-            }
-        }
+        public RaceType Race;
 
-        public ushort ManaMax
-        {
-            get => _manaMax;
-            set
-            {
-                if (_manaMax != value)
-                {
-                    _manaMax = value;
-                    _delta |= Delta.Mana;
-                }
-            }
-        }
+        public ushort Mana;
 
-        public ushort Stamina
-        {
-            get => _stamina;
-            set
-            {
-                if (_stamina != value)
-                {
-                    _stamina = value;
-                    _delta |= Delta.Stamina;
-                }
-            }
-        }
+        public ushort ManaMax;
 
-        public ushort StaminaMax
-        {
-            get => _staminaMax;
-            set
-            {
-                if (_staminaMax != value)
-                {
-                    _staminaMax = value;
-                    _delta |= Delta.Stamina;
-                }
-            }
-        }
+        public ushort Stamina;
 
-        public NotorietyFlag NotorietyFlag
-        {
-            get => _notorietyFlag;
-            set
-            {
-                if (_notorietyFlag != value)
-                {
-                    _notorietyFlag = value;
-                    _delta |= Delta.Attributes;
-                }
-            }
-        }
+        public ushort StaminaMax;
 
-        public bool IsRenamable
-        {
-            get => _isRenamable;
-            set
-            {
-                if (_isRenamable != value)
-                {
-                    _isRenamable = value;
-                    _delta |= Delta.Attributes;
-                }
-            }
-        }
+        public NotorietyFlag NotorietyFlag;
+
+        public bool IsRenamable;
 
         public bool IsParalyzed => ((byte) Flags & 0x01) != 0;
 
@@ -227,9 +118,7 @@ namespace ClassicUO.Game.GameObjects
                                Graphic == 0x02B6 || Graphic == 0x02B7 ||
                                Graphic == 0x03DB || Graphic == 0x03DF || Graphic == 0x03E2 || Graphic == 0x02E8 || Graphic == 0x02E9; // Vampiric
 
-        public override bool Exists => World.Contains(Serial);
-
-        public bool IsMounted => HasEquipment && Equipment[0x19] != null && !IsDrivingBoat;
+        public bool IsMounted => HasEquipment && Equipment[0x19] != null && !IsDrivingBoat && Equipment[0x19].GetGraphicForAnimation() != 0xFFFF;
 
         public bool IsDrivingBoat
         {
@@ -245,37 +134,31 @@ namespace ClassicUO.Game.GameObjects
             }
         }
 
-        public bool IsRunning { get; internal set; }
+        public bool IsRunning;
 
-        public byte AnimationInterval { get; set; }
+        public byte AnimationInterval;
 
-        public byte AnimationFrameCount { get; set; }
+        public byte AnimationFrameCount;
 
-        public byte AnimationRepeatMode { get; set; } = 1;
+        public byte AnimationRepeatMode = 1;
 
-        public bool AnimationRepeat { get; set; }
+        public bool AnimationRepeat;
 
-        public bool AnimationFromServer { get; set; }
+        public bool AnimationFromServer;
 
-        public bool AnimationDirection { get; set; }
+        public bool AnimationDirection;
 
-        public long LastStepTime { get; set; }
+        public long LastStepTime;
 
-        public long LastStepSoundTime { get; set; }
+        public long LastStepSoundTime;
 
-        public int StepSoundOffset { get; set; }
+        public int StepSoundOffset;
 
-        protected virtual bool IsWalking => LastStepTime > Engine.Ticks - Constants.WALKING_DELAY;
+        protected virtual bool IsWalking => LastStepTime > Time.Ticks - Constants.WALKING_DELAY;
 
-        public byte AnimationGroup { get; set; } = 0xFF;
+        public byte AnimationGroup = 0xFF;
 
-        internal bool IsMoving => Steps.Count != 0;
-
-        public event EventHandler HitsChanged;
-
-        public event EventHandler ManaChanged;
-
-        public event EventHandler StaminaChanged;
+        //internal bool IsMoving => AnimationGroup != 0xFF && Steps.Count != 0;
 
         public Item GetSecureTradeBox()
         {
@@ -290,7 +173,7 @@ namespace ClassicUO.Game.GameObjects
         private void CalculateRandomIdleTime()
         {
             const int TIME = 30000;
-            _lastAnimationIdleDelay = Engine.Ticks + (TIME + RandomHelper.GetValue(0, TIME));
+            _lastAnimationIdleDelay = Time.Ticks + (TIME + RandomHelper.GetValue(0, TIME));
         }
 
         public override void Update(double totalMS, double frameMS)
@@ -300,20 +183,12 @@ namespace ClassicUO.Game.GameObjects
 
             base.Update(totalMS, frameMS);
 
-            if (_lastAnimationIdleDelay < Engine.Ticks)
+            if (_lastAnimationIdleDelay < Time.Ticks)
                 SetIdleAnimation();
 
             ProcessAnimation(out _, true);
         }
-
-        protected override void OnProcessDelta(Delta d)
-        {
-            base.OnProcessDelta(d);
-            if (d.HasFlag(Delta.Hits)) HitsChanged.Raise(this);
-            if (d.HasFlag(Delta.Mana)) ManaChanged.Raise(this);
-            if (d.HasFlag(Delta.Stamina)) StaminaChanged.Raise(this);
-        }
-
+        
         public void ClearSteps()
         {
             Steps.Clear();
@@ -329,11 +204,11 @@ namespace ClassicUO.Game.GameObjects
 
             if (endX == x && endY == y && endZ == z && endDir == direction) return true;
 
-            if (!IsMoving)
+            if (Steps.Count == 0)
             {
                 if (!IsWalking)
                     SetAnimation(0xFF);
-                LastStepTime = Engine.Ticks;
+                LastStepTime = Time.Ticks;
             }
 
             Direction moveDir = CalculateDirection(endX, endY, x, y);
@@ -407,7 +282,7 @@ namespace ClassicUO.Game.GameObjects
             }
             else
             {
-                Step step = Steps.Back();
+                ref Step step = ref Steps.Back();
                 x = step.X;
                 y = step.Y;
                 z = step.Z;
@@ -436,7 +311,7 @@ namespace ClassicUO.Game.GameObjects
             AnimationRepeat = repeat;
             AnimationDirection = frameDirection;
             AnimationFromServer = false;
-            LastAnimationChangeTime = Engine.Ticks;
+            LastAnimationChangeTime = Time.Ticks;
             CalculateRandomIdleTime();
         }
 
@@ -519,7 +394,20 @@ namespace ClassicUO.Game.GameObjects
                 if (animGroup == 0)
                     return;
 
-                AnimationGroup = _animationIdle[(byte) animGroup - 1, RandomHelper.GetValue(0, 2)];
+                if ((flags & ANIMATION_FLAGS.AF_USE_UOP_ANIMATION) != 0)
+                {
+                    if (animGroup != ANIMATION_GROUPS.AG_PEOPLE)
+                    {
+                        if (InWarMode)
+                            AnimationGroup = 28;
+                        else
+                            AnimationGroup = 26;
+
+                        return;
+                    }
+                }
+
+                AnimationGroup = _animationIdle[(byte)animGroup - 1, RandomHelper.GetValue(0, 2)];
 
                 if (isLowExtended && AnimationGroup == 18)
                     AnimationGroup = 1;
@@ -541,16 +429,16 @@ namespace ClassicUO.Game.GameObjects
 
         protected virtual bool NoIterateAnimIndex()
         {
-            return LastStepTime > Engine.Ticks - Constants.WALKING_DELAY && Steps.Count == 0;
+            return LastStepTime > Time.Ticks - Constants.WALKING_DELAY && Steps.Count == 0;
         }
 
         private void ProcessFootstepsSound()
         {
-            if (Engine.Profile.Current.EnableFootstepsSound && IsHuman && !IsHidden)
+            if (ProfileManager.Current.EnableFootstepsSound && IsHuman && !IsHidden)
             {
-                long ticks = Engine.Ticks;
+                long ticks = Time.Ticks;
 
-                if (IsMoving && LastStepSoundTime < ticks)
+                if (Steps.Count != 0 && LastStepSoundTime < ticks)
                 {
                     int incID = StepSoundOffset;
                     int soundID = 0x012B;
@@ -558,7 +446,8 @@ namespace ClassicUO.Game.GameObjects
 
                     if (IsMounted)
                     {
-                        if (Steps.Back().Run)
+                        ref Step step = ref Steps.Back();
+                        if (step.Run)
                         {
                             soundID = 0x0129;
                             delaySound = 150;
@@ -579,7 +468,7 @@ namespace ClassicUO.Game.GameObjects
 
                     int distance = Distance;
 
-                    float volume = Engine.Profile.Current.SoundVolume / Constants.SOUND_DELTA;
+                    float volume = ProfileManager.Current.SoundVolume / Constants.SOUND_DELTA;
 
                     if (distance <= World.ClientViewRange && distance >= 1)
                     {
@@ -587,7 +476,7 @@ namespace ClassicUO.Game.GameObjects
                         volume -= volumeByDist * distance;
                     }
 
-                    Engine.SceneManager.CurrentScene.Audio.PlaySoundWithDistance(soundID, volume);
+                    CUOEnviroment.Client.Scene.Audio.PlaySoundWithDistance(soundID, volume);
                     LastStepSoundTime = ticks + delaySound;
                 }
             }
@@ -599,7 +488,7 @@ namespace ClassicUO.Game.GameObjects
 
             ProcessFootstepsSound();
 
-            if (LastAnimationChangeTime < Engine.Ticks && !NoIterateAnimIndex())
+            if (LastAnimationChangeTime < Time.Ticks && !NoIterateAnimIndex())
             {
                 sbyte frameIndex = AnimIndex;
 
@@ -616,21 +505,21 @@ namespace ClassicUO.Game.GameObjects
                     AnimationGroup = animGroup;
                 }
 
-                Item mount = HasEquipment ? Equipment[(int) Layer.Mount] : null;
+                //Item mount = HasEquipment ? Equipment[(int) Layer.Mount] : null;
 
-                if (mount != null)
-                {
-                    switch (animGroup)
-                    {
-                        case (byte) PEOPLE_ANIMATION_GROUP.PAG_FIDGET_1:
-                        case (byte) PEOPLE_ANIMATION_GROUP.PAG_FIDGET_2:
-                        case (byte) PEOPLE_ANIMATION_GROUP.PAG_FIDGET_3:
-                            id = mount.GetGraphicForAnimation();
-                            animGroup = GetGroupForAnimation(this, id, true);
+                //if (mount != null)
+                //{
+                //    switch (animGroup)
+                //    {
+                //        case (byte)PEOPLE_ANIMATION_GROUP.PAG_FIDGET_1:
+                //        case (byte)PEOPLE_ANIMATION_GROUP.PAG_FIDGET_2:
+                //        case (byte)PEOPLE_ANIMATION_GROUP.PAG_FIDGET_3:
+                //            id = mount.GetGraphicForAnimation();
+                //            animGroup = GetGroupForAnimation(this, id, true);
 
-                            break;
-                    }
-                }
+                //            break;
+                //    }
+                //}
 
                 bool mirror = false;
                 FileManager.Animations.GetAnimDirection(ref dir, ref mirror);
@@ -645,14 +534,12 @@ namespace ClassicUO.Game.GameObjects
                     FileManager.Animations.Direction = dir;
 
 
-
                     if (direction.FrameCount == 0 || direction.Frames == null)
                         FileManager.Animations.LoadDirectionGroup(ref direction);
 
-
-                    if (direction.Address != 0 && direction.Size != 0 && direction.FileIndex != -1 || direction.IsUOP)
+                    if ((direction.Address != 0 && direction.Size != 0 && direction.FileIndex != -1) || direction.IsUOP)
                     {
-                        direction.LastAccessTime = Engine.Ticks;
+                        direction.LastAccessTime = Time.Ticks;
                         int fc = direction.FrameCount;
 
                         if (AnimationFromServer)
@@ -739,7 +626,7 @@ namespace ClassicUO.Game.GameObjects
                     World.RemoveMobile(Serial);
                 }
 
-                LastAnimationChangeTime = Engine.Ticks + currentDelay;
+                LastAnimationChangeTime = Time.Ticks + currentDelay;
             }
         }
 
@@ -750,7 +637,7 @@ namespace ClassicUO.Game.GameObjects
 
             if (Steps.Count != 0 && !IsDestroyed)
             {
-                Step step = Steps.Front();
+                ref Step step = ref Steps.Front();
                 dir = step.Direction;
 
                 if (step.Run)
@@ -761,8 +648,8 @@ namespace ClassicUO.Game.GameObjects
                     if (AnimationFromServer)
                         SetAnimation(0xFF);
 
-                    int maxDelay = MovementSpeed.TimeToCompleteMovement(this, step.Run) - (int) Engine.FrameDelay[1];
-                    int delay = (int) Engine.Ticks - (int) LastStepTime;
+                    int maxDelay = MovementSpeed.TimeToCompleteMovement(this, step.Run) - (int) CUOEnviroment.Client.FrameDelay[1];
+                    int delay = (int) Time.Ticks - (int) LastStepTime;
                     bool removeStep = delay >= maxDelay;
                     bool directionChange = false;
 
@@ -848,12 +735,7 @@ namespace ClassicUO.Game.GameObjects
 
                         if (World.InGame && Serial == World.Player)
                         {
-                            foreach (var s in Engine.UI.Gumps.OfType<ContainerGump>())
-                            {
-                                var item = World.Items.Get(s.LocalSerial);
-                                if (item == null || item.IsDestroyed || item.OnGround && item.Distance > 3)
-                                    s.Dispose();
-                            }
+                            World.Player.CloseRangedGumps();
                         }
 
                         Direction = (Direction) step.Direction;
@@ -874,7 +756,7 @@ namespace ClassicUO.Game.GameObjects
                         if (Right != null || Left != null)
                             AddToTile();
 
-                        LastStepTime = Engine.Ticks;
+                        LastStepTime = Time.Ticks;
                         ProcessDelta();
                     }
                 }
@@ -886,7 +768,6 @@ namespace ClassicUO.Game.GameObjects
                 Offset.Z = 0;
             }
         }
-
 
         public int IsSitting()
         {
@@ -1028,6 +909,79 @@ namespace ClassicUO.Game.GameObjects
 
                 return result;
             }
+        }
+
+        public override void UpdateTextCoordsV()
+        {
+            if (TextContainer == null)
+                return;
+
+            var last = TextContainer.Items;
+
+            while (last?.ListRight != null)
+                last = last.ListRight;
+
+            if (last == null)
+                return;
+
+            int offY = 0;
+
+            bool health = ProfileManager.Current.ShowMobilesHP;
+            int alwaysHP = ProfileManager.Current.MobileHPShowWhen;
+            int mode = ProfileManager.Current.MobileHPType;
+
+            int startX = ProfileManager.Current.GameWindowPosition.X + 6;
+            int startY = ProfileManager.Current.GameWindowPosition.Y + 6;
+            var scene = CUOEnviroment.Client.GetScene<GameScene>();
+            float scale = scene?.Scale ?? 1;
+
+            int x = RealScreenPosition.X;
+            int y = RealScreenPosition.Y;
+
+
+            if (health && mode != 1 && ((alwaysHP >= 1 && Hits != HitsMax) || alwaysHP == 0))
+            {
+                y -= 22;
+            }
+
+            if (ObjectHandlesOpened)
+                y -= 22;
+
+            if (!IsMounted)
+                y += 22;
+
+            FileManager.Animations.GetAnimationDimensions(AnimIndex,
+                                                          GetGraphicForAnimation(),
+                                                          /*(byte) m.GetDirectionForAnimation()*/ 0,
+                                                          /*Mobile.GetGroupForAnimation(m, isParent:true)*/ 0,
+                                                          IsMounted,
+                                                          /*(byte) m.AnimIndex*/ 0,
+                                                          out _,
+                                                          out int centerY,
+                                                          out _,
+                                                          out int height);
+            x += (int)Offset.X + 22;
+            y += (int)(Offset.Y - Offset.Z - (height + centerY + 8));
+            x = (int) (x / scale);
+            y = (int) (y / scale);
+
+            for (; last != null; last = last.ListLeft)
+            {
+                if (last.RenderedText != null && !last.RenderedText.IsDestroyed)
+                {
+                    if (offY == 0 && last.Time < Time.Ticks)
+                        continue;
+
+
+                    last.OffsetY = offY;
+                    offY += last.RenderedText.Height;
+
+                    last.RealScreenPosition.X = startX + (x - (last.RenderedText.Width >> 1));
+                    last.RealScreenPosition.Y = startY + (y - offY);
+                }
+            }
+
+            FixTextCoordinatesInScreen();
         }
 
         public override void Destroy()

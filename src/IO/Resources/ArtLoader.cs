@@ -27,6 +27,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
+using ClassicUO.Configuration;
 using ClassicUO.Game;
 using ClassicUO.Game.Data;
 using ClassicUO.Renderer;
@@ -35,7 +36,7 @@ using Microsoft.Xna.Framework;
 
 namespace ClassicUO.IO.Resources
 {
-    internal class ArtLoader : ResourceLoader<ArtTexture>
+    internal class ArtLoader : UOFileLoader<ArtTexture>
     {
         private static readonly ushort[] _empty = { };
 
@@ -77,7 +78,7 @@ namespace ClassicUO.IO.Resources
             }
 
             //else
-            //    texture.Ticks = Engine.Ticks + 3000;
+            //    texture.Ticks = Time.Ticks + 3000;
             return texture;
         }
 
@@ -90,7 +91,7 @@ namespace ClassicUO.IO.Resources
             }
 
             //else
-            //    texture.Ticks = Engine.Ticks + 3000;
+            //    texture.Ticks = Time.Ticks + 3000;
             return texture;
         }
 
@@ -130,18 +131,7 @@ namespace ClassicUO.IO.Resources
         public override void CleaUnusedResources()
         {
             base.CleaUnusedResources();
-
-            long ticks = Engine.Ticks - Constants.CLEAR_TEXTURES_DELAY;
-
-            _landDictionary
-               .Where(s => s.Value.Ticks < ticks)
-               .Take(Constants.MAX_ART_OBJECT_REMOVED_BY_GARBAGE_COLLECTOR)
-               .ToList()
-               .ForEach(s =>
-                {
-                    s.Value.Dispose();
-                    _landDictionary.Remove(s.Key);
-                });
+            ClearUnusedResources(_landDictionary, Constants.MAX_ART_OBJECT_REMOVED_BY_GARBAGE_COLLECTOR);
         }
 
         public unsafe ushort[] ReadStaticArt(ushort graphic, out short width, out short height, out Rectangle imageRectangle)
@@ -200,7 +190,8 @@ namespace ClassicUO.IO.Resources
 
                         if (val != 0)
                             val = (ushort) (0x8000 | val);
-                        pixels[pos++] = val;
+                        //avoid single zero pixel
+                        pixels[pos++] = val == 0 && run == 1 ? (ushort)1 : val;
                     }
 
                     x += run;
@@ -227,7 +218,7 @@ namespace ClassicUO.IO.Resources
                     pixels[i * width + width - 1] = 0;
                 }
             }
-            else if (StaticFilters.IsCave(graphic) && Engine.Profile.Current != null && Engine.Profile.Current.EnableCaveBorder)
+            else if (StaticFilters.IsCave(graphic) && ProfileManager.Current != null && ProfileManager.Current.EnableCaveBorder)
             {
                 for (int yy = 0; yy < height; yy++)
                 {
@@ -289,10 +280,6 @@ namespace ClassicUO.IO.Resources
         private unsafe void ReadStaticArt(ref ArtTexture texture, ushort graphic)
         {
             Rectangle imageRectangle = new Rectangle();
-            imageRectangle.X = 0;
-            imageRectangle.Y = 0;
-            imageRectangle.Width = 0;
-            imageRectangle.Height = 0;
 
             ref readonly var entry = ref GetValidRefEntry(graphic + 0x4000);
 
@@ -374,7 +361,7 @@ namespace ClassicUO.IO.Resources
                     pixels[i * width + width - 1] = 0;
                 }
             }
-            else if (StaticFilters.IsCave(graphic) && Engine.Profile.Current != null && Engine.Profile.Current.EnableCaveBorder)
+            else if (StaticFilters.IsCave(graphic) && ProfileManager.Current != null && ProfileManager.Current.EnableCaveBorder)
             {
                 for (int yy = 0; yy < height; yy++)
                 {

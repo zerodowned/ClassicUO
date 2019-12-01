@@ -24,20 +24,28 @@
 using System;
 using System.IO;
 
+using ClassicUO.Configuration;
+using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using ClassicUO.IO;
+using ClassicUO.Renderer;
+using ClassicUO.Utility.Collections;
+using ClassicUO.Utility.Logging;
 
 namespace ClassicUO.Game.UI.Gumps
 {
-    internal class JournalGump : MinimizableGump
+    internal class JournalGump : Gump
     {
         private readonly ExpandableScroll _background;
         private readonly RenderedTextList _journalEntries;
         private readonly ScrollFlag _scrollBar;
         private const int _diffY = 22;
+        private bool _isMinimized;
+        private HitBox _hitBox;
+        private GumpPic _gumpPic;
 
         public JournalGump() : base(Constants.JOURNAL_LOCALSERIAL, 0)
         {
@@ -45,7 +53,7 @@ namespace ClassicUO.Game.UI.Gumps
             CanMove = true;
             CanBeSaved = true;
 
-            Add(new GumpPic(160, 0, 0x82D, 0));
+            Add(_gumpPic = new GumpPic(160, 0, 0x82D, 0));
             Add(_background = new ExpandableScroll(0, _diffY, Height - _diffY, 0x1F40)
             {
                 TitleGumpID = 0x82A
@@ -61,13 +69,13 @@ namespace ClassicUO.Game.UI.Gumps
             {
                 X = _background.Width - width -2, 
                 Y = _diffY + 7,
-                IsChecked = Engine.Profile.Current.JournalDarkMode
+                IsChecked = ProfileManager.Current.JournalDarkMode
             });
 
-            Hue = (ushort)(Engine.Profile.Current.JournalDarkMode ? DARK_MODE_JOURNAL_HUE : 0);
+            Hue = (ushort)(ProfileManager.Current.JournalDarkMode ? DARK_MODE_JOURNAL_HUE : 0);
             darkMode.ValueChanged += (sender, e) =>
             {
-                var ok = Engine.Profile.Current.JournalDarkMode = !Engine.Profile.Current.JournalDarkMode;
+                var ok = ProfileManager.Current.JournalDarkMode = !ProfileManager.Current.JournalDarkMode;
                 Hue = (ushort) (ok ? DARK_MODE_JOURNAL_HUE : 0);
             };
 
@@ -76,12 +84,13 @@ namespace ClassicUO.Game.UI.Gumps
             Add(_journalEntries = new RenderedTextList(25, _diffY + 36, _background.Width - (_scrollBar.Width >> 1) - 5, 200, _scrollBar));
 
             Add(_scrollBar);
+
+            Add(_hitBox = new HitBox(160, 0, 23, 24));
+            _hitBox.MouseUp += _hitBox_MouseUp;
+            _gumpPic.MouseDoubleClick += _gumpPic_MouseDoubleClick;
         }
 
-        internal override GumpPic Iconized { get; } = new GumpPic(0, 0, 0x830, 0);
-        internal override HitBox IconizerArea { get; } = new HitBox(160, 0, 23, 24);
-
-
+       
 
         public Hue Hue
         {
@@ -89,20 +98,42 @@ namespace ClassicUO.Game.UI.Gumps
             set => _background.Hue = value;
         }
 
+        public bool IsMinimized
+        {
+            get => _isMinimized;
+            set
+            {
+                if (_isMinimized != value)
+                {
+                    _isMinimized = value;
+
+                    _gumpPic.Graphic = value ? (Graphic) 0x830 : (Graphic) 0x82D;
+
+                    if (value)
+                    {
+                        _gumpPic.X = 0;
+                    }
+                    else
+                    {
+                        _gumpPic.X = 160;
+                    }
+
+                    foreach (var c in Children)
+                    {
+                        if (!c.IsInitialized)
+                            c.Initialize();
+                        c.IsVisible = !value;
+                    }
+
+                    _gumpPic.IsVisible = true;
+                    WantUpdateSize = true;
+                }
+            }
+        }
+
         protected override void OnMouseWheel(MouseEvent delta)
         {
-            switch (delta)
-            {
-                case MouseEvent.WheelScrollUp:
-                    _scrollBar.Value -= 5;
-
-                    break;
-
-                case MouseEvent.WheelScrollDown:
-                    _scrollBar.Value += 5;
-
-                    break;
-            }
+            _scrollBar.InvokeMouseWheel(delta);
         }
 
         protected override void OnInitialize()
@@ -128,7 +159,7 @@ namespace ClassicUO.Game.UI.Gumps
         {
             string text = $"{(entry.Name != string.Empty ? $"{entry.Name}: " : string.Empty)}{entry.Text}";
             //TransformFont(ref font, ref asUnicode);
-            _journalEntries.AddEntry(text, entry.Font, entry.Hue, entry.IsUnicode);
+            _journalEntries.AddEntry(text, entry.Font, entry.Hue, entry.IsUnicode, entry.Time);
         }
 
         //private void TransformFont(ref byte font, ref bool asUnicode)
@@ -153,13 +184,23 @@ namespace ClassicUO.Game.UI.Gumps
         {
             base.Save(writer);
             writer.Write(_background.SpecialHeight);
+            writer.Write(IsMinimized);
         }
 
         public override void Restore(BinaryReader reader)
         {
             base.Restore(reader);
-
+            if (Configuration.Profile.GumpsVersion == 2)
+            {
+                reader.ReadUInt32();
+                _isMinimized = reader.ReadBoolean();
+            }
             _background.Height = _background.SpecialHeight = reader.ReadInt32();
+
+            if (Profile.GumpsVersion >= 3)
+            {
+                _isMinimized = reader.ReadBoolean();
+            }
         }
 
         private void InitializeJournalEntries()
@@ -169,5 +210,171 @@ namespace ClassicUO.Game.UI.Gumps
 
             _scrollBar.MinValue = 0;
         }
+
+        private void _gumpPic_MouseDoubleClick(object sender, MouseDoubleClickEventArgs e)
+        {
+            if (e.Button == MouseButton.Left && IsMinimized)
+            {
+                IsMinimized = false;
+                e.Result = true;
+            }
+        }
+
+        private void _hitBox_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButton.Left && !IsMinimized)
+            {
+                IsMinimized = true;
+            }
+        }
+
+        private class RenderedTextList : Control
+        {
+            private readonly Deque<RenderedText> _entries, _hours;
+            private readonly IScrollBar _scrollBar;
+
+            public RenderedTextList(int x, int y, int width, int height, IScrollBar scrollBarControl)
+            {
+                _scrollBar = scrollBarControl;
+                _scrollBar.IsVisible = false;
+                AcceptMouseInput = true;
+                CanMove = true;
+                X = x;
+                Y = y;
+                Width = width;
+                Height = height;
+                _entries = new Deque<RenderedText>();
+                _hours = new Deque<RenderedText>();
+
+                WantUpdateSize = false;
+            }
+
+            public override bool Draw(UltimaBatcher2D batcher, int x, int y)
+            {
+                base.Draw(batcher, x, y);
+
+                int mx = x;
+                int my = y;
+
+                int height = 0;
+                int maxheight = _scrollBar.Value + _scrollBar.Height;
+
+                for (int i = 0; i < _entries.Count; i++)
+                {
+                    var t = _entries[i];
+                    var hour = _hours[i];
+
+                    if (height + t.Height <= _scrollBar.Value)
+                    {
+                        // this entry is above the renderable area.
+                        height += t.Height;
+                    }
+                    else if (height + t.Height <= maxheight)
+                    {
+                        int yy = height - _scrollBar.Value;
+
+                        if (yy < 0)
+                        {
+                            // this entry starts above the renderable area, but exists partially within it.
+                            hour.Draw(batcher, mx, y, t.Width, t.Height + yy, 0, -yy);
+                            t.Draw(batcher, mx + hour.Width, y, t.Width, t.Height + yy, 0, -yy);
+                            my += t.Height + yy;
+                        }
+                        else
+                        {
+                            // this entry is completely within the renderable area.
+                            hour.Draw(batcher, mx, my);
+                            t.Draw(batcher, mx + hour.Width, my);
+                            my += t.Height;
+                        }
+
+                        height += t.Height;
+                    }
+                    else
+                    {
+                        int yyy = maxheight - height;
+                        hour.Draw(batcher, mx, y + _scrollBar.Height - yyy, t.Width, yyy, 0, 0);
+                        t.Draw(batcher, mx + hour.Width, y + _scrollBar.Height - yyy, t.Width, yyy, 0, 0);
+
+                        // can't fit any more entries - so we break!
+                        break;
+                    }
+                }
+
+                return true;
+            }
+
+            public override void Update(double totalMS, double frameMS)
+            {
+                base.Update(totalMS, frameMS);
+                if (!IsVisible)
+                    return;
+
+                _scrollBar.X = X + Width - (_scrollBar.Width >> 1) + 5;
+                _scrollBar.Height = Height;
+                CalculateScrollBarMaxValue();
+                _scrollBar.IsVisible = _scrollBar.MaxValue > _scrollBar.MinValue;
+            }
+
+            private void CalculateScrollBarMaxValue()
+            {
+                bool maxValue = _scrollBar.Value == _scrollBar.MaxValue;
+                int height = 0;
+
+                foreach (RenderedText t in _entries)
+                    height += t.Height;
+
+                height -= _scrollBar.Height;
+
+                if (height > 0)
+                {
+                    _scrollBar.MaxValue = height;
+
+                    if (maxValue)
+                        _scrollBar.Value = _scrollBar.MaxValue;
+                }
+                else
+                {
+                    _scrollBar.MaxValue = 0;
+                    _scrollBar.Value = 0;
+                }
+            }
+
+            public void AddEntry(string text, int font, Hue hue, bool isUnicode, DateTime time)
+            {
+                bool maxScroll = _scrollBar.Value == _scrollBar.MaxValue;
+
+                while (_entries.Count > 199)
+                {
+                    _entries.RemoveFromFront().Destroy();
+                    _hours.RemoveFromFront().Destroy();
+                }
+
+                RenderedText h = RenderedText.Create($"{time:t} ", 1150, 1, true, FontStyle.BlackBorder);
+
+                _hours.AddToBack(h);
+
+                _entries.AddToBack(RenderedText.Create(text, hue, (byte)font, isUnicode, FontStyle.Indention | FontStyle.BlackBorder, maxWidth: Width - (18 + h.Width)));
+
+                _scrollBar.MaxValue += _entries[_entries.Count - 1].Height;
+                if (maxScroll) _scrollBar.Value = _scrollBar.MaxValue;
+            }
+
+
+            public override void Dispose()
+            {
+                for (int i = 0; i < _entries.Count; i++)
+                {
+                    _entries[i].Destroy();
+                    _hours[i].Destroy();
+                }
+
+                _entries.Clear();
+                _hours.Clear();
+
+                base.Dispose();
+            }
+        }
+
     }
 }

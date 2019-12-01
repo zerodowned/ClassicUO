@@ -21,6 +21,7 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
 
 using ClassicUO.Game.Data;
@@ -31,54 +32,46 @@ namespace ClassicUO.Game.GameObjects
 {
     internal abstract class GameEffect : GameObject
     {
-        protected AnimDataFrame2 AnimDataFrame;
+        public AnimDataFrame2 AnimDataFrame;
 
         protected GameEffect()
         {
             Children = new List<GameEffect>();
-            AlphaHue = 0;
+            AlphaHue = 0xFF;
         }
 
         public List<GameEffect> Children { get; }
 
-        public GameObject Source { get; set; }
+        public GameObject Source;
 
-        protected GameObject Target { get; set; }
+        protected GameObject Target;
 
-        protected int SourceX { get; set; }
+        protected int TargetX;
 
-        protected int SourceY { get; set; }
+        protected int TargetY;
 
-        protected int SourceZ { get; set; }
+        protected int TargetZ;
 
-        protected int TargetX { get; set; }
+        public int Speed;
 
-        protected int TargetY { get; set; }
+        public long LastChangeFrameTime;
 
-        protected int TargetZ { get; set; }
+        public bool IsEnabled;
 
-        public int Speed { get; set; }
-
-        public long LastChangeFrameTime { get; set; }
-
-        public bool IsEnabled { get; set; }
-
-        public Graphic AnimationGraphic { get; set; } = Graphic.INVALID;
+        public Graphic AnimationGraphic = Graphic.INVALID;
 
         public bool IsMoving => Target != null || TargetX != 0 && TargetY != 0;
 
-        public GraphicEffectBlendMode Blend { get; set; }
+        public GraphicEffectBlendMode Blend;
 
-        public bool IsItemEffect => Source is Static;
-
-        public long Duration { get; set; } = -1;
+        public long Duration = -1;
 
         public void Load()
         {
             AnimDataFrame = FileManager.AnimData.CalculateCurrentGraphic(Graphic);
             IsEnabled = true;
             AnimIndex = 0;
-            Speed = AnimDataFrame.FrameInterval != 0 ? AnimDataFrame.FrameInterval * Constants.ITEM_EFFECT_ANIMATION_DELAY : Constants.ITEM_EFFECT_ANIMATION_DELAY;
+            Speed += AnimDataFrame.FrameInterval != 0 ? AnimDataFrame.FrameInterval * Constants.ITEM_EFFECT_ANIMATION_DELAY : Constants.ITEM_EFFECT_ANIMATION_DELAY;
         }
 
         public override void Update(double totalMS, double frameMS)
@@ -100,8 +93,23 @@ namespace ClassicUO.Game.GameObjects
             {
                 if (Duration < totalMS && Duration >= 0)
                     Destroy();
+                //else
+                //{
+                //    unsafe
+                //    {
+                //        int count = AnimDataFrame.FrameCount;
+                //        if (count == 0)
+                //            count = 1;
+
+                //        AnimationGraphic = (Graphic) (Graphic + AnimDataFrame.FrameData[((int) Math.Max(1, (_start / 50d) / Speed)) % count]);
+                //    }
+
+                //    _start += frameMS;
+                //}
+
                 else if (LastChangeFrameTime < totalMS)
                 {
+
                     if (AnimDataFrame.FrameCount != 0)
                     {
                         unsafe
@@ -134,31 +142,26 @@ namespace ClassicUO.Game.GameObjects
 
         protected (int x, int y, int z) GetSource()
         {
-            return Source == null ? (SourceX, SourceY, SourceZ) : (Source.X, Source.Y, Source.Z);
+            return Source == null ? (X, Y, Z) : (Source.X, Source.Y, Source.Z);
         }
 
         public void SetSource(GameObject source)
         {
             Source = source;
             Position = source.Position;
-            AddToTile(source.X, source.Y);
+            AddToTile();
         }
 
         public void SetSource(int x, int y, int z)
         {
             Source = null;
-            SourceX = x;
-            SourceY = y;
-            SourceZ = z;
             Position = new Position((ushort) x, (ushort) y, (sbyte) z);
-            AddToTile(x, y);
+            AddToTile();
         }
 
         protected (int x, int y, int z) GetTarget()
         {
-            if (Target == null) return (TargetX, TargetY, TargetZ);
-
-            return (Target.Position.X, Target.Position.Y, Target.Position.Z);
+            return Target == null ? (TargetX, TargetY, TargetZ) : (Target.X, Target.Y, Target.Z);
         }
 
         public void SetTarget(GameObject target)

@@ -21,6 +21,7 @@
 
 #endregion
 
+using ClassicUO.Utility;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -29,7 +30,7 @@ using System.Threading.Tasks;
 
 namespace ClassicUO.IO.Resources
 {
-    internal class SkillsLoader : ResourceLoader
+    internal class SkillsLoader : UOFileLoader
     {
         private readonly Dictionary<int, SkillEntry> _skills = new Dictionary<int, SkillEntry>();
         private UOFileMul _file;
@@ -48,8 +49,8 @@ namespace ClassicUO.IO.Resources
                 string path = Path.Combine(FileManager.UoFolderPath, "skills.mul");
                 string pathidx = Path.Combine(FileManager.UoFolderPath, "Skills.idx");
 
-                if (!File.Exists(path) || !File.Exists(pathidx))
-                    throw new FileNotFoundException();
+                FileSystemHelper.EnsureFileExists(path);
+                FileSystemHelper.EnsureFileExists(pathidx);
 
                 _file = new UOFileMul(path, pathidx, 0, 16);
                 _file.FillEntries(ref Entries);

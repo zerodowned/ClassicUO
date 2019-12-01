@@ -21,6 +21,7 @@
 
 #endregion
 
+using ClassicUO.Utility;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -29,7 +30,7 @@ using System.Threading.Tasks;
 
 namespace ClassicUO.IO.Resources
 {
-    internal class SpeechesLoader : ResourceLoader
+    internal class SpeechesLoader : UOFileLoader
     {
         private SpeechEntry[] _speech;
 
@@ -40,7 +41,10 @@ namespace ClassicUO.IO.Resources
                 string path = Path.Combine(FileManager.UoFolderPath, "speech.mul");
 
                 if (!File.Exists(path))
-                    throw new FileNotFoundException();
+                {
+                    _speech = Array.Empty<SpeechEntry>();
+                    return;
+                }
 
                 UOFileMul file = new UOFileMul(path);
                 List<SpeechEntry> entries = new List<SpeechEntry>();
@@ -106,7 +110,7 @@ namespace ClassicUO.IO.Resources
             {
                 SpeechEntry entry = _speech[i];
 
-                if (IsMatch(text, entry)) list.Add(entry);
+                if (IsMatch(text, in entry)) list.Add(entry);
             }
 
             list.Sort();

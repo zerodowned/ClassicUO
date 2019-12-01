@@ -24,6 +24,7 @@
 using System.Linq;
 
 using ClassicUO.Game.GameObjects;
+using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using ClassicUO.IO;
@@ -66,9 +67,9 @@ namespace ClassicUO.Game.UI.Gumps
 
             hitbox.MouseUp += (sender, e) =>
             {
-                Engine.UI.GetGump<BulletinBoardItem>(LocalSerial)?.Dispose();
+                UIManager.GetGump<BulletinBoardItem>(LocalSerial)?.Dispose();
 
-                Engine.UI.Add(new BulletinBoardItem(LocalSerial, 0, World.Player.Name, string.Empty, "Date/Time", string.Empty, 0));
+                UIManager.Add(new BulletinBoardItem(LocalSerial, 0, World.Player.Name, string.Empty, "Date/Time", string.Empty, 0));
             };
             Add(hitbox);
 
@@ -279,7 +280,7 @@ namespace ClassicUO.Game.UI.Gumps
                     break;
 
                 case ButtonType.Remove:
-                    Engine.UI.Add(new BulletinBoardItem(LocalSerial, 0, World.Player.Name, "RE: " + _subjectTextbox.Text, "Date/Time", string.Empty, 0));
+                    UIManager.Add(new BulletinBoardItem(LocalSerial, 0, World.Player.Name, "RE: " + _subjectTextbox.Text, "Date/Time", string.Empty, 0));
                     Dispose();
 
                     break;
@@ -356,6 +357,9 @@ namespace ClassicUO.Game.UI.Gumps
 
         protected override bool OnMouseDoubleClick(int x, int y, MouseButton button)
         {
+            if (button != MouseButton.Left)
+                return false;
+
             NetClient.Socket.Send(new PBulletinBoardRequestMessage(LocalSerial, Item));
 
             return true;

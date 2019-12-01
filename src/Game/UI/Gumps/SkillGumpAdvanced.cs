@@ -26,6 +26,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using ClassicUO.Game.Data;
+using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using ClassicUO.IO;
@@ -118,8 +119,6 @@ namespace ClassicUO.Game.UI.Gumps
 
             Add(_sortOrderIndicator = new GumpPic(0, 0, 0x985, 0));
             OnButtonClick((int) Buttons.SortName);
-
-            World.Player.SkillsChanged += OnSkillChanged;
         }
 
         public override void OnButtonClick(int buttonID)
@@ -212,16 +211,7 @@ namespace ClassicUO.Game.UI.Gumps
         }
 
 
-        public override void Dispose()
-        {
-            World.Player.SkillsChanged -= OnSkillChanged;
-            base.Dispose();
-        }
-
-        private void OnSkillChanged(object sender, EventArgs args)
-        {
-            _updateSkillsNeeded = true;
-        }
+        public void ForceUpdate() => _updateSkillsNeeded = true;
 
         private enum Buttons
         {
@@ -307,13 +297,13 @@ namespace ClassicUO.Game.UI.Gumps
             {
                 uint serial = (uint) (World.Player + _skill.Index + 1);
 
-                if (Engine.UI.GetGump<SkillButtonGump>(serial) != null)
-                    Engine.UI.Remove<SkillButtonGump>(serial);
+                if (UIManager.GetGump<SkillButtonGump>(serial) != null)
+                    UIManager.Remove<SkillButtonGump>(serial);
 
                 SkillButtonGump skillButtonGump = new SkillButtonGump(_skill, Mouse.Position.X, Mouse.Position.Y);
-                Engine.UI.Add(skillButtonGump);
+                UIManager.Add(skillButtonGump);
                 Rectangle rect = FileManager.Gumps.GetTexture(0x24B8).Bounds;
-                Engine.UI.AttemptDragControl(skillButtonGump, new Point(Mouse.Position.X + (rect.Width >> 1), Mouse.Position.Y + (rect.Height >> 1)), true);
+                UIManager.AttemptDragControl(skillButtonGump, new Point(Mouse.Position.X + (rect.Width >> 1), Mouse.Position.Y + (rect.Height >> 1)), true);
             }
         }
 

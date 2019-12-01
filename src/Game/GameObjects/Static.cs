@@ -24,10 +24,13 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
+using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
+using ClassicUO.Game.Scenes;
 using ClassicUO.IO;
 using ClassicUO.IO.Resources;
+using ClassicUO.Renderer;
 using ClassicUO.Utility;
 
 using Microsoft.Xna.Framework;
@@ -36,9 +39,17 @@ namespace ClassicUO.Game.GameObjects
 {
     internal sealed partial class Static : GameObject
     {
-        private StaticTiles? _itemData;
-
         private static readonly Queue<Static> _pool = new Queue<Static>();
+        static Static()
+        {
+            for (int i = 0; i < 1000; i++)
+                _pool.Enqueue(new Static());
+        }
+
+        private Static()
+        {
+
+        }
 
         public Static(Graphic graphic, Hue hue, int index)
         {
@@ -67,9 +78,7 @@ namespace ClassicUO.Game.GameObjects
                 s.Hue = hue;
                 s.Index = index;
                 s.IsDestroyed = false;
-                s._itemData = null;
                 s.AlphaHue = 0;
-                s._oldGraphic = 0;
                 s.CharacterIsBehindFoliage = false;
                 s.UpdateGraphicBySeason();
 
@@ -94,37 +103,77 @@ namespace ClassicUO.Game.GameObjects
 
         public Graphic OriginalGraphic { get; private set; }
 
-        public StaticTiles ItemData
-        {
-            [MethodImpl(256)]
-            get
-            {
-                if (!_itemData.HasValue)
-                    _itemData = FileManager.TileData.StaticData[Graphic];
-
-                return _itemData.Value;
-            }
-        }
+        public ref readonly StaticTiles ItemData => ref FileManager.TileData.StaticData[Graphic];
 
         public void SetGraphic(Graphic g)
         {
             Graphic = g;
-            _itemData = FileManager.TileData.StaticData[Graphic];
+            SetTextureByGraphic(g);
         }
 
         public void RestoreOriginalGraphic()
         {
             Graphic = OriginalGraphic;
-            _itemData = FileManager.TileData.StaticData[Graphic];
+            SetTextureByGraphic(Graphic);
         }
 
         public override void UpdateGraphicBySeason()
         {
-            Graphic = Season.GetSeasonGraphic(World.Season, OriginalGraphic);
-
+            SetGraphic(Season.GetSeasonGraphic(World.Season, OriginalGraphic));
             AllowedToDraw = !GameObjectHelper.IsNoDrawable(Graphic);
+            SetTextureByGraphic(Graphic);
+
         }
-     
+
+        public override void UpdateTextCoordsV()
+        {
+            if (TextContainer == null)
+                return;
+
+            var last = TextContainer.Items;
+
+            while (last?.ListRight != null)
+                last = last.ListRight;
+
+            if (last == null)
+                return;
+
+            int offY = 0;
+
+            int startX = ProfileManager.Current.GameWindowPosition.X + 6;
+            int startY = ProfileManager.Current.GameWindowPosition.Y + 6;
+            var scene = CUOEnviroment.Client.GetScene<GameScene>();
+            float scale = scene?.Scale ?? 1;
+            int x = RealScreenPosition.X;
+            int y = RealScreenPosition.Y;
+
+            x += 22;
+            y += 44;
+
+            if (Texture != null)
+                y -= Texture is ArtTexture t ? (t.ImageRectangle.Height >> 1) : (Texture.Height >> 1);
+
+            x = (int)(x / scale);
+            y = (int)(y / scale);
+
+            for (; last != null; last = last.ListLeft)
+            {
+                if (last.RenderedText != null && !last.RenderedText.IsDestroyed)
+                {
+                    if (offY == 0 && last.Time < Time.Ticks)
+                        continue;
+
+                    last.OffsetY = offY;
+                    offY += last.RenderedText.Height;
+
+                    last.RealScreenPosition.X = startX + (x - (last.RenderedText.Width >> 1));
+                    last.RealScreenPosition.Y = startY + (y - offY);
+                }
+            }
+
+            FixTextCoordinatesInScreen();
+        }
+
         public override void Destroy()
         {
             if (IsDestroyed)

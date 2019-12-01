@@ -23,20 +23,30 @@
 
 using System;
 using System.Collections.Generic;
-
+using ClassicUO.Configuration;
 using ClassicUO.Game.Managers;
-using ClassicUO.Interfaces;
 using ClassicUO.IO;
 using ClassicUO.Renderer;
 using ClassicUO.Utility.Coroutines;
 using ClassicUO.Utility.Logging;
-
+using Microsoft.Xna.Framework;
 using SDL2;
+using IUpdateable = ClassicUO.Interfaces.IUpdateable;
 
 namespace ClassicUO.Game.Scenes
 {
-    internal abstract class Scene : IUpdateable
+    internal abstract class Scene : IUpdateable, IDisposable
     {
+        protected Scene(int sceneID,  bool canresize, bool maximized, bool loadaudio)
+        {
+            CanResize = canresize;
+            CanBeMaximized = maximized;
+            CanLoadAudio = loadaudio;
+        }
+
+        public readonly bool CanResize, CanBeMaximized, CanLoadAudio;
+        public readonly int ID;
+
         public bool IsDestroyed { get; private set; }
 
         public bool IsLoaded { get; private set; }
@@ -53,7 +63,12 @@ namespace ClassicUO.Game.Scenes
             Coroutines.Update();
         }
 
-        public virtual void Destroy()
+        public virtual void FixedUpdate(double totalMS, double frameMS)
+        {
+
+        }
+
+        public virtual void Dispose()
         {
             if (IsDestroyed)
                 return;
@@ -65,9 +80,10 @@ namespace ClassicUO.Game.Scenes
 
         public virtual void Load()
         {
-            if (this is GameScene || this is LoginScene)
+            if (CanLoadAudio)
             {
                 Audio = new AudioManager();
+                Audio.Initialize();
                 Coroutine.Start(this, CleaningResources(), "cleaning resources");
             }
 
@@ -79,7 +95,7 @@ namespace ClassicUO.Game.Scenes
             Audio?.StopMusic();
             Coroutines.Clear();
         }
-        
+
         public virtual bool Draw(UltimaBatcher2D batcher)
         {
             return true;
@@ -108,7 +124,7 @@ namespace ClassicUO.Game.Scenes
 
         private IEnumerable<IWaitCondition> CleaningResources()
         {
-            Log.Message(LogTypes.Trace, "Cleaning routine running...");
+            Log.Trace( "Cleaning routine running...");
 
             yield return new WaitTime(TimeSpan.FromMilliseconds(10000));
 
@@ -133,9 +149,13 @@ namespace ClassicUO.Game.Scenes
                 World.Map?.ClearUnusedBlocks();
 
                 yield return new WaitTime(TimeSpan.FromMilliseconds(500));
+
+                FileManager.Lights.CleaUnusedResources();
+
+                yield return new WaitTime(TimeSpan.FromMilliseconds(500));
             }
 
-            Log.Message(LogTypes.Trace, "Cleaning routine finished");
+            Log.Trace( "Cleaning routine finished");
         }
     }
 }

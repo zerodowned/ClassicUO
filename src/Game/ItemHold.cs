@@ -21,10 +21,11 @@
 
 #endregion
 
-using System.Collections.Generic;
-
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
+using ClassicUO.Game.Managers;
+
+using Microsoft.Xna.Framework;
 
 namespace ClassicUO.Game
 {
@@ -48,7 +49,7 @@ namespace ClassicUO.Game
         public bool Enabled { get; set; }
         public bool Dropped { get; set; }
 
-        public void Set(Item item, ushort amount)
+        public void Set(Item item, ushort amount, Point? offset = null)
         {
             Enabled = true;
 
@@ -66,8 +67,6 @@ namespace ClassicUO.Game
             IsWearable = item.ItemData.IsWearable;
             Layer = item.Layer;
             Flags = item.Flags;
-
-            Engine.UI.GameCursor.SetDraggedItem(this);
         }
 
         public void Clear()

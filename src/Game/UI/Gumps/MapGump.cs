@@ -24,6 +24,7 @@
 using System;
 using System.Collections.Generic;
 
+using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using ClassicUO.Network;
@@ -177,7 +178,7 @@ namespace ClassicUO.Game.UI.Gumps
 
             if (Math.Abs(offset.X) < 5 && Math.Abs(offset.Y) < 5)
             {
-                if (PlotState != 0 && _currentPin == null && _pinTimer > Engine.Ticks)
+                if (PlotState != 0 && _currentPin == null && _pinTimer > Time.Ticks)
                 {
                     ushort x = (ushort) (e.X + 5);
                     ushort y = (ushort) (e.Y);
@@ -206,9 +207,7 @@ namespace ClassicUO.Game.UI.Gumps
                 var c0 = _container[i];
                 var c1 = _container[i + 1];
 
-                //batcher.DrawLine(Textures.GetTexture(Color.White), c0.ScreenCoordinateX, c0.ScreenCoordinateY, c1.ScreenCoordinateX, c1.ScreenCoordinateY, ref _hueVector);
-
-                batcher.Draw2DRotated(Textures.GetTexture(Color.White), 
+                batcher.DrawLine(Textures.GetTexture(Color.White), 
                                       c0.ScreenCoordinateX, c0.ScreenCoordinateY, 
                                       c1.ScreenCoordinateX, c1.ScreenCoordinateY,
                                       c0.ScreenCoordinateX + (c1.ScreenCoordinateX - c0.ScreenCoordinateX) / 2, c0.ScreenCoordinateY + (c1.ScreenCoordinateY - c0.ScreenCoordinateY) / 2);
@@ -228,9 +227,9 @@ namespace ClassicUO.Game.UI.Gumps
 
         protected override void OnMouseDown(int x, int y, MouseButton button)
         {
-            _pinTimer = Engine.Ticks + 300;
+            _pinTimer = Time.Ticks + 300;
 
-            if (Engine.UI.MouseOverControl is PinControl pin)
+            if (UIManager.MouseOverControl is PinControl pin)
             {
                 _currentPin = pin;
             }

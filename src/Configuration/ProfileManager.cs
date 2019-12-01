@@ -31,17 +31,17 @@ using Newtonsoft.Json;
 
 namespace ClassicUO.Configuration
 {
-    internal class ProfileManager
+    internal static class ProfileManager
     {
-        public Profile Current { get; private set; }
+        public static Profile Current { get; private set; }
 
-        public void Load(string servername, string username, string charactername)
+        public static void Load(string servername, string username, string charactername)
         {
-            string path = FileSystemHelper.CreateFolderIfNotExists(Engine.ExePath, "Data", "Profiles", username, servername, charactername);
+            string path = FileSystemHelper.CreateFolderIfNotExists(CUOEnviroment.ExecutablePath, "Data", "Profiles", username, servername, charactername);
 
 
 
-            // this is a temporary patch to change the profile settings name safety
+            // FIXME: this is a temporary patch to change the profile settings name safety
             string fileToLoad = Path.Combine(path, "settings.json");
             string newPath = Path.Combine(path, "profile.json");
 
@@ -53,9 +53,9 @@ namespace ClassicUO.Configuration
                     {
                         File.Delete(fileToLoad);
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-                        Log.Message(LogTypes.Warning, $"Failed to delete file: '{fileToLoad}'");
+                        Log.Warn( $"Failed to delete file: '{fileToLoad}'");
                     }
                 }
 
@@ -88,7 +88,7 @@ namespace ClassicUO.Configuration
             }
         }
 
-        public void UnLoadProfile()
+        public static void UnLoadProfile()
         {
             Current = null;
         }

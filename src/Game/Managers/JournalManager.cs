@@ -24,6 +24,7 @@
 using System;
 using System.IO;
 
+using ClassicUO.Configuration;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Collections;
 
@@ -43,16 +44,17 @@ namespace ClassicUO.Game.Managers
 
             byte font = (byte) (isunicode ? 0 : 9);
 
-            if (Engine.Profile.Current != null && Engine.Profile.Current.OverrideAllFonts)
+            if (ProfileManager.Current != null && ProfileManager.Current.OverrideAllFonts)
             {
-                font = Engine.Profile.Current.ChatFont;
-                isunicode = Engine.Profile.Current.OverrideAllFontsIsUnicode;
+                font = ProfileManager.Current.ChatFont;
+                isunicode = ProfileManager.Current.OverrideAllFontsIsUnicode;
             }
 
-            JournalEntry entry = new JournalEntry(text, font, hue, name, isunicode);
+            var n = DateTime.Now;
+            JournalEntry entry = new JournalEntry(text, font, hue, name, isunicode, n);
             Entries.AddToBack(entry);
             EntryAdded.Raise(entry);
-            _fileWriter?.WriteLine($"[{Engine.CurrDateTime:g}]  {name}: {text}");
+            _fileWriter?.WriteLine($"[{n:g}]  {name}: {text}");
         }
 
         public void CreateWriter(bool create)
@@ -61,7 +63,7 @@ namespace ClassicUO.Game.Managers
             {
                 try
                 {
-                    _fileWriter = new StreamWriter(File.Open($"{Engine.CurrDateTime:yyyy_MM_dd_HH_mm_ss}_journal.txt", FileMode.Create, FileAccess.Write, FileShare.Read))
+                    _fileWriter = new StreamWriter(File.Open($"{DateTime.Now:yyyy_MM_dd_HH_mm_ss}_journal.txt", FileMode.Create, FileAccess.Write, FileShare.Read))
                     {
                         AutoFlush = true
                     };
@@ -93,14 +95,16 @@ namespace ClassicUO.Game.Managers
         public readonly bool IsUnicode;
         public readonly string Name;
         public readonly string Text;
+        public readonly DateTime Time;
 
-        public JournalEntry(string text, byte font, Hue hue, string name, bool isunicode)
+        public JournalEntry(string text, byte font, Hue hue, string name, bool isunicode, DateTime time)
         {
             IsUnicode = isunicode;
             Font = font;
             Hue = hue;
             Name = name;
             Text = text;
+            Time = time;
         }
     }
 }

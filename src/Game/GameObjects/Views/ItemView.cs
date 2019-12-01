@@ -24,6 +24,7 @@
 using System;
 using System.Collections.Generic;
 
+using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;
@@ -44,7 +45,7 @@ namespace ClassicUO.Game.GameObjects
             if (!AllowedToDraw || IsDestroyed)
                 return false;
 
-            Engine.DebugInfo.ItemsRendered++;
+            //Engine.DebugInfo.ItemsRendered++;
 
             ResetHueVector();
 
@@ -54,16 +55,26 @@ namespace ClassicUO.Game.GameObjects
 
             ushort hue = Hue;
 
-            if (Engine.Profile.Current.FieldsType == 1 && StaticFilters.IsField(Graphic)) // static
+            if (ProfileManager.Current.FieldsType == 1 && StaticFilters.IsField(Graphic)) // static
             {
                 unsafe
                 {
-                    _originalGraphic = (Graphic) (Graphic + _animDataFrame.FrameData[_animDataFrame.FrameCount >> 1]);
+                    IntPtr ptr = FileManager.AnimData.GetAddressToAnim(Graphic);
+
+                    if (ptr != IntPtr.Zero)
+                    {
+                        AnimDataFrame2* animData = (AnimDataFrame2*) ptr;
+
+                        if (animData->FrameCount != 0)
+                        {
+                            _originalGraphic = (Graphic) (Graphic + animData->FrameData[animData->FrameCount >> 1]);
+                        }
+                    }
                 }
 
                 _force = false;
             }
-            else if (Engine.Profile.Current.FieldsType == 2)
+            else if (ProfileManager.Current.FieldsType == 2)
             {
                 if (StaticFilters.IsFireField(Graphic))
                 {
@@ -120,18 +131,17 @@ namespace ClassicUO.Game.GameObjects
                 }
             }
 
-
-            if (Engine.Profile.Current.HighlightGameObjects && SelectedObject.LastObject == this)
+            if (ProfileManager.Current.HighlightGameObjects && SelectedObject.LastObject == this)
             {
                 HueVector.X = 0x0023;
                 HueVector.Y = 1;
             }
-            else if (Engine.Profile.Current.NoColorObjectsOutOfRange && Distance > World.ClientViewRange)
+            else if (ProfileManager.Current.NoColorObjectsOutOfRange && Distance > World.ClientViewRange)
             {
                 HueVector.X = Constants.OUT_RANGE_COLOR;
                 HueVector.Y = 1;
             }
-            else if (World.Player.IsDead && Engine.Profile.Current.EnableBlackWhiteEffect)
+            else if (World.Player.IsDead && ProfileManager.Current.EnableBlackWhiteEffect)
             {
                 HueVector.X = Constants.DEAD_RANGE_COLOR;
                 HueVector.Y = 1;
@@ -140,7 +150,7 @@ namespace ClassicUO.Game.GameObjects
             {
                 bool isPartial = ItemData.IsPartialHue;
 
-                if (SelectedObject.LastObject == this && !IsLocked)
+                if (SelectedObject.LastObject == this && !IsLocked && !IsMulti)
                 {
                     isPartial = ItemData.Weight == 255;
                     hue = 0x0035;
@@ -151,23 +161,16 @@ namespace ClassicUO.Game.GameObjects
                 ShaderHuesTraslator.GetHueVector(ref HueVector, hue, isPartial, ItemData.IsTranslucent ? .5f : 0);
             }
 
-            if (ItemData.IsStackable && DisplayedGraphic == Graphic && _originalGraphic == Graphic)
+            if (!IsCorpse && !IsMulti && Amount > 1 && ItemData.IsStackable && DisplayedGraphic == Graphic && _originalGraphic == Graphic)
             {
-                posX += (int)Offset.X;
-                posY += (int)Offset.Y;
-
-                if (Amount > 1)
-                    base.Draw(batcher, posX - 5, posY - 5);
+                base.Draw(batcher, posX - 5, posY - 5);
             }
 
             if (ItemData.IsLight)
             {
-                Engine.SceneManager.GetScene<GameScene>()
+                CUOEnviroment.Client.GetScene<GameScene>()
                       .AddLight(this, this, posX + 22, posY + 22);
             }
-
-            // SpriteRenderer.DrawStaticArt(DisplayedGraphic, Hue, (int)position.X, (int)position.Y);
-            // return true;
 
             if (!Serial.IsValid && IsMulti && TargetManager.TargetingState == CursorTarget.MultiPlacement)
                 HueVector.Z = 0.5f;
@@ -180,10 +183,9 @@ namespace ClassicUO.Game.GameObjects
             if (IsDestroyed || World.CorpseManager.Exists(Serial, 0))
                 return false;
 
-            FrameInfo.X = 0;
-            FrameInfo.Y = 0;
-            FrameInfo.Width = 0;
-            FrameInfo.Height = 0;
+            posX += 22;
+            posY += 22;
+
             byte dir = (byte) ((byte) Layer & 0x7F & 7);
             bool mirror = false;
             FileManager.Animations.GetAnimDirection(ref dir, ref mirror);
@@ -191,27 +193,32 @@ namespace ClassicUO.Game.GameObjects
             FileManager.Animations.Direction = dir;
             byte animIndex = (byte) AnimIndex;
 
-            DrawLayer(batcher, posX, posY, Layer.Invalid, animIndex);
+            bool ishuman = MathHelper.InRange(Amount, 0x0190, 0x0193) ||
+                           MathHelper.InRange(Amount, 0x00B7, 0x00BA) ||
+                           MathHelper.InRange(Amount, 0x025D, 0x0260) ||
+                           MathHelper.InRange(Amount, 0x029A, 0x029B) ||
+                           MathHelper.InRange(Amount, 0x02B6, 0x02B7) ||
+                           Amount == 0x03DB || Amount == 0x03DF || Amount == 0x03E2 || Amount == 0x02E8 || Amount == 0x02E9;
+
+            DrawLayer(batcher, posX, posY, Layer.Invalid, animIndex, ishuman);
 
             for (int i = 0; i < Constants.USED_LAYER_COUNT; i++)
             {
                 Layer layer = LayerOrder.UsedLayers[dir, i];
-                DrawLayer(batcher, posX, posY, layer, animIndex);
+                DrawLayer(batcher, posX, posY, layer, animIndex, ishuman);
             }
-
-            FrameInfo.X = Math.Abs(FrameInfo.X);
-            FrameInfo.Y = Math.Abs(FrameInfo.Y);
-            FrameInfo.Width = FrameInfo.X + FrameInfo.Width;
-            FrameInfo.Height = FrameInfo.Y + FrameInfo.Height;
 
             return true;
         }
 
-        private void DrawLayer(UltimaBatcher2D batcher, int posX, int posY, Layer layer, byte animIndex)
+        private static EquipConvData? _equipConvData;
+
+        private void DrawLayer(UltimaBatcher2D batcher, int posX, int posY, Layer layer, byte animIndex, bool ishuman)
         {
+            _equipConvData = null;
             ushort graphic;
             ushort color = 0;
-
+            bool ispartialhue = false;
             if (layer == Layer.Invalid)
             {
                 graphic = GetGraphicForAnimation();
@@ -220,23 +227,25 @@ namespace ClassicUO.Game.GameObjects
                 if (color == 0)
                     color = Hue;
             }
-            else if (HasEquipment && MathHelper.InRange(Amount, 0x0190, 0x0193) ||
-                     MathHelper.InRange(Amount, 0x00B7, 0x00BA) ||
-                     MathHelper.InRange(Amount, 0x025D, 0x0260) ||
-                     MathHelper.InRange(Amount, 0x029A, 0x029B) ||
-                     MathHelper.InRange(Amount, 0x02B6, 0x02B7) ||
-                     Amount == 0x03DB || Amount == 0x03DF || Amount == 0x03E2 || Amount == 0x02E8 || Amount == 0x02E9)
+            else if (HasEquipment && ishuman)
             {
                 Item itemEquip = Equipment[(int) layer];
 
                 if (itemEquip == null) return;
 
                 graphic = itemEquip.ItemData.AnimID;
+                ispartialhue = itemEquip.ItemData.IsPartialHue;
 
-                if (FileManager.Animations.EquipConversions.TryGetValue(Amount, out Dictionary<ushort, EquipConvData> map))
+                ushort mobGraphic = Amount;
+                FileManager.Animations.ConvertBodyIfNeeded(ref mobGraphic);
+
+                if (FileManager.Animations.EquipConversions.TryGetValue(mobGraphic, out Dictionary<ushort, EquipConvData> map))
                 {
                     if (map.TryGetValue(graphic, out EquipConvData data))
+                    {
+                        _equipConvData = data;
                         graphic = data.Graphic;
+                    }
                 }
 
                 color = itemEquip.Hue;
@@ -266,7 +275,7 @@ namespace ClassicUO.Game.GameObjects
             if ((direction.FrameCount == 0 || direction.Frames == null) && !FileManager.Animations.LoadDirectionGroup(ref direction))
                 return;
 
-            direction.LastAccessTime = Engine.Ticks;
+            direction.LastAccessTime = Time.Ticks;
             int fc = direction.FrameCount;
 
             if (fc > 0 && animIndex >= fc)
@@ -279,77 +288,66 @@ namespace ClassicUO.Game.GameObjects
                 if (frame == null || frame.IsDisposed)
                     return;
 
-                int drawCenterY = frame.CenterY;
-                const int drawX = -22;
-                int drawY = drawCenterY - 22;
-                drawY -= 3;
-                int x = drawX + frame.CenterX;
-                int y = -drawY - (frame.Height + frame.CenterY) + drawCenterY;
-
-                int yy = -(frame.Height + frame.CenterY + 3);
-                int xx = -frame.CenterX;
+                frame.Ticks = Time.Ticks;
 
                 if (IsFlipped)
-                    xx = -(frame.Width - frame.CenterX);
+                    posX -= frame.Width - frame.CenterX;
+                else
+                    posX -= frame.CenterX;
 
-                if (xx < FrameInfo.X)
-                    FrameInfo.X = xx;
-
-                if (yy < FrameInfo.Y)
-                    FrameInfo.Y = yy;
-
-                if (FrameInfo.Width < xx + frame.Width)
-                    FrameInfo.Width = xx + frame.Width;
-
-                if (FrameInfo.Height < yy + frame.Height)
-                    FrameInfo.Height = yy + frame.Height;
-
-                Texture = frame;
-                Bounds.X = x;
-                Bounds.Y = -y;
-                Bounds.Width = frame.Width;
-                Bounds.Height = frame.Height;
+                posY -= frame.Height + frame.CenterY;
 
 
-                if (Engine.Profile.Current.NoColorObjectsOutOfRange && Distance > World.ClientViewRange)
+                if (color == 0)
+                {
+                    if ((color & 0x8000) != 0)
+                    {
+                        ispartialhue = true;
+                        color &= 0x7FFF;
+                    }
+
+                    if (color == 0 && _equipConvData.HasValue)
+                    {
+                        color = _equipConvData.Value.Color;
+                        ispartialhue = false;
+                    }
+                }
+
+                ResetHueVector();
+                
+                if (ProfileManager.Current.NoColorObjectsOutOfRange && Distance > World.ClientViewRange)
                 {
                     HueVector.X = Constants.OUT_RANGE_COLOR;
                     HueVector.Y = 1;
                 }
-                else if (World.Player.IsDead && Engine.Profile.Current.EnableBlackWhiteEffect)
+                else if (World.Player.IsDead && ProfileManager.Current.EnableBlackWhiteEffect)
                 {
                     HueVector.X = Constants.DEAD_RANGE_COLOR;
                     HueVector.Y = 1;
                 }
                 else
                 {
-                    if (Engine.Profile.Current.GridLootType > 0 && SelectedObject.CorpseObject == this)
+                    if (ProfileManager.Current.GridLootType > 0 && SelectedObject.CorpseObject == this)
                         color = 0x0034;
-                    else if (Engine.Profile.Current.HighlightGameObjects && SelectedObject.LastObject == this)
+                    else if (ProfileManager.Current.HighlightGameObjects && SelectedObject.LastObject == this)
                         color = 0x0023;
 
-                    ShaderHuesTraslator.GetHueVector(ref HueVector, color);
+                    ShaderHuesTraslator.GetHueVector(ref HueVector, color, ispartialhue, 0);
                 }
 
-                DrawInternal(batcher, posX, posY);
-                Select(IsFlipped ? posX + x + 44 - SelectedObject.TranslatedMousePositionByViewport.X : SelectedObject.TranslatedMousePositionByViewport.X - posX + x, SelectedObject.TranslatedMousePositionByViewport.Y - posY - y);
+                Texture = frame;
+               
+                batcher.DrawSprite(frame, posX, posY, IsFlipped, ref HueVector);
+                Select(IsFlipped ? posX + frame.Width - SelectedObject.TranslatedMousePositionByViewport.X : SelectedObject.TranslatedMousePositionByViewport.X - posX, SelectedObject.TranslatedMousePositionByViewport.Y - posY);
             }
         }
 
-        private void DrawInternal(UltimaBatcher2D batcher, int posX, int posY)
-        {
-            if (IsFlipped)
-                batcher.DrawSpriteFlipped(Texture, posX, posY, Bounds.Width, Bounds.Height, Bounds.X, Bounds.Y, ref HueVector);
-            else
-                batcher.DrawSprite(Texture, posX, posY, Bounds.Width, Bounds.Height, Bounds.X, Bounds.Y, ref HueVector);
 
-            Texture.Ticks = Engine.Ticks;
-        }
 
 
         public override void Select(int x, int y)
         {
-            if (!Serial.IsValid && IsMulti && TargetManager.TargetingState == CursorTarget.MultiPlacement)
+            if (!Serial.IsValid /*&& IsMulti*/ && TargetManager.TargetingState == CursorTarget.MultiPlacement)
                 return;
 
             if (SelectedObject.Object == this || CharacterIsBehindFoliage)

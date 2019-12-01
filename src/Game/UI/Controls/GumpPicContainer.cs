@@ -23,6 +23,7 @@
 
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
+using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Input;
 
@@ -42,7 +43,7 @@ namespace ClassicUO.Game.UI.Controls
             if (button != MouseButton.Left)
                 return;
 
-            GameScene gs = Engine.SceneManager.GetScene<GameScene>();
+            GameScene gs = CUOEnviroment.Client.GetScene<GameScene>();
 
             if (!gs.IsHoldingItem || !gs.IsMouseOverUI)
                 return;
@@ -54,6 +55,16 @@ namespace ClassicUO.Game.UI.Controls
             }
             else
                 gs.Audio.PlaySound(0x0051);
+        }
+
+        public override bool Contains(int x, int y)
+        {
+            float scale = UIManager.ContainerScale;
+
+            x = (int)(x / scale);
+            y = (int)(y / scale);
+
+            return base.Contains(x, y);
         }
     }
 }

@@ -33,6 +33,8 @@ namespace ClassicUO.Renderer
     {
         private static readonly Stack<Rectangle> _scissors = new Stack<Rectangle>();
 
+        public static bool HasScissors => _scissors.Count - 1 > 0;
+
         public static bool PushScissors(Rectangle scissor)
         {
             if (_scissors.Count > 0)
@@ -57,7 +59,7 @@ namespace ClassicUO.Renderer
             }
 
             _scissors.Push(scissor);
-            Engine.Batcher.GraphicsDevice.ScissorRectangle = scissor;
+            CUOEnviroment.Client.GraphicsDevice.ScissorRectangle = scissor;
 
             return true;
         }
@@ -65,7 +67,7 @@ namespace ClassicUO.Renderer
         public static Rectangle PopScissors()
         {
             Rectangle scissors = _scissors.Pop();
-            GraphicsDevice gd = Engine.Batcher.GraphicsDevice;
+            GraphicsDevice gd = CUOEnviroment.Client.GraphicsDevice;
 
             if (_scissors.Count == 0)
                 gd.ScissorRectangle = gd.Viewport.Bounds;

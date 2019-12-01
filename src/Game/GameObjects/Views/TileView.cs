@@ -22,6 +22,8 @@
 #endregion
 
 using System.Runtime.CompilerServices;
+
+using ClassicUO.Configuration;
 using ClassicUO.IO;
 using ClassicUO.Renderer;
 
@@ -36,7 +38,7 @@ namespace ClassicUO.Game.GameObjects
             if (!AllowedToDraw || IsDestroyed)
                 return false;
 
-            Engine.DebugInfo.LandsRendered++;
+            //Engine.DebugInfo.LandsRendered++;
 
             ResetHueVector();
 
@@ -53,17 +55,17 @@ namespace ClassicUO.Game.GameObjects
             }
 
 
-            if (Engine.Profile.Current.HighlightGameObjects && SelectedObject.LastObject == this)
+            if (ProfileManager.Current.HighlightGameObjects && SelectedObject.LastObject == this)
             {
                 HueVector.X = 0x0023;
                 HueVector.Y = 1;
             }
-            else if (Engine.Profile.Current.NoColorObjectsOutOfRange && Distance > World.ClientViewRange)
+            else if (ProfileManager.Current.NoColorObjectsOutOfRange && Distance > World.ClientViewRange)
             {
                 HueVector.X = Constants.OUT_RANGE_COLOR;
                 HueVector.Y = 1;
             }
-            else if (World.Player.IsDead && Engine.Profile.Current.EnableBlackWhiteEffect)
+            else if (World.Player.IsDead && ProfileManager.Current.EnableBlackWhiteEffect)
             {
                 HueVector.X = Constants.DEAD_RANGE_COLOR;
                 HueVector.Y = 1;
@@ -79,15 +81,13 @@ namespace ClassicUO.Game.GameObjects
             }
 
 
-            if (IsStretched ? Draw3DStretched(batcher, posX, posY) : base.Draw(batcher, posX, posY)) return true;
-
-            return false;
+            return IsStretched ? Draw3DStretched(batcher, posX, posY) : base.Draw(batcher, posX, posY);
         }
 
 
         private bool Draw3DStretched(UltimaBatcher2D batcher, int posX, int posY)
         {
-            Texture.Ticks = Engine.Ticks;
+            Texture.Ticks = Time.Ticks;
 
             if (batcher.DrawSpriteLand(Texture, posX, posY + (Z << 2), ref Rectangle, ref Normals, ref HueVector))
             {
@@ -116,7 +116,7 @@ namespace ClassicUO.Game.GameObjects
             }
         }
 
-        private void UpdateStreched(int x, int y, sbyte z)
+        public void ApplyStrech(int x, int y, sbyte z)
         {
             Map.Map map = World.Map;
 

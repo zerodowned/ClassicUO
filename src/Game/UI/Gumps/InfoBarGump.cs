@@ -23,6 +23,8 @@
 
 using System.Collections.Generic;
 using System.Linq;
+
+using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;
@@ -35,9 +37,9 @@ namespace ClassicUO.Game.UI.Gumps
     internal class InfoBarGump : Gump
     {
 
-        private AlphaBlendControl _background;
+        private readonly AlphaBlendControl _background;
         private long _refreshTime;
-        private Label _name;
+        //private Label _name;
 
         public InfoBarGump() : base(0, 0)
         {
@@ -55,12 +57,12 @@ namespace ClassicUO.Game.UI.Gumps
 
         public void ResetItems()
         {
-            foreach (Control c in Children.OfType<InfoBarControl>())
+            foreach (InfoBarControl c in Children.OfType<InfoBarControl>())
             {
                 c.Dispose();
             }
 
-            List<InfoBarItem> infoBarItems = Engine.SceneManager.GetScene<GameScene>().InfoBars.GetInfoBars();
+            List<InfoBarItem> infoBarItems = CUOEnviroment.Client.GetScene<GameScene>().InfoBars.GetInfoBars();
 
             for (int i = 0; i < infoBarItems.Count; i++)
             {
@@ -79,7 +81,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                 int x = 5;
 
-                foreach (Control c in Children.OfType<InfoBarControl>())
+                foreach (InfoBarControl c in Children.OfType<InfoBarControl>())
                 {
                     c.X = x;
                     x += c.Width + 5;
@@ -135,7 +137,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                 _data.Text = GetVarData(_var);
                 
-                if (Engine.Profile.Current.InfoBarHighlightType == 0 || _var == InfoBarVars.NameNotoriety)
+                if (ProfileManager.Current.InfoBarHighlightType == 0 || _var == InfoBarVars.NameNotoriety)
                 {
                     _data.Hue = GetVarHue(_var);
                 }
@@ -157,13 +159,13 @@ namespace ClassicUO.Game.UI.Gumps
         {
             base.Draw(batcher, x, y);
 
-            Vector3 dataHue = Vector3.Zero;
+            ResetHueVector();
 
-            if (_var != InfoBarVars.NameNotoriety && Engine.Profile.Current.InfoBarHighlightType == 1 && _warningLinesHue != 0x0481)
+            if (_var != InfoBarVars.NameNotoriety && ProfileManager.Current.InfoBarHighlightType == 1 && _warningLinesHue != 0x0481)
             {
-                ShaderHuesTraslator.GetHueVector(ref dataHue, _warningLinesHue);
-                batcher.Draw2D(Textures.GetTexture(Color.White), _data.ScreenCoordinateX, _data.ScreenCoordinateY, _data.Width, 2, ref dataHue);
-                batcher.Draw2D(Textures.GetTexture(Color.White), _data.ScreenCoordinateX, _data.ScreenCoordinateY + Parent.Height - 2, _data.Width, 2, ref dataHue);
+                ShaderHuesTraslator.GetHueVector(ref _hueVector, _warningLinesHue);
+                batcher.Draw2D(Textures.GetTexture(Color.White), _data.ScreenCoordinateX, _data.ScreenCoordinateY, _data.Width, 2, ref _hueVector);
+                batcher.Draw2D(Textures.GetTexture(Color.White), _data.ScreenCoordinateX, _data.ScreenCoordinateY + Parent.Height - 2, _data.Width, 2, ref _hueVector);
             }
 
             return true;
@@ -232,7 +234,7 @@ namespace ClassicUO.Game.UI.Gumps
             switch (var)
             {
                 case InfoBarVars.HP:
-                    percent = (float) World.Player.Hits / (float) World.Player.HitsMax;
+                    percent = World.Player.Hits / (float) World.Player.HitsMax;
                     if (percent <= 0.25)
                         return 0x0021;
                     else if (percent <= 0.5)
@@ -242,7 +244,7 @@ namespace ClassicUO.Game.UI.Gumps
                     else
                         return 0x0481;
                 case InfoBarVars.Mana:
-                    percent = (float) World.Player.Mana / (float) World.Player.ManaMax;
+                    percent = World.Player.Mana / (float) World.Player.ManaMax;
                     if (percent <= 0.25)
                         return 0x0021;
                     else if (percent <= 0.5)
@@ -252,7 +254,7 @@ namespace ClassicUO.Game.UI.Gumps
                     else
                         return 0x0481;
                 case InfoBarVars.Stamina:
-                    percent = (float) World.Player.Stamina / (float) World.Player.StaminaMax;
+                    percent = World.Player.Stamina / (float) World.Player.StaminaMax;
                     if (percent <= 0.25)
                         return 0x0021;
                     else if (percent <= 0.5)
@@ -262,7 +264,7 @@ namespace ClassicUO.Game.UI.Gumps
                     else
                         return 0x0481;
                 case InfoBarVars.Weight:
-                    percent = (float) World.Player.Weight / (float) World.Player.WeightMax;
+                    percent = World.Player.Weight / (float) World.Player.WeightMax;
                     if (percent >= 1)
                         return 0x0021;
                     else if (percent >= 0.75)

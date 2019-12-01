@@ -21,9 +21,11 @@
 
 #endregion
 
+using ClassicUO.Configuration;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.IO;
+using ClassicUO.Renderer;
 using ClassicUO.Utility;
 
 namespace ClassicUO.Game.UI.Gumps.Login
@@ -111,8 +113,8 @@ namespace ClassicUO.Game.UI.Gumps.Login
                 Y = 417
             });
 
-            _checkboxSaveAccount.IsChecked = Engine.GlobalSettings.SaveAccount;
-            _checkboxAutologin.IsChecked = Engine.GlobalSettings.AutoLogin;
+            _checkboxSaveAccount.IsChecked = Settings.GlobalSettings.SaveAccount;
+            _checkboxAutologin.IsChecked = Settings.GlobalSettings.AutoLogin;
 
             Add(new Label("Log in to Ultima Online", false, 0x0386, font: 2)
             {
@@ -132,17 +134,32 @@ namespace ClassicUO.Game.UI.Gumps.Login
                 Y = 385
             });
 
-            Add(new Label($"UO Version {Engine.GlobalSettings.ClientVersion}.", false, 0x034E, font: 9)
+            Add(new Label($"UO Version {Settings.GlobalSettings.ClientVersion}.", false, 0x034E, font: 9)
             {
                 X = 286,
                 Y = 453
             });
 
-            Add(new Label($"ClassicUO Version {Engine.Version}", false, 0x034E, font: 9)
+            Add(new Label($"ClassicUO Version {CUOEnviroment.Version}", false, 0x034E, font: 9)
             {
                 X = 286,
                 Y = 465
             });
+
+            int htmlX = 130;
+            int htmlY = 442;
+
+            Add(new HtmlControl(htmlX, htmlY, 300, 100,
+                                false, false,
+                                false, 
+                                text: "<body link=\"#ad9413\" vlink=\"#00FF00\" ><a href=\"https://www.paypal.me/muskara\">> Instant donation",
+                                0x32, true, isunicode: true, style: FontStyle.BlackBorder));
+            Add(new HtmlControl(htmlX, htmlY + 20, 300, 100,
+                                false, false,
+                                false,
+                                text: "<body link=\"#ad9413\" vlink=\"#00FF00\" ><a href=\"https://www.patreon.com/user?u=21694183\">> Become a Patreon!",
+                                0x32, true, isunicode: true, style: FontStyle.BlackBorder));
+            
 
             // Text Inputs
             Add(_textboxAccount = new TextBox(5, 16, 190, 190, false)
@@ -165,14 +182,14 @@ namespace ClassicUO.Game.UI.Gumps.Login
                 IsPassword = true,
                 SafeCharactersOnly = true
             });
-            _textboxAccount.SetText(Engine.GlobalSettings.Username);
-            _textboxPassword.SetText(Crypter.Decrypt(Engine.GlobalSettings.Password));
+            _textboxAccount.SetText(Settings.GlobalSettings.Username);
+            _textboxPassword.SetText(Crypter.Decrypt(Settings.GlobalSettings.Password));
         }
 
         public override void OnKeyboardReturn(int textID, string text)
         {
             SaveCheckboxStatus();
-            LoginScene ls = Engine.SceneManager.GetScene<LoginScene>();
+            LoginScene ls = CUOEnviroment.Client.GetScene<LoginScene>();
 
             if (ls.CurrentLoginStep == LoginScene.LoginStep.Main)
                 ls.Connect(_textboxAccount.Text, _textboxPassword.Text);
@@ -180,8 +197,8 @@ namespace ClassicUO.Game.UI.Gumps.Login
 
         private void SaveCheckboxStatus()
         {
-            Engine.GlobalSettings.SaveAccount = _checkboxSaveAccount.IsChecked;
-            Engine.GlobalSettings.AutoLogin = _checkboxAutologin.IsChecked;
+            Settings.GlobalSettings.SaveAccount = _checkboxSaveAccount.IsChecked;
+            Settings.GlobalSettings.AutoLogin = _checkboxAutologin.IsChecked;
         }
 
         public override void Update(double totalMS, double frameMS)
@@ -221,12 +238,12 @@ namespace ClassicUO.Game.UI.Gumps.Login
                 case Buttons.NextArrow:
                     SaveCheckboxStatus();
                     if (!_textboxAccount.IsDisposed)
-                        Engine.SceneManager.GetScene<LoginScene>().Connect(_textboxAccount.Text, _textboxPassword.Text);
+                        CUOEnviroment.Client.GetScene<LoginScene>().Connect(_textboxAccount.Text, _textboxPassword.Text);
 
                     break;
 
                 case Buttons.Quit:
-                    Engine.Quit();
+                    CUOEnviroment.Client.Exit();
 
                     break;
             }

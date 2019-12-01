@@ -23,13 +23,14 @@
 
 using System.Linq;
 
+using ClassicUO.Configuration;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using ClassicUO.IO;
 using ClassicUO.IO.Resources;
 using ClassicUO.Renderer;
-
+using ClassicUO.Utility.Logging;
 using SDL2;
 
 namespace ClassicUO.Game.UI.Gumps.Login
@@ -133,7 +134,7 @@ namespace ClassicUO.Game.UI.Gumps.Login
             });
             // Sever Scroll Area
             ScrollArea scrollArea = new ScrollArea(150, 100, 383, 271, true);
-            LoginScene loginScene = Engine.SceneManager.GetScene<LoginScene>();
+            LoginScene loginScene = CUOEnviroment.Client.GetScene<LoginScene>();
 
             foreach (ServerListEntry server in loginScene.Servers)
             {
@@ -173,7 +174,7 @@ namespace ClassicUO.Game.UI.Gumps.Login
 
         public override void OnButtonClick(int buttonID)
         {
-            LoginScene loginScene = Engine.SceneManager.GetScene<LoginScene>();
+            LoginScene loginScene = CUOEnviroment.Client.GetScene<LoginScene>();
 
             if (buttonID >= (int) Buttons.Server)
             {
@@ -189,9 +190,14 @@ namespace ClassicUO.Game.UI.Gumps.Login
 
                         if (loginScene.Servers.Any())
                         {
-                            int index = Engine.GlobalSettings.LastServerNum;
+                            int index = Settings.GlobalSettings.LastServerNum;
 
-                            if (index <= 0 || index > loginScene.Servers.Length) index = 1;
+                            if (index <= 0 || index > loginScene.Servers.Length)
+                            {
+                                Log.Warn( $"Wrong server index: {index}");
+
+                                index = 1;
+                            }
 
                             loginScene.SelectServer((byte) loginScene.Servers[index - 1].Index);
                         }
@@ -210,13 +216,18 @@ namespace ClassicUO.Game.UI.Gumps.Login
         {
             if (key == SDL.SDL_Keycode.SDLK_RETURN || key == SDL.SDL_Keycode.SDLK_KP_ENTER)
             {
-                LoginScene loginScene = Engine.SceneManager.GetScene<LoginScene>();
+                LoginScene loginScene = CUOEnviroment.Client.GetScene<LoginScene>();
 
                 if (loginScene.Servers.Any())
                 {
-                    int index = Engine.GlobalSettings.LastServerNum;
+                    int index = Settings.GlobalSettings.LastServerNum;
 
-                    if (index <= 0 || index > loginScene.Servers.Length) index = 1;
+                    if (index <= 0 || index > loginScene.Servers.Length)
+                    {
+                        Log.Warn( $"Wrong server index: {index}");
+
+                        index = 1;
+                    }
 
                     loginScene.SelectServer((byte) loginScene.Servers[index - 1].Index);
                 }
@@ -272,11 +283,6 @@ namespace ClassicUO.Game.UI.Gumps.Login
             protected override void OnMouseUp(int x, int y, MouseButton button)
             {
                 if (button == MouseButton.Left) OnButtonClick((int)Buttons.Server + _buttonId);
-            }
-
-            public override void Dispose()
-            {
-                base.Dispose();
             }
         }
     }

@@ -25,6 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using ClassicUO.Configuration;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
@@ -57,7 +58,7 @@ namespace ClassicUO.Game.UI.Gumps
 
         public ShopGump(Serial serial, bool isBuyGump, int x, int y) : base(serial, 0) //60 is the base height, original size
         {
-            int height = Engine.Profile.Current.VendorGumpHeight;
+            int height = ProfileManager.Current.VendorGumpHeight;
             if (_shopGumpParts == null) GenerateVirtualTextures();
             X = x;
             Y = y;
@@ -70,20 +71,24 @@ namespace ClassicUO.Game.UI.Gumps
             _transactionItems = new Dictionary<Item, TransactionItem>();
             _shopItems = new Dictionary<Item, ShopItem>();
             _updateTotal = false;
-            int add = isBuyGump ? 0 : 6;
-            GumpPic pic = new GumpPic(0, 0, _shopGumpParts[0 + add], 0);
-            pic.Add(_middleGumpLeft = new GumpPicTiled(0, 64, pic.Width, height, _shopGumpParts[1 + add]));
-            pic.Add(new GumpPic(0, _middleGumpLeft.Height + _middleGumpLeft.Y, _shopGumpParts[2 + add], 0));
-            Add(pic);
-            _shopScrollArea = new ScrollArea(30, 60, 225, _middleGumpLeft.Height + _middleGumpLeft.Y + 50, false, _middleGumpLeft.Height + _middleGumpLeft.Y);
 
+            int add = isBuyGump ? 0 : 6;
+
+            GumpPic pic = new GumpPic(0, 0, _shopGumpParts[0 + add], 0);
+            Add(pic);
+            pic = new GumpPic(250, 144, _shopGumpParts[3 + add], 0);
+            Add(pic);
+
+            Add(_middleGumpLeft = new GumpPicTiled(0, 64, pic.Width, height, _shopGumpParts[1 + add]));
+            Add(new GumpPic(0, _middleGumpLeft.Height + _middleGumpLeft.Y, _shopGumpParts[2 + add], 0));
+            
+            _shopScrollArea = new ScrollArea(30, 60, 225, _middleGumpLeft.Height + _middleGumpLeft.Y + 50, false, _middleGumpLeft.Height + _middleGumpLeft.Y);
             Add(_shopScrollArea);
 
-            pic = new GumpPic(250, 144, _shopGumpParts[3 + add], 0);
-            pic.Add(_middleGumpRight = new GumpPicTiled(0, 64, pic.Width, _middleGumpLeft.Height >> 1, _shopGumpParts[4 + add]));
-            pic.Add(new GumpPic(0, _middleGumpRight.Height + _middleGumpRight.Y, _shopGumpParts[5 + add], 0));
-            Add(pic);
-            //Add(isBuyGump ? new GumpPic(250, 214, 0x0871, 0) : new GumpPic(250, 214, 0x0873, 0));
+           
+            Add(_middleGumpRight = new GumpPicTiled(250, 144 + 64, pic.Width, _middleGumpLeft.Height >> 1, _shopGumpParts[4 + add]));
+            Add(new GumpPic(250, _middleGumpRight.Height + _middleGumpRight.Y, _shopGumpParts[5 + add], 0));
+
 
             HitBox boxAccept = new HitBox(280, 306 + _middleGumpRight.Height, 34, 30)
             {
@@ -167,9 +172,6 @@ namespace ClassicUO.Game.UI.Gumps
             downButtonT.MouseDown += (sender, e) => { _isDownDOWN_T = true; };
             downButtonT.MouseUp += (sender, e) => { _isDownDOWN_T = false; };
             Add(downButtonT);
-
-            Engine.Input.KeyDown += InputOnKeyDown;
-            Engine.Input.KeyUp += InputOnKeyUp;
         }
 
         public bool IsBuyGump { get; }
@@ -221,24 +223,7 @@ namespace ClassicUO.Game.UI.Gumps
             }
         }
 
-        private void InputOnKeyUp(object sender, SDL.SDL_KeyboardEvent e)
-        {
-            if (e.keysym.sym == SDL.SDL_Keycode.SDLK_LSHIFT || e.keysym.sym == SDL.SDL_Keycode.SDLK_RSHIFT)
-                _shiftPressed = false;
-        }
 
-        private void InputOnKeyDown(object sender, SDL.SDL_KeyboardEvent e)
-        {
-            if (Keyboard.IsModPressed(e.keysym.mod, SDL.SDL_Keymod.KMOD_SHIFT))
-                _shiftPressed = true;
-        }
-
-        public override void Dispose()
-        {
-            Engine.Input.KeyDown -= InputOnKeyDown;
-            Engine.Input.KeyUp -= InputOnKeyUp;
-            base.Dispose();
-        }
 
         public void SetIfNameIsFromCliloc(Item it, bool fromcliloc)
         {
@@ -276,6 +261,8 @@ namespace ClassicUO.Game.UI.Gumps
         {
             if (!World.InGame || IsDisposed)
                 return;
+
+            _shiftPressed = Keyboard.Shift;
 
             if (_isUpDOWN || _isDownDOWN || _isDownDOWN_T || _isUpDOWN_T)
             {
@@ -448,7 +435,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                     Add(control = new TextureControl
                     {
-                        Texture = direction.Frames[0], //FileManager.Animations.GetTexture(direction.FramesHashes[0]),
+                        Texture = direction.Frames[0],
                         X = 5,
                         Y = 5,
                         AcceptMouseInput = false,
@@ -575,7 +562,7 @@ namespace ClassicUO.Game.UI.Gumps
                         ushort hue2 = Item.Hue;
 
                         ref AnimationDirection direction = ref FileManager.Animations.GetBodyAnimationGroup(ref graphic, ref group, ref hue2, true).Direction[1];
-                        direction.LastAccessTime = Engine.Ticks;
+                        direction.LastAccessTime = Time.Ticks;
                     }
                 }
             }
@@ -613,23 +600,23 @@ namespace ClassicUO.Game.UI.Gumps
                 }); // Plus
 
                 int status = 0;
-                const int increm = 50;
+                const int increm = 45;
 
-                float t0 = Engine.Ticks;
+                float t0 = Time.Ticks;
                 bool pressedAdd = false;
 
                 buttonAdd.MouseOver += (sender, e) =>
                 { 
                     if (status == 2)
                     {
-                        if (pressedAdd && Engine.Ticks > t0)
+                        if (pressedAdd && Time.Ticks > t0)
                         {
-                            t0 = Engine.Ticks + (increm - _StepChanger);
+                            t0 = Time.Ticks + (increm - _StepChanger);
                             OnButtonClick(0);
                             _StepsDone++;
 
-                            if (_StepChanger < 40 && _StepsDone % 3 == 0)
-                                _StepChanger++;
+                            if (_StepChanger < increm && _StepsDone % 3 == 0)
+                                _StepChanger+=2;
                         }
                     }
                 };
@@ -642,7 +629,7 @@ namespace ClassicUO.Game.UI.Gumps
                     pressedAdd = true;
                     _StepChanger = 0;
                     status = 2;
-                    t0 = Engine.Ticks + 500;
+                    t0 = Time.Ticks + 500;
                 };
 
                 buttonAdd.MouseUp += (sender, e) =>
@@ -663,21 +650,21 @@ namespace ClassicUO.Game.UI.Gumps
                     ContainsByBounds = true
                 }); // Minus
 
-                float t1 = Engine.Ticks;
+                //float t1 = Time.Ticks;
                 bool pressedRemove = false;
 
                 buttonRemove.MouseOver += (sender, e) =>
                 {
                     if (status == 2)
                     {
-                        if (pressedRemove && Engine.Ticks > t1)
+                        if (pressedRemove && Time.Ticks > t0)
                         {
-                            t1 = Engine.Ticks + (increm - _StepChanger);
+                            t0 = Time.Ticks + (increm - _StepChanger);
                             OnButtonClick(1);
                             _StepsDone++;
 
-                            if (_StepChanger < 40 && _StepsDone % 3 == 0)
-                                _StepChanger++;
+                            if (_StepChanger < increm && _StepsDone % 3 == 0)
+                                _StepChanger+=2;
                         }
                     }
                 };
@@ -690,7 +677,7 @@ namespace ClassicUO.Game.UI.Gumps
                     pressedRemove = true;
                     _StepChanger = 0;
                     status = 2;
-                    t1 = Engine.Ticks + 500;
+                    t0 = Time.Ticks + 500;
                 };
 
                 buttonRemove.MouseUp += (sender, e) =>

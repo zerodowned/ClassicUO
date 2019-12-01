@@ -24,8 +24,10 @@
 using System.IO;
 using System.Linq;
 
+using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
+using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
@@ -36,26 +38,33 @@ using Microsoft.Xna.Framework;
 
 namespace ClassicUO.Game.UI.Gumps
 {
-    internal class ContainerGump : MinimizableGump
+    internal class ContainerGump : TextContainerGump
     {
-        private GumpPic _Iconized;
-        internal override GumpPic Iconized => _Iconized;
-        private HitBox _IconizerArea;
-        internal override HitBox IconizerArea => _IconizerArea;
-        private readonly Item _item;
         private long _corpseEyeTicks;
+        private bool _hideIfEmpty;
         private ContainerData _data;
         private int _eyeCorspeOffset;
         private GumpPic _eyeGumpPic;
         private bool _isCorspeContainer;
+        private bool _isMinimized;
+        private GumpPicContainer _gumpPicContainer;
+        private HitBox _hitBox;
 
         public ContainerGump() : base(0, 0)
         {
         }
 
-        public ContainerGump(Item item, Graphic gumpid) : this()
+        public ContainerGump(Serial serial, Graphic gumpid) : this()
         {
-            _item = item;
+            LocalSerial = serial;
+            Item item = World.Items.Get(serial);
+
+            if (item == null)
+            {
+                Dispose();
+                return;
+            }
+
             Graphic = gumpid;
 
             BuildGump();
@@ -63,57 +72,120 @@ namespace ClassicUO.Game.UI.Gumps
             foreach (var c in Children.OfType<ItemGump>())
                 c.Dispose();
 
-            foreach (Item i in _item.Items.Where(s => s.ItemData.Layer != (int) Layer.Hair && s.ItemData.Layer != (int) Layer.Beard && s.ItemData.Layer != (int) Layer.Face))
+            foreach (Item i in item.Items.Where(s => s != null && s.IsLootable))
                 //FIXME: this should be disabled. Server sends the right position
                 //CheckItemPosition(i);
-                Add(new ItemGump(i));
+            {
+                var x = new ItemGump(i);
+                x.Initialize();
+                Add(x);
+            }
         }
 
         public Graphic Graphic { get; }
 
         public TextContainer TextContainer { get; } = new TextContainer();
 
+        public bool IsMinimized
+        {
+            get => _isMinimized;
+            set
+            {
+                //if (_isMinimized != value)
+                {
+                    _isMinimized = value;
+                    _gumpPicContainer.Graphic = value ? (Graphic) _data.IconizedGraphic : Graphic;
+                    float scale = UIManager.ContainerScale;
+
+                    Width = _gumpPicContainer.Width = (int) (_gumpPicContainer.Width * scale);
+                    Height = _gumpPicContainer.Height = (int) (_gumpPicContainer.Height * scale);
+
+                    foreach (var c in Children)
+                    {
+                        if (!c.IsInitialized)
+                            c.Initialize();
+                        c.IsVisible = !value;
+                    }
+
+                    _gumpPicContainer.IsVisible = true;
+
+                    SetInScreen();
+                }
+            }
+        }
+
         private void BuildGump()
         {
             CanMove = true;
             CanBeSaved = true;
-            LocalSerial = _item.Serial;
             WantUpdateSize = false;
             _isCorspeContainer = Graphic == 0x0009;
-            _item.Items.Added += ItemsOnAdded;
-            _item.Items.Removed += ItemsOnRemoved;
+
+          
+            Item item = World.Items.Get(LocalSerial);
+
+            if (item == null)
+            {
+                Dispose();
+                return;
+            }
+
+            item.Items.Added -= ItemsOnAdded;
+            item.Items.Removed -= ItemsOnRemoved;
+            item.Items.Added += ItemsOnAdded;
+            item.Items.Removed += ItemsOnRemoved;
+
+            float scale = UIManager.ContainerScale;
 
             _data = ContainerManager.Get(Graphic);
-            if(_data.MinimizerArea != Rectangle.Empty && _data.IconizedGraphic != 0)
-            {
-                _IconizerArea = new HitBox(_data.MinimizerArea.X, _data.MinimizerArea.Y, _data.MinimizerArea.Width, _data.MinimizerArea.Height);
-                _Iconized = new GumpPic(0, 0, _data.IconizedGraphic, 0);
-            }
             Graphic g = _data.Graphic;
 
-            GumpPicContainer container;
-            Add(container = new GumpPicContainer(0, 0, g, 0, _item));
 
+            _gumpPicContainer?.Dispose();
+            _hitBox?.Dispose();
+
+            _hitBox = new HitBox((int) (_data.MinimizerArea.X * scale), (int) (_data.MinimizerArea.Y * scale), (int) (_data.MinimizerArea.Width * scale), (int) (_data.MinimizerArea.Height * scale));
+            _hitBox.MouseUp += HitBoxOnMouseUp;
+            Add(_hitBox);
+
+            Add(_gumpPicContainer = new GumpPicContainer(0, 0, g, 0, item));
+            _gumpPicContainer.MouseDoubleClick += GumpPicContainerOnMouseDoubleClick;
             if (_isCorspeContainer)
-                Add(_eyeGumpPic = new GumpPic(45, 30, 0x0045, 0));
+            {
+                if (World.Player.ManualOpenedCorpses.Contains(LocalSerial))
+                    World.Player.ManualOpenedCorpses.Remove(LocalSerial);
+                else if(World.Player.AutoOpenedCorpses.Contains(LocalSerial) &&
+                ProfileManager.Current != null && ProfileManager.Current.SkipEmptyCorpse)
+                {
+                    IsVisible = false;
+                    _hideIfEmpty = true;
+                }
 
-            Width = container.Width;
-            Height = container.Height;
+                _eyeGumpPic?.Dispose();
+                Add(_eyeGumpPic = new GumpPic((int) (45 * scale), (int) (30 * scale), 0x0045, 0));
 
-            ContainerGump gg = Engine.UI.Gumps.OfType<ContainerGump>().FirstOrDefault(s => s.LocalSerial == LocalSerial);
+                _eyeGumpPic.Width = (int)(_eyeGumpPic.Width * scale);
+                _eyeGumpPic.Height = (int)(_eyeGumpPic.Height * scale);
+            }
+
+
+            Width = _gumpPicContainer.Width = (int)(_gumpPicContainer.Width * scale);
+            Height = _gumpPicContainer.Height = (int) (_gumpPicContainer.Height * scale);
+
+            ContainerGump gg = UIManager.Gumps.OfType<ContainerGump>().FirstOrDefault(s => s.LocalSerial == LocalSerial);
 
             if (gg == null)
             {
-                if (Engine.UI.GetGumpCachePosition(LocalSerial, out Point location) && _item.Serial == World.Player.Equipment[(int) Layer.Backpack])
+                if (UIManager.GetGumpCachePosition(LocalSerial, out Point location) && item.Serial == World.Player.Equipment[(int) Layer.Backpack])
                     Location = location;
                 else
                 {
-                    if (Engine.Profile.Current.OverrideContainerLocation)
+                    if (ProfileManager.Current.OverrideContainerLocation)
                     {
-                        switch (Engine.Profile.Current.OverrideContainerLocationSetting)
+                        switch (ProfileManager.Current.OverrideContainerLocationSetting)
                         {
                             case 0:
-                                SetPositionNearGameObject(g);
+                                SetPositionNearGameObject(g, item);
                                 break;
                             case 1:
                                 SetPositionTopRight();
@@ -123,12 +195,12 @@ namespace ClassicUO.Game.UI.Gumps
                                 break;
                         }
 
-                        if ((X + Width) > Engine.WindowWidth)
+                        if ((X + Width) > CUOEnviroment.Client.Window.ClientBounds.Width)
                         {
                             X -= Width;
                         }
 
-                        if ((Y + Height) > Engine.WindowHeight)
+                        if ((Y + Height) > CUOEnviroment.Client.Window.ClientBounds.Height)
                         {
                             Y -= Height;
                         }
@@ -147,16 +219,41 @@ namespace ClassicUO.Game.UI.Gumps
                 Y = gg.Y;
             }
 
+            // workaroud to force the children update
+            if (IsInitialized)
+            {
+                IsMinimized = IsMinimized;
+            }
+
 
             if (_data.OpenSound != 0)
-                Engine.SceneManager.CurrentScene.Audio.PlaySound(_data.OpenSound);
+                CUOEnviroment.Client.Scene.Audio.PlaySound(_data.OpenSound);
+        }
+
+        private void HitBoxOnMouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButton.Left && !IsMinimized)
+            {
+                IsMinimized = true;
+            }
+        }
+
+        private void GumpPicContainerOnMouseDoubleClick(object sender, MouseDoubleClickEventArgs e)
+        {
+            if (e.Button == MouseButton.Left && IsMinimized)
+            {
+                IsMinimized = false;
+                e.Result = true;
+            }
         }
 
         public override void Update(double totalMS, double frameMS)
         {
             base.Update(totalMS, frameMS);
 
-            if (_item == null || _item.IsDestroyed)
+            Item item = World.Items.Get(LocalSerial);
+
+            if (item == null || item.IsDestroyed)
             {
                 Dispose();
                 return;
@@ -169,78 +266,136 @@ namespace ClassicUO.Game.UI.Gumps
                 _eyeCorspeOffset = _eyeCorspeOffset == 0 ? 1 : 0;
                 _corpseEyeTicks = (long) totalMS + 750;
                 _eyeGumpPic.Graphic = (Graphic) (0x0045 + _eyeCorspeOffset);
-                _eyeGumpPic.Texture = FileManager.Gumps.GetTexture(_eyeGumpPic.Graphic);
+                float scale = UIManager.ContainerScale;
+                _eyeGumpPic.Width = (int)(_eyeGumpPic.Texture.Width * scale);
+                _eyeGumpPic.Height = (int)(_eyeGumpPic.Texture.Height * scale);
             }
-            if(Iconized != null) Iconized.Hue = _item.Hue;
         }
 
+        public void ForceUpdate()
+        {
+            BuildGump();
+            ItemsOnAdded(null, new CollectionChangedEventArgs<Serial>(FindControls<ItemGump>().Select(s => s.LocalSerial)));
+        }
+        
         public override void Save(BinaryWriter writer)
         {
             base.Save(writer);
-            writer.Write(_item.Serial.Value);
+            writer.Write(LocalSerial);
             writer.Write(Graphic);
+            writer.Write(IsMinimized);
         }
 
         public override void Restore(BinaryReader reader)
         {
             base.Restore(reader);
 
+            if (Configuration.Profile.GumpsVersion == 2)
+            {
+                reader.ReadUInt32();
+                _isMinimized = reader.ReadBoolean();
+            }
 
             LocalSerial = reader.ReadUInt32();
-            Engine.SceneManager.GetScene<GameScene>().DoubleClickDelayed(LocalSerial);
+            CUOEnviroment.Client.GetScene<GameScene>()?.DoubleClickDelayed(LocalSerial);
             reader.ReadUInt16();
+
+            if (Profile.GumpsVersion >= 3)
+            {
+                _isMinimized = reader.ReadBoolean();
+            }
 
             Dispose();
         }
 
         private void ItemsOnRemoved(object sender, CollectionChangedEventArgs<Serial> e)
         {
-            foreach (ItemGump v in Children.OfType<ItemGump>().Where(s => s.Item != null && e.Contains(s.Item)))
+            foreach (ItemGump v in Children.OfType<ItemGump>().Where(s => e.Contains(s.LocalSerial)))
                 v.Dispose();
         }
 
         private void ItemsOnAdded(object sender, CollectionChangedEventArgs<Serial> e)
         {
-            foreach (ItemGump v in Children.OfType<ItemGump>().Where(s => s.Item != null && e.Contains(s.Item)))
+            foreach (ItemGump v in Children.OfType<ItemGump>().Where(s => e.Contains(s.LocalSerial)))
                 v.Dispose();
 
             foreach (Serial s in e)
             {
                 var item = World.Items.Get(s);
 
-                if (item == null || item.ItemData.Layer == (int) Layer.Hair || item.ItemData.Layer == (int) Layer.Beard || item.ItemData.Layer == (int) Layer.Face)
+                if (item == null || !item.IsLootable)
                     continue;
 
-                CheckItemPosition(item);
-                Add(new ItemGump(item));
+
+                var itemControl = new ItemGump(item);
+                itemControl.Initialize();
+                itemControl.IsVisible = !IsMinimized;
+
+                CheckItemControlPosition(itemControl, item);
+
+                if (ProfileManager.Current != null && ProfileManager.Current.ScaleItemsInsideContainers)
+                {
+                    float scale = UIManager.ContainerScale;
+
+                    itemControl.Width = (int)(itemControl.Width * scale);
+                    itemControl.Height = (int)(itemControl.Height * scale);
+                }
+
+                if ((_hideIfEmpty && !IsVisible))
+                    IsVisible = true;
+
+                Add(itemControl);
             }
         }
+    
 
-        private void CheckItemPosition(Item item)
+        private void CheckItemControlPosition(ItemGump itemGump, Item item)
         {
-            int x = item.X;
-            int y = item.Y;
+            float scale = UIManager.ContainerScale;
 
+            int x = (int) (itemGump.X * scale);
+            int y = (int) (itemGump.Y * scale);
+          
             ArtTexture texture = FileManager.Art.GetTexture(item.DisplayedGraphic);
+
+            int boundX = (int)(_data.Bounds.X * scale);
+            int boundY = (int)(_data.Bounds.Y * scale);
 
             if (texture != null && !texture.IsDisposed)
             {
-                if (x < _data.Bounds.X)
-                    x = _data.Bounds.X;
+                int boundW = (int)(_data.Bounds.Width * scale);
+                int boundH = (int)(_data.Bounds.Height * scale);
 
-                if (y < _data.Bounds.Y)
-                    y = _data.Bounds.Y;
+                int textureW, textureH;
 
-                if (x + texture.Width > _data.Bounds.Width)
-                    x = _data.Bounds.Width - texture.Width;
+                if (ProfileManager.Current != null && ProfileManager.Current.ScaleItemsInsideContainers)
+                {
+                    textureW = (int)(texture.Width * scale);
+                    textureH = (int)(texture.Height * scale);
+                }
+                else
+                {
+                    textureW = texture.Width;
+                    textureH = texture.Height;
+                }
 
-                if (y + texture.Height > _data.Bounds.Height)
-                    y = _data.Bounds.Height - texture.Height;
+                if (x < boundX)
+                    x = boundX;
+
+                if (y < boundY)
+                    y = boundY;
+
+
+                if (x + textureW > boundW)
+                    x = boundW - textureW;
+
+                if (y + textureH > boundH)
+                    y = boundH - textureH;
             }
             else
             {
-                x = _data.Bounds.X;
-                y = _data.Bounds.Y;
+                x = boundX;
+                y = boundY;
             }
 
             if (x < 0)
@@ -249,37 +404,42 @@ namespace ClassicUO.Game.UI.Gumps
             if (y < 0)
                 y = 0;
 
-            if (x != item.X || y != item.Y) item.Position = new Position((ushort) x, (ushort) y);
+
+            if (x != itemGump.X || y != itemGump.Y)
+            {
+                itemGump.X = x;
+                itemGump.Y = y;
+            }
         }
 
-        private void SetPositionNearGameObject(Graphic g)
+        private void SetPositionNearGameObject(Graphic g, Item item)
         {
-            if (World.Player.Equipment[(int)Layer.Bank] != null && _item.Serial == World.Player.Equipment[(int)Layer.Bank])
+            if (World.Player.Equipment[(int)Layer.Bank] != null && item.Serial == World.Player.Equipment[(int)Layer.Bank])
             {
                 // open bank near player
-                X = World.Player.RealScreenPosition.X + Engine.Profile.Current.GameWindowPosition.X + 40;
-                Y = World.Player.RealScreenPosition.Y + Engine.Profile.Current.GameWindowPosition.Y - (Height >> 1);
+                X = World.Player.RealScreenPosition.X + ProfileManager.Current.GameWindowPosition.X + 40;
+                Y = World.Player.RealScreenPosition.Y + ProfileManager.Current.GameWindowPosition.Y - (Height >> 1);
             }
-            else if (_item.OnGround)
+            else if (item.OnGround)
             {
                 // item is in world
-                X = _item.RealScreenPosition.X + Engine.Profile.Current.GameWindowPosition.X + 40;
-                Y = _item.RealScreenPosition.Y + Engine.Profile.Current.GameWindowPosition.Y - (Height >> 1);
+                X = item.RealScreenPosition.X + ProfileManager.Current.GameWindowPosition.X + 40;
+                Y = item.RealScreenPosition.Y + ProfileManager.Current.GameWindowPosition.Y - (Height >> 1);
             }
-            else if (_item.Container.IsMobile)
+            else if (item.Container.IsMobile)
             {
                 // pack animal, snooped player, npc vendor
-                Mobile mobile = World.Mobiles.Get(_item.Container);
+                Mobile mobile = World.Mobiles.Get(item.Container);
                 if (mobile != null)
                 {
-                    X = mobile.RealScreenPosition.X + Engine.Profile.Current.GameWindowPosition.X + 40;
-                    Y = mobile.RealScreenPosition.Y + Engine.Profile.Current.GameWindowPosition.Y - (Height >> 1);
+                    X = mobile.RealScreenPosition.X + ProfileManager.Current.GameWindowPosition.X + 40;
+                    Y = mobile.RealScreenPosition.Y + ProfileManager.Current.GameWindowPosition.Y - (Height >> 1);
                 }
             }
             else
             {
                 // in a container, open near the container
-                ContainerGump parentContainer = Engine.UI.Gumps.OfType<ContainerGump>().FirstOrDefault(s => s.LocalSerial == _item.Container);
+                ContainerGump parentContainer = UIManager.Gumps.OfType<ContainerGump>().FirstOrDefault(s => s.LocalSerial == item.Container);
                 if (parentContainer != null)
                 {
                     X = parentContainer.X + (Width >> 1);
@@ -297,35 +457,37 @@ namespace ClassicUO.Game.UI.Gumps
 
         private void SetPositionTopRight()
         {
-            X = Engine.WindowWidth - Width;
+            X = CUOEnviroment.Client.Window.ClientBounds.Width - Width;
             Y = 0;
         }
 
         private void SetPositionByLastDragged()
         {
-            X = Engine.Profile.Current.OverrideContainerLocationPosition.X - (Width >> 1);
-            Y = Engine.Profile.Current.OverrideContainerLocationPosition.Y - (Height >> 1);
+            X = ProfileManager.Current.OverrideContainerLocationPosition.X - (Width >> 1);
+            Y = ProfileManager.Current.OverrideContainerLocationPosition.Y - (Height >> 1);
         }
 
         public override void Dispose()
         {
             TextContainer.Clear();
 
-            if (_item != null)
+            Item item = World.Items.Get(LocalSerial);
+
+            if (item != null)
             {
-                _item.Items.Added -= ItemsOnAdded;
-                _item.Items.Removed -= ItemsOnRemoved;
+                item.Items.Added -= ItemsOnAdded;
+                item.Items.Removed -= ItemsOnRemoved;
 
-                if (World.Player != null && _item == World.Player.Equipment[(int) Layer.Backpack]) Engine.UI.SavePosition(_item, Location);
+                if (World.Player != null && item == World.Player.Equipment[(int) Layer.Backpack]) UIManager.SavePosition(item, Location);
 
-                foreach (Item child in _item.Items)
+                foreach (Item child in item.Items)
                 {
-                    if (child.Container == _item)
-                        Engine.UI.GetGump<ContainerGump>(child)?.Dispose();
+                    if (child.Container == item)
+                        UIManager.GetGump<ContainerGump>(child)?.Dispose();
                 }
 
                 if (_data.ClosedSound != 0)
-                    Engine.SceneManager.CurrentScene.Audio.PlaySound(_data.ClosedSound);
+                    CUOEnviroment.Client.Scene.Audio.PlaySound(_data.ClosedSound);
             }
 
             base.Dispose();
@@ -333,10 +495,10 @@ namespace ClassicUO.Game.UI.Gumps
 
         protected override void OnDragEnd(int x, int y)
         {
-            if (Engine.Profile.Current.OverrideContainerLocation && Engine.Profile.Current.OverrideContainerLocationSetting == 2)
+            if (ProfileManager.Current.OverrideContainerLocation && ProfileManager.Current.OverrideContainerLocationSetting == 2)
             {
                 Point gumpCenter = new Point(X + (Width >> 1), Y + (Height >> 1));
-                Engine.Profile.Current.OverrideContainerLocationPosition = gumpCenter;
+                ProfileManager.Current.OverrideContainerLocationPosition = gumpCenter;
             }
 
             base.OnDragEnd(x, y);

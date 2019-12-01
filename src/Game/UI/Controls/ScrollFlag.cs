@@ -76,7 +76,7 @@ namespace ClassicUO.Game.UI.Controls
             WantUpdateSize = false;
         }
 
-        protected override ClickPriority Priority { get; } = ClickPriority.High;
+        public override ClickPriority Priority { get; set; } = ClickPriority.High;
 
         public event EventHandler ValueChanged;
 
@@ -120,7 +120,7 @@ namespace ClassicUO.Game.UI.Controls
             }
         }
 
-        public int ScrollStep { get; set; } = 5;
+        public int ScrollStep { get; set; } = 15;
 
         bool IScrollBar.Contains(int x, int y)
         {

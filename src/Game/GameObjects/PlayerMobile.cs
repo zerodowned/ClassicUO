@@ -3,9 +3,9 @@
 //  Copyright (C) 2019 ClassicUO Development Community on Github
 //
 //	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+//	The goal of this is to develop a lightweight client considering
+//	new technologies.
+//
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
@@ -25,6 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Gumps;
@@ -42,53 +43,6 @@ namespace ClassicUO.Game.GameObjects
     internal class PlayerMobile : Mobile
     {
         private readonly Dictionary<Graphic, BuffIcon> _buffIcons = new Dictionary<Graphic, BuffIcon>();
-        private ushort _damageIncrease;
-        private ushort _damageMax;
-        private ushort _damageMin;
-        private ushort _defenseChanceIncrease;
-        private ushort _dexterity;
-        private ushort _dexterityIncrease;
-        private ushort _enhancePotions;
-        private ushort _fasterCasting;
-        private ushort _fasterCastRecovery;
-        private byte _followers;
-        private byte _followersMax;
-        private uint _gold;
-        private ushort _hitChanceIncrease;
-        private ushort _hitPointsIncrease;
-        private ushort _hitPointsRegeneration;
-        private ushort _intelligence;
-        private ushort _intelligenceIncrease;
-        private ushort _lowerManaCost;
-        private ushort _lowerReagentCost;
-        private ushort _luck;
-        private ushort _manaIncrease;
-        private ushort _manaRegeneration;
-        private ushort _maxColdcResistence;
-        private ushort _maxDefenseChanceIncrease;
-        private ushort _maxEnergResistence;
-        private ushort _maxFireResistence;
-        private ushort _maxHitPointsIncrease;
-        private ushort _maxManaIncrease;
-        private ushort _maxStaminaIncrease;
-        private ushort _maxPhysicResistence;
-        private ushort _maxPoisResistenceUshort;
-        private ushort _reflectPhysicalDamage;
-        private ushort _coldResistance;
-        private ushort _energyResistance;
-        private ushort _fireResistance;
-        private ushort _physicalResistence;
-        private ushort _poisonResistance;
-        private ushort _spellDamageIncrease;
-        private ushort _staminaIncrease;
-        private ushort _staminaRegeneration;
-        private ushort _statscap;
-        private ushort _strength;
-        private ushort _strengthIncrease;
-        private ushort _swingSpeedIncrease;
-        private uint _tithingPoints;
-        private ushort _weight;
-        private ushort _weightMax;
 
         public PlayerMobile(Serial serial) : base(serial)
         {
@@ -111,616 +65,98 @@ namespace ClassicUO.Game.GameObjects
 
         public IReadOnlyDictionary<Graphic, BuffIcon> BuffIcons => _buffIcons;
 
-        public ushort Strength
-        {
-            get => _strength;
-            set
-            {
-                if (_strength != value)
-                {
-                    _strength = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort Strength;
 
-        public ushort Intelligence
-        {
-            get => _intelligence;
-            set
-            {
-                if (_intelligence != value)
-                {
-                    _intelligence = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort Intelligence;
 
-        public ushort Dexterity
-        {
-            get => _dexterity;
-            set
-            {
-                if (_dexterity != value)
-                {
-                    _dexterity = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort Dexterity;
 
-        public ushort Weight
-        {
-            get => _weight;
-            set
-            {
-                if (_weight != value)
-                {
-                    _weight = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort Weight;
 
-        public ushort WeightMax
-        {
-            get => _weightMax;
-            set
-            {
-                if (_weightMax != value)
-                {
-                    _weightMax = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort WeightMax;
 
-        public uint Gold
-        {
-            get => _gold;
-            set
-            {
-                if (_gold != value)
-                {
-                    _gold = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public uint Gold;
 
-        public ushort PhysicalResistence
-        {
-            get => _physicalResistence;
-            set
-            {
-                if (_physicalResistence != value)
-                {
-                    _physicalResistence = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort PhysicalResistence;
 
-        public ushort FireResistance
-        {
-            get => _fireResistance;
-            set
-            {
-                if (_fireResistance != value)
-                {
-                    _fireResistance = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort FireResistance;
 
-        public ushort ColdResistance
-        {
-            get => _coldResistance;
-            set
-            {
-                if (_coldResistance != value)
-                {
-                    _coldResistance = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort ColdResistance;
 
-        public ushort PoisonResistance
-        {
-            get => _poisonResistance;
-            set
-            {
-                if (_poisonResistance != value)
-                {
-                    _poisonResistance = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort PoisonResistance;
 
-        public ushort EnergyResistance
-        {
-            get => _energyResistance;
-            set
-            {
-                if (_energyResistance != value)
-                {
-                    _energyResistance = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort EnergyResistance;
 
-        public byte Followers
-        {
-            get => _followers;
-            set
-            {
-                if (_followers != value)
-                {
-                    _followers = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public byte Followers;
 
-        public byte FollowersMax
-        {
-            get => _followersMax;
-            set
-            {
-                if (_followersMax != value)
-                {
-                    _followersMax = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public byte FollowersMax;
 
-        public ushort Luck
-        {
-            get => _luck;
-            set
-            {
-                if (_luck != value)
-                {
-                    _luck = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort Luck;
 
-        public uint TithingPoints
-        {
-            get => _tithingPoints;
-            set
-            {
-                if (_tithingPoints != value)
-                {
-                    _tithingPoints = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public uint TithingPoints;
 
-        public ushort DamageMin
-        {
-            get => _damageMin;
-            set
-            {
-                if (_damageMin != value)
-                {
-                    _damageMin = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort DamageMin;
 
-        public ushort DamageMax
-        {
-            get => _damageMax;
-            set
-            {
-                if (_damageMax != value)
-                {
-                    _damageMax = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort DamageMax;
 
-        public ushort StatsCap
-        {
-            get => _statscap;
-            set
-            {
-                if (_statscap != value)
-                {
-                    _statscap = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort StatsCap;
 
-        public ushort HitChanceIncrease
-        {
-            get => _hitChanceIncrease;
-            set
-            {
-                if (_hitChanceIncrease != value)
-                {
-                    _hitChanceIncrease = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort HitChanceIncrease;
 
-        public ushort SwingSpeedIncrease
-        {
-            get => _swingSpeedIncrease;
-            set
-            {
-                if (_swingSpeedIncrease != value)
-                {
-                    _swingSpeedIncrease = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort SwingSpeedIncrease;
 
-        public ushort DamageIncrease
-        {
-            get => _damageIncrease;
-            set
-            {
-                if (_damageIncrease != value)
-                {
-                    _damageIncrease = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort DamageIncrease;
 
-        public ushort LowerReagentCost
-        {
-            get => _lowerReagentCost;
-            set
-            {
-                if (_lowerReagentCost != value)
-                {
-                    _lowerReagentCost = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort LowerReagentCost;
 
-        public ushort HitPointsRegeneration
-        {
-            get => _hitPointsRegeneration;
-            set
-            {
-                if (_hitPointsRegeneration != value)
-                {
-                    _hitPointsRegeneration = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort HitPointsRegeneration;
 
-        public ushort StaminaRegeneration
-        {
-            get => _staminaRegeneration;
-            set
-            {
-                if (_staminaRegeneration != value)
-                {
-                    _staminaRegeneration = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort StaminaRegeneration;
 
-        public ushort ManaRegeneration
-        {
-            get => _manaRegeneration;
-            set
-            {
-                if (_manaRegeneration != value)
-                {
-                    _manaRegeneration = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort ManaRegeneration;
 
-        public ushort MaxPhysicResistence
-        {
-            get => _maxPhysicResistence;
-            set
-            {
-                if (_maxPhysicResistence != value)
-                {
-                    _maxPhysicResistence = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort MaxPhysicResistence;
 
-        public ushort MaxFireResistence
-        {
-            get => _maxFireResistence;
-            set
-            {
-                if (_maxFireResistence != value)
-                {
-                    _maxFireResistence = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort MaxFireResistence;
 
-        public ushort MaxColdResistence
-        {
-            get => _maxColdcResistence;
-            set
-            {
-                if (_maxColdcResistence != value)
-                {
-                    _maxColdcResistence = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort MaxColdResistence;
 
-        public ushort MaxPoisonResistence
-        {
-            get => _maxPoisResistenceUshort;
-            set
-            {
-                if (_maxPoisResistenceUshort != value)
-                {
-                    _maxPoisResistenceUshort = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort MaxPoisonResistence;
 
-        public ushort MaxEnergyResistence
-        {
-            get => _maxEnergResistence;
-            set
-            {
-                if (_maxEnergResistence != value)
-                {
-                    _maxEnergResistence = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort MaxEnergyResistence;
 
-        public ushort MaxDefenseChanceIncrease
-        {
-            get => _maxDefenseChanceIncrease;
-            set
-            {
-                if (_maxDefenseChanceIncrease != value)
-                {
-                    _maxDefenseChanceIncrease = value;
-                    _delta |= Delta.Attributes;
-                }
-            }
-        }
+        public ushort MaxDefenseChanceIncrease;
 
-        public ushort ReflectPhysicalDamage
-        {
-            get => _reflectPhysicalDamage;
-            set
-            {
-                if (_reflectPhysicalDamage != value)
-                {
-                    _reflectPhysicalDamage = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort ReflectPhysicalDamage;
 
-        public ushort EnhancePotions
-        {
-            get => _enhancePotions;
-            set
-            {
-                if (_enhancePotions != value)
-                {
-                    _enhancePotions = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort EnhancePotions;
 
-        public ushort DefenseChanceIncrease
-        {
-            get => _defenseChanceIncrease;
-            set
-            {
-                if (_defenseChanceIncrease != value)
-                {
-                    _defenseChanceIncrease = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort DefenseChanceIncrease;
+        public ushort SpellDamageIncrease;
 
-        public ushort SpellDamageIncrease
-        {
-            get => _spellDamageIncrease;
-            set
-            {
-                if (_spellDamageIncrease != value)
-                {
-                    _spellDamageIncrease = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort FasterCastRecovery;
 
-        public ushort FasterCastRecovery
-        {
-            get => _fasterCastRecovery;
-            set
-            {
-                if (_fasterCastRecovery != value)
-                {
-                    _fasterCastRecovery = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort FasterCasting;
 
-        public ushort FasterCasting
-        {
-            get => _fasterCasting;
-            set
-            {
-                if (_fasterCasting != value)
-                {
-                    _fasterCasting = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort LowerManaCost;
 
-        public ushort LowerManaCost
-        {
-            get => _lowerManaCost;
-            set
-            {
-                if (_lowerManaCost != value)
-                {
-                    _lowerManaCost = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort StrengthIncrease;
 
-        public ushort StrengthIncrease
-        {
-            get => _strengthIncrease;
-            set
-            {
-                if (_strengthIncrease != value)
-                {
-                    _strengthIncrease = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort DexterityIncrease;
 
-        public ushort DexterityIncrease
-        {
-            get => _dexterityIncrease;
-            set
-            {
-                if (_dexterityIncrease != value)
-                {
-                    _dexterityIncrease = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort IntelligenceIncrease;
 
-        public ushort IntelligenceIncrease
-        {
-            get => _intelligenceIncrease;
-            set
-            {
-                if (_intelligenceIncrease != value)
-                {
-                    _intelligenceIncrease = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort HitPointsIncrease;
 
-        public ushort HitPointsIncrease
-        {
-            get => _hitPointsIncrease;
-            set
-            {
-                if (_hitPointsIncrease != value)
-                {
-                    _hitPointsIncrease = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort StaminaIncrease;
 
-        public ushort StaminaIncrease
-        {
-            get => _staminaIncrease;
-            set
-            {
-                if (_staminaIncrease != value)
-                {
-                    _staminaIncrease = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort ManaIncrease;
 
-        public ushort ManaIncrease
-        {
-            get => _manaIncrease;
-            set
-            {
-                if (_manaIncrease != value)
-                {
-                    _manaIncrease = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort MaxHitPointsIncrease;
 
-        public ushort MaxHitPointsIncrease
-        {
-            get => _maxHitPointsIncrease;
-            set
-            {
-                if (_maxHitPointsIncrease != value)
-                {
-                    _maxHitPointsIncrease = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort MaxStaminaIncrease;
 
-        public ushort MaxStaminaIncrease
-        {
-            get => _maxStaminaIncrease;
-            set
-            {
-                if (_maxStaminaIncrease != value)
-                {
-                    _maxStaminaIncrease = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
-
-        public ushort MaxManaIncrease
-        {
-            get => _maxManaIncrease;
-            set
-            {
-                if (_maxManaIncrease != value)
-                {
-                    _maxManaIncrease = value;
-                    _delta |= Delta.Stats;
-                }
-            }
-        }
+        public ushort MaxManaIncrease;
 
         public Ability PrimaryAbility
         {
@@ -734,18 +170,18 @@ namespace ClassicUO.Game.GameObjects
             set => Abilities[1] = value;
         }
 
-        public Ability[] Abilities { get; } = new Ability[2]
+        public Ability[] Abilities = new Ability[2]
         {
             Ability.Invalid, Ability.Invalid
         };
 
-        public Lock StrLock { get; set; }
+        public Lock StrLock;
 
-        public Lock DexLock { get; set; }
+        public Lock DexLock;
 
-        public Lock IntLock { get; set; }
+        public Lock IntLock;
 
-        protected override bool IsWalking => LastStepTime > Engine.Ticks - Constants.PLAYER_WALKING_DELAY;
+        protected override bool IsWalking => LastStepTime > Time.Ticks - Constants.PLAYER_WALKING_DELAY;
 
         public Item FindBandage()
         {
@@ -809,8 +245,6 @@ namespace ClassicUO.Game.GameObjects
             _buffIcons.Remove(graphic);
         }
 
-        public event EventHandler StatsChanged, SkillsChanged;
-
         public void UpdateSkill(int id, ushort realValue, ushort baseValue, Lock @lock, ushort cap, bool displayMessage = false)
         {
             if (id < Skills.Length)
@@ -829,21 +263,15 @@ namespace ClassicUO.Game.GameObjects
                 skill.BaseFixed = baseValue;
                 skill.Lock = @lock;
                 skill.CapFixed = cap;
-                _delta |= Delta.Skills;
 
-                Engine.UI.GetGump<StandardSkillsGump>()?.Update(id);
-            }
-        }
-
-        public void UpdateSkillLock(int id, Lock @lock)
-        {
-            if (id < Skills.Length)
-            {
-                Skill skill = Skills[id];
-                skill.Lock = @lock;
-                _delta |= Delta.Skills;
-
-                Engine.UI.GetGump<StandardSkillsGump>()?.Update(id);
+                // check needed to avoid crash when you create a char
+                if (ProfileManager.Current != null)
+                {
+                    if (ProfileManager.Current.StandardSkillsGump)
+                        UIManager.GetGump<StandardSkillsGump>()?.ForceUpdate(id);
+                    else
+                        UIManager.GetGump<SkillGumpAdvanced>()?.ForceUpdate();
+                }
             }
         }
 
@@ -1820,13 +1248,6 @@ namespace ClassicUO.Game.GameObjects
             }
         }
 
-        protected override void OnProcessDelta(Delta d)
-        {
-            base.OnProcessDelta(d);
-            if (d.HasFlag(Delta.Stats)) StatsChanged.Raise(this);
-            if (d.HasFlag(Delta.Skills)) SkillsChanged.Raise(this);
-        }
-
         protected override void OnPositionChanged()
         {
             base.OnPositionChanged();
@@ -1842,17 +1263,17 @@ namespace ClassicUO.Game.GameObjects
 
         public void TryOpenCorpses()
         {
-            if (Engine.Profile.Current.AutoOpenCorpses)
+            if (ProfileManager.Current.AutoOpenCorpses)
             {
-                if ((Engine.Profile.Current.CorpseOpenOptions == 1 || Engine.Profile.Current.CorpseOpenOptions == 3) && TargetManager.IsTargeting)
+                if ((ProfileManager.Current.CorpseOpenOptions == 1 || ProfileManager.Current.CorpseOpenOptions == 3) && TargetManager.IsTargeting)
                     return;
 
-                if ((Engine.Profile.Current.CorpseOpenOptions == 2 || Engine.Profile.Current.CorpseOpenOptions == 3) && IsHidden)
+                if ((ProfileManager.Current.CorpseOpenOptions == 2 || ProfileManager.Current.CorpseOpenOptions == 3) && IsHidden)
                     return;
 
-                foreach (var c in World.Items.Where(t => t.Graphic == 0x2006 && !OpenedCorpses.Contains(t.Serial) && t.Distance <= Engine.Profile.Current.AutoOpenCorpseRange))
+                foreach (var c in World.Items.Where(t => t.Graphic == 0x2006 && !AutoOpenedCorpses.Contains(t.Serial) && t.Distance <= ProfileManager.Current.AutoOpenCorpseRange))
                 {
-                    OpenedCorpses.Add(c.Serial);
+                    AutoOpenedCorpses.Add(c.Serial);
                     GameActions.DoubleClickQueued(c.Serial);
                 }
             }
@@ -1867,13 +1288,13 @@ namespace ClassicUO.Game.GameObjects
 
         private void TryOpenDoors()
         {
-            if (!World.Player.IsDead && Engine.Profile.Current.AutoOpenDoors)
+            if (!World.Player.IsDead && ProfileManager.Current.AutoOpenDoors)
             {
                 int x = X, y = Y, z = Z;
                 Pathfinder.GetNewXY((byte) Direction, ref x, ref y);
 
                 if (World.Items.Any(s =>
-                                        IsDoor(s.Graphic) && s.X == x && s.Y == y && s.Z - 15 <= z &&
+                                        s.ItemData.IsDoor && s.X == x && s.Y == y && s.Z - 15 <= z &&
                                         s.Position.Z + 15 >= z))
                     GameActions.OpenDoor();
             }
@@ -1881,7 +1302,7 @@ namespace ClassicUO.Game.GameObjects
 
         public override void Destroy()
         {
-            Log.Message(LogTypes.Warning, "PlayerMobile disposed!");
+            Log.Warn( "PlayerMobile disposed!");
             base.Destroy();
         }
 
@@ -1891,7 +1312,67 @@ namespace ClassicUO.Game.GameObjects
 
             if (bank != null)
             {
-                Engine.UI.GetGump<ContainerGump>(bank)?.Dispose();
+                UIManager.GetGump<ContainerGump>(bank)?.Dispose();
+            }
+        }
+
+        public void CloseRangedGumps()
+        {
+            foreach (var gump in UIManager.Gumps)
+            {
+                switch (gump)
+                {
+                    case PaperDollGump _:
+                    case MapGump _:
+                    case SpellbookGump _:
+
+                        if (World.Get(gump.LocalSerial) == null)
+                            gump.Dispose();
+
+                        break;
+                    case TradingGump _:
+                    case ShopGump _:
+
+                        Entity ent = World.Get(gump.LocalSerial);
+                        int distance = int.MaxValue;
+                        if (ent != null)
+                        {
+                            if (ent.Serial.IsItem)
+                            {
+                                var top = World.Get(((Item)ent).RootContainer);
+
+                                if (top != null)
+                                    distance = top.Distance;
+                            }
+                            else
+                                distance = ent.Distance;
+                        }
+
+                        if (distance > 18)
+                            gump.Dispose();
+
+                        break;
+                    case ContainerGump _:
+
+                        ent = World.Get(gump.LocalSerial);
+                        distance = int.MaxValue;
+                        if (ent != null)
+                        {
+                            if (ent.Serial.IsItem)
+                            {
+                                var top = World.Get(((Item) ent).RootContainer);
+
+                                if (top != null)
+                                    distance = top.Distance;
+                            }
+                            else
+                                distance = ent.Distance;
+                        }
+
+                        if (distance > 3)
+                            gump.Dispose();
+                        break;
+                }
             }
 
         }
@@ -1907,13 +1388,13 @@ namespace ClassicUO.Game.GameObjects
 
             /*const int TIME_TURN_TO_LASTTARGET = 2000;
 
-            if (InWarMode && Walker.LastStepRequestTime + TIME_TURN_TO_LASTTARGET < Engine.Ticks)
+            if (InWarMode && Walker.LastStepRequestTime + TIME_TURN_TO_LASTTARGET < Time.Ticks)
             {
                 Mobile enemy = World.Mobiles.Get(World.LastAttack);
 
                 if (enemy != null)
                 {
-                    Point center = new Point(Engine.Profile.Current.GameWindowPosition.X + (Engine.Profile.Current.GameWindowSize.X >> 1), Engine.Profile.Current.GameWindowPosition.Y + (Engine.Profile.Current.GameWindowSize.Y >> 1));
+                    Point center = new Point(ProfileManager.Current.GameWindowPosition.X + (ProfileManager.Current.GameWindowSize.X >> 1), ProfileManager.Current.GameWindowPosition.Y + (ProfileManager.Current.GameWindowSize.Y >> 1));
                     Direction direction = DirectionHelper.DirectionFromPoints(center, new Point(enemy.RealScreenPosition.X, enemy.RealScreenPosition.Y));
 
                     if (Direction != direction)
@@ -1922,27 +1403,27 @@ namespace ClassicUO.Game.GameObjects
             }*/
         }
 
-        protected override bool NoIterateAnimIndex()
-        {
-            return false;
-        }
+        // ############# DO NOT DELETE IT! #############
+        //protected override bool NoIterateAnimIndex()
+        //{
+        //    return false;
+        //}
+        // #############################################
 
         public bool Walk(Direction direction, bool run)
         {
-            if (Walker.StepsCount >= Constants.MAX_STEP_COUNT)
-            {
-                Log.Message(LogTypes.Panic, ">> STEP LIMIT REACHED!!! << ");
-                return false;
-            }
-
-            if (Walker.WalkingFailed || Walker.LastStepRequestTime > Engine.Ticks || Walker.StepsCount >= Constants.MAX_STEP_COUNT || 
+            if (Walker.WalkingFailed || Walker.LastStepRequestTime > Time.Ticks || Walker.StepsCount >= Constants.MAX_STEP_COUNT ||
                 (FileManager.ClientVersion >= ClientVersions.CV_60142 && IsParalyzed))
                 return false;
 
             if (SpeedMode >= CharacterSpeedType.CantRun || Stamina <= 1 && !IsDead)
                 run = false;
             else if (!run)
-                run = Engine.Profile.Current.AlwaysRun;
+            {
+                if (!IsHidden ||
+                    IsHidden && !ProfileManager.Current.AlwaysRunUnlessHidden)
+                    run = ProfileManager.Current.AlwaysRun;
+            }
 
             int x = X;
             int y = Y;
@@ -1953,7 +1434,7 @@ namespace ClassicUO.Game.GameObjects
 
             if (!emptyStack)
             {
-                Step walkStep = Steps.Back();
+                ref Step walkStep = ref Steps.Back();
                 x = walkStep.X;
                 y = walkStep.Y;
                 z = walkStep.Z;
@@ -2014,7 +1495,7 @@ namespace ClassicUO.Game.GameObjects
             {
                 if (!IsWalking)
                     SetAnimation(0xFF);
-                LastStepTime = Engine.Ticks;
+                LastStepTime = Time.Ticks;
             }
 
             ref var step = ref Walker.StepInfos[Walker.StepsCount];
@@ -2023,7 +1504,7 @@ namespace ClassicUO.Game.GameObjects
             step.Running = run;
             step.OldDirection = (byte) (oldDirection & Direction.Mask);
             step.Direction = (byte) direction;
-            step.Timer = Engine.Ticks;
+            step.Timer = Time.Ticks;
             step.X = (ushort) x;
             step.Y = (ushort) y;
             step.Z = z;
@@ -2040,7 +1521,7 @@ namespace ClassicUO.Game.GameObjects
                 Run = run
             });
 
-           
+
             NetClient.Socket.Send(new PWalkRequest(direction, Walker.WalkSequence, run, Walker.FastWalkStack.GetValue()));
 
 
@@ -2056,7 +1537,7 @@ namespace ClassicUO.Game.GameObjects
 
             if (_lastDir == (int) direction && _lastMount == IsMounted && _lastRun == run)
             {
-                nowDelta = (int) (Engine.Ticks - _lastStepTime - walkTime + _lastDelta);
+                nowDelta = (int) (Time.Ticks - _lastStepTime - walkTime + _lastDelta);
 
                 if (Math.Abs(nowDelta) > 70)
                     nowDelta = 0;
@@ -2065,13 +1546,13 @@ namespace ClassicUO.Game.GameObjects
             else
                 _lastDelta = 0;
 
-            _lastStepTime = (int) Engine.Ticks;
+            _lastStepTime = (int) Time.Ticks;
             _lastRun = run;
             _lastMount = IsMounted;
             _lastDir = (int) direction;
 
 
-            Walker.LastStepRequestTime = Engine.Ticks + walkTime - nowDelta;
+            Walker.LastStepRequestTime = Time.Ticks + walkTime - nowDelta;
             GetGroupForAnimation(this, 0, true);
 
             return true;
@@ -2089,23 +1570,23 @@ namespace ClassicUO.Game.GameObjects
         private int _resynchronizing;
         private long _nextAllowedStepTime;
 
-        public bool IsWaitingNextMovement => _nextAllowedStepTime > Engine.Ticks;
+        public bool IsWaitingNextMovement => _nextAllowedStepTime > Time.Ticks;
 
         public bool Walk(Direction direction, bool run)
         {
-            if (_nextAllowedStepTime > Engine.Ticks || IsParalyzed)
+            if (_nextAllowedStepTime > Time.Ticks || IsParalyzed)
             {
                 return false;
             }
 
             if (_stepsOutstanding > Constants.MAX_STEP_COUNT)
             {
-                if (_nextAllowedStepTime + 1000 > Engine.Ticks)
+                if (_nextAllowedStepTime + 1000 > Time.Ticks)
                     Resynchronize();
                 return false;
             }
 
-       
+
 
             if (SpeedMode >= CharacterSpeedType.CantRun)
                 run = false;
@@ -2163,15 +1644,15 @@ namespace ClassicUO.Game.GameObjects
 
             EnqueueStep(_movementX, _movementY, _movementZ, _movementDirection, run);
 
-            Log.Message(LogTypes.Panic, "SEND");
+            Log.Panic("SEND");
             NetClient.Socket.Send(new PWalkRequest(direction, _sequenceNumber, run));
-            //Log.Message(LogTypes.Trace, $"Walk request - SEQUENCE: {_sequenceNumber}");
+            //Log.Trace( $"Walk request - SEQUENCE: {_sequenceNumber}");
 
             if (_sequenceNumber == 0xFF)
                 _sequenceNumber = 1;
             else
                 _sequenceNumber++;
-            _nextAllowedStepTime = Engine.Ticks + walkTime;
+            _nextAllowedStepTime = Time.Ticks + walkTime;
             _stepsOutstanding++;
             GetGroupForAnimation(this);
 
@@ -2188,10 +1669,10 @@ namespace ClassicUO.Game.GameObjects
             ANIMATE_IMMEDIATELY = 0,
             ANIMATE_ON_CONFIRM,
         }
-        
+
         public bool Walk(Direction direction, bool run)
         {
-            if (LastStepRequestedTime > Engine.Ticks)
+            if (LastStepRequestedTime > Time.Ticks)
                 return false;
 
             if (RequestedSteps.Count >= Constants.MAX_STEP_COUNT)
@@ -2292,7 +1773,7 @@ namespace ClassicUO.Game.GameObjects
                         EnqueueStep(s.X, s.Y, s.Z, (Direction) s.Direction, s.Run);
                     }
                 }
-            
+
                 step1.Anim = true;
 
                 EnqueueStep(step1.X, step1.Y, step1.Z, (Direction) step1.Direction, step1.Run);
@@ -2305,7 +1786,7 @@ namespace ClassicUO.Game.GameObjects
                 SequenceNumber = 1;
             else SequenceNumber++;
 
-            LastStepRequestedTime = Engine.Ticks + walkTime;
+            LastStepRequestedTime = Time.Ticks + walkTime;
 
             GetGroupForAnimation(this);
 
@@ -2348,12 +1829,12 @@ namespace ClassicUO.Game.GameObjects
 #elif JAEDAN_MOVEMENT_PATCH
             if (_stepsOutstanding == 0)
             {
-                Log.Message(LogTypes.Warning, $"Resync needed after confirmwalk packet - SEQUENCE: {_sequenceNumber}");
+                Log.Warn( $"Resync needed after confirmwalk packet - SEQUENCE: {_sequenceNumber}");
                 Resynchronize();
             }
             else
             {
-                //Log.Message(LogTypes.Trace, $"Step accepted - SEQUENCE: {_sequenceNumber}");
+                //Log.Trace( $"Step accepted - SEQUENCE: {_sequenceNumber}");
                 _stepsOutstanding--;
             }
 #else
@@ -2361,38 +1842,15 @@ namespace ClassicUO.Game.GameObjects
 #endif
         }
 
-        private bool IsDoor(ushort type)
-        {
-            return type >= 0x0675 && type <= 0x06F6
-                   || type >= 0x0824 && type <= 0x0833
-                   || type >= 0x0839 && type <= 0x0848
-                   || type >= 0x084C && type <= 0x085B
-                   || type >= 0x0866 && type <= 0x0875
-                   || type >= 0x1FED && type <= 0x1FFC
-                   || type >= 0x241F && type <= 0x2424
-                   || type >= 0x2A05 && type <= 0x2A1C
-                   || type >= 0x2D46 && type <= 0x2D49
-                   || type >= 0x2D63 && type <= 0x2D6E
-                   || type >= 0x319C && type <= 0x31AF
-                   || type >= 0x367B && type <= 0x369A
-                   || type >= 0x410C && type <= 0x4113
-                   || type >= 0x41C2 && type <= 0x41C9
-                   || type >= 0x41CF && type <= 0x41D6
-                   || type >= 0x46DD && type <= 0x46E4
-                   || type >= 0x4D1A && type <= 0x4D29
-                   || type >= 0x50C8 && type <= 0x50D7
-                   || type >= 0x9AD7 && type <= 0x9AE6
-                   || type >= 0x9B3C && type <= 0x9B4B;
-        }
-
-        private readonly HashSet<Serial> OpenedCorpses = new HashSet<Serial>();
+        public readonly HashSet<Serial> AutoOpenedCorpses = new HashSet<Serial>();
+        public readonly HashSet<Serial> ManualOpenedCorpses = new HashSet<Serial>();
 #if JAEDAN_MOVEMENT_PATCH
         public override void ForcePosition(ushort x, ushort y, sbyte z, Direction dir)
         {
 
-            //Log.Message(LogTypes.Warning, $"Forced position. - SEQUENCE: {_sequenceNumber}");
+            //Log.Warn( $"Forced position. - SEQUENCE: {_sequenceNumber}");
 
-            _nextAllowedStepTime = Engine.Ticks;
+            _nextAllowedStepTime = Time.Ticks;
             _sequenceNumber = 0;
             _stepsOutstanding = 0;
             _movementX = x;
@@ -2408,13 +1866,13 @@ namespace ClassicUO.Game.GameObjects
         {
             if (_resynchronizing > 0)
             {
-                if (_nextAllowedStepTime + (_resynchronizing * 1000) > Engine.Ticks)
+                if (_nextAllowedStepTime + (_resynchronizing * 1000) > Time.Ticks)
                     return;
             }
 
             _resynchronizing++;
             NetClient.Socket.Send(new PResend());
-            Log.Message(LogTypes.Trace, $"Resync request num: {_resynchronizing}");
+            Log.Trace( $"Resync request num: {_resynchronizing}");
         }
 #elif MOVEMENT2
         public void DenyWalk(byte seq, Direction dir, ushort x, ushort y, sbyte z)
@@ -2440,7 +1898,7 @@ namespace ClassicUO.Game.GameObjects
             }
             else
             {
-                
+
             }
         }
 

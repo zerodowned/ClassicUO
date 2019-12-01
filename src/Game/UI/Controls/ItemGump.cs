@@ -23,6 +23,7 @@
 
 using System;
 
+using ClassicUO.Configuration;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;
@@ -30,6 +31,7 @@ using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Input;
 using ClassicUO.IO;
 using ClassicUO.Renderer;
+using ClassicUO.Game.Data;
 
 using Microsoft.Xna.Framework;
 
@@ -39,39 +41,47 @@ namespace ClassicUO.Game.UI.Controls
     {
         protected bool _clickedCanDrag;
 
-        private Point _lastClickPosition;
         private float _picUpTime;
         private float _sClickTime;
         private bool _sendClickIfNotDClick;
 
         public ItemGump(Item item)
         {
-            AcceptMouseInput = true;
+            if (item == null)
+            {
+                Dispose();
+                return;
+            }
+
             Item = item;
+            AcceptMouseInput = true;
             X = item.X;
             Y = item.Y;
             HighlightOnMouseOver = true;
             CanPickUp = true;
             ArtTexture texture = FileManager.Art.GetTexture(item.DisplayedGraphic);
             Texture = texture;
+
             Width = texture.Width;
             Height = texture.Height;
-            LocalSerial = Item.Serial;
+            LocalSerial = item;
 
             WantUpdateSize = false;
         }
 
-        public Item Item { get; }
 
         public bool HighlightOnMouseOver { get; set; }
 
         public bool CanPickUp { get; set; }
 
+        public Item Item { get; }
 
         public override void Update(double totalMS, double frameMS)
         {
             if (Item == null || Item.IsDestroyed)
+            {
                 Dispose();
+            }
 
             if (IsDisposed)
                 return;
@@ -86,8 +96,8 @@ namespace ClassicUO.Game.UI.Controls
 
             if (_sendClickIfNotDClick && totalMS >= _sClickTime)
             {
-                if (!World.ClientFeatures.TooltipsEnabled) GameActions.SingleClick(Item);
-                GameActions.OpenPopupMenu(Item);
+                if (!World.ClientFeatures.TooltipsEnabled) GameActions.SingleClick(LocalSerial);
+                GameActions.OpenPopupMenu(LocalSerial);
                 _sendClickIfNotDClick = false;
             }
 
@@ -96,21 +106,45 @@ namespace ClassicUO.Game.UI.Controls
 
         public override bool Draw(UltimaBatcher2D batcher, int x, int y)
         {
+            if (Item == null || Item.IsDestroyed)
+            {
+                Dispose();
+            }
+
+            if (IsDisposed || !Item.AllowedToDraw)
+                return false;
+
             ResetHueVector();
             ShaderHuesTraslator.GetHueVector(ref _hueVector, MouseIsOver && HighlightOnMouseOver ? 0x0035 : Item.Hue, Item.ItemData.IsPartialHue, 0, true);
 
-            batcher.Draw2D(Texture, x, y, ref _hueVector);
+            batcher.Draw2D(Texture, x, y, Width, Height, ref _hueVector);
 
             if (Item.Amount > 1 && Item.ItemData.IsStackable && Item.DisplayedGraphic == Item.Graphic)
-                batcher.Draw2D(Texture, x + 5, y + 5, ref _hueVector);
+                batcher.Draw2D(Texture, x + 5, y + 5, Width, Height, ref _hueVector);
 
             return base.Draw(batcher, x, y);
         }
 
         public override bool Contains(int x, int y)
         {
+            if (ProfileManager.Current != null && ProfileManager.Current.ScaleItemsInsideContainers)
+            {
+                float scale = UIManager.ContainerScale;
+
+                x = (int)(x / scale);
+                y = (int)(y / scale);
+            }
+
             if (Texture.Contains(x, y))
                 return true;
+
+            if (Item == null || Item.IsDestroyed)
+            {
+                Dispose();
+            }
+
+            if (IsDisposed)
+                return false;
 
             if (!Item.IsCoin && Item.Amount > 1 && Item.ItemData.IsStackable)
             {
@@ -133,54 +167,35 @@ namespace ClassicUO.Game.UI.Controls
             }
 
             _clickedCanDrag = true;
-            _picUpTime = Engine.Ticks + 500f;
+            _picUpTime = Time.Ticks + 500f;
         }
 
         protected override void OnMouseUp(int x, int y, MouseButton button)
         {
             base.OnMouseUp(x, y, button);
 
-
-            //if (button != MouseButton.Left)
-            //    return;
-
-            //var gs = Engine.SceneManager.GetScene<GameScene>();
-
-            //if (gs == null || gs.IsHoldingItem)
-            //    return;
-
-            //if (TargetManager.IsTargeting)
-            //{
-            //    if (TargetManager.TargetingState == CursorTarget.Position || TargetManager.TargetingState == CursorTarget.Object || TargetManager.TargetingState == CursorTarget.Grab || TargetManager.TargetingState == CursorTarget.SetGrabBag)
-            //    {
-            //        TargetManager.TargetGameObject(Item);
-            //        Mouse.LastLeftButtonClickTime = 0;
-            //    }
-            //}
-            //else
-            //{
-            //    if (_clickedCanDrag)
-            //    {
-            //        _clickedCanDrag = false;
-            //        _sendClickIfNotDClick = true;
-            //        float totalMS = Engine.Ticks;
-            //        _sClickTime = totalMS + Mouse.MOUSE_DELAY_DOUBLE_CLICK;
-            //        _lastClickPosition.X = Mouse.Position.X;
-            //        _lastClickPosition.Y = Mouse.Position.Y;
-            //    }
-            //}
-
             if (button == MouseButton.Left)
             {
-                GameScene gs = Engine.SceneManager.GetScene<GameScene>();
+                GameScene gs = CUOEnviroment.Client.GetScene<GameScene>();
                 if (gs == null)
+                    return;
+
+                if (Item == null || Item.IsDestroyed)
+                {
+                    Dispose();
+                }
+
+                if (IsDisposed)
                     return;
 
                 if (TargetManager.IsTargeting)
                 {
-                    if (Mouse.IsDragging && Mouse.LDroppedOffset != Point.Zero)
+                    _clickedCanDrag = false;
+
+                    if (Mouse.IsDragging && CanPickup())
                     {
-                        if (!gs.IsHoldingItem || !gs.IsMouseOverUI) return;
+                        if (!gs.IsHoldingItem || !gs.IsMouseOverUI) 
+                            return;
 
                         SelectedObject.Object = Item;
 
@@ -208,7 +223,7 @@ namespace ClassicUO.Game.UI.Controls
 
                             if (Item != null)
                             {
-                                TargetManager.TargetGameObject(Item);
+                                TargetManager.Target(Item);
                                 Mouse.LastLeftButtonClickTime = 0;
                             }
 
@@ -219,9 +234,9 @@ namespace ClassicUO.Game.UI.Controls
 
                             if (Item != null)
                             {
-                                TargetManager.TargetGameObject(Item);
+                                TargetManager.Target(Item);
                                 Mouse.LastLeftButtonClickTime = 0;
-                                Engine.UI.Add(new InfoGump(Item));
+                                UIManager.Add(new InfoGump(Item));
                             }
 
                             break;
@@ -246,10 +261,8 @@ namespace ClassicUO.Game.UI.Controls
                         {
                             _clickedCanDrag = false;
                             _sendClickIfNotDClick = true;
-                            float totalMS = Engine.Ticks;
+                            float totalMS = Time.Ticks;
                             _sClickTime = totalMS + Mouse.MOUSE_DELAY_DOUBLE_CLICK;
-                            _lastClickPosition.X = Mouse.Position.X;
-                            _lastClickPosition.Y = Mouse.Position.Y;
                         }
                     }
                     else
@@ -270,7 +283,6 @@ namespace ClassicUO.Game.UI.Controls
                 }
 
                 _clickedCanDrag = false;
-
             }
         }
 
@@ -278,25 +290,45 @@ namespace ClassicUO.Game.UI.Controls
         {
             if (_clickedCanDrag)
             {
-                Point offset = Mouse.LDroppedOffset;
-                var split = Engine.UI.GetGump<SplitMenuGump>(Item);
-
-                if (split != null || Math.Abs(offset.X) > Constants.MIN_PICKUP_DRAG_DISTANCE_PIXELS || Math.Abs(offset.Y) > Constants.MIN_PICKUP_DRAG_DISTANCE_PIXELS)
+                if (CanPickup())
                 {
-                    split?.Dispose();
                     _clickedCanDrag = false;
                     AttempPickUp();
                 }
             }
         }
 
+        private bool CanPickup()
+        {
+            Point offset = Mouse.LDroppedOffset;
+            var split = UIManager.GetGump<SplitMenuGump>(LocalSerial);
+
+            split?.Dispose();
+
+            return (split != null || (Math.Abs(offset.X) > Constants.MIN_PICKUP_DRAG_DISTANCE_PIXELS || Math.Abs(offset.Y) > Constants.MIN_PICKUP_DRAG_DISTANCE_PIXELS));
+        }
+
 
         protected override bool OnMouseDoubleClick(int x, int y, MouseButton button)
         {
-            GameActions.DoubleClick(Item);
-            _sendClickIfNotDClick = false;
-            _lastClickPosition = Point.Zero;
+            if (button != MouseButton.Left)
+                return false;
+ 
+            Item container;
 
+            if ( !Input.Keyboard.Ctrl &&
+                ProfileManager.Current.DoubleClickToLootInsideContainers &&
+                Item != null && !Item.IsDestroyed &&
+                !Item.ItemData.IsContainer && Item.Items.Count == 0 &&
+                (container = World.Items.Get(Item.RootContainer)) != null &&
+                container != World.Player.Equipment[(int) Layer.Backpack]
+            ){
+                GameActions.GrabItem(Item, Item.Amount);
+            } else
+                GameActions.DoubleClick(LocalSerial);
+ 
+            _sendClickIfNotDClick = false;
+ 
             return true;
         }
 
@@ -305,13 +337,39 @@ namespace ClassicUO.Game.UI.Controls
         {
             if (CanPickUp)
             {
+                Rectangle bounds = FileManager.Art.GetTexture(Item.DisplayedGraphic).Bounds;
+                int centerX = bounds.Width >> 1;
+                int centerY = bounds.Height >> 1;
+
                 if (this is ItemGumpPaperdoll)
                 {
-                    Rectangle bounds = FileManager.Art.GetTexture(Item.DisplayedGraphic).Bounds;
-                    GameActions.PickUp(Item, bounds.Width >> 1, bounds.Height >> 1);
+                    if (Item == null || Item.IsDestroyed)
+                        Dispose();
+
+                    if (IsDisposed)
+                        return;
+
+                    GameActions.PickUp(LocalSerial, centerX, centerY);
                 }
                 else
-                    GameActions.PickUp(Item, Point.Zero);
+                {
+                    if (ProfileManager.Current != null && ProfileManager.Current.ScaleItemsInsideContainers)
+                    {
+                        float scale = UIManager.ContainerScale;
+                        centerX = (int) (centerX * scale);
+                        centerY = (int) (centerY * scale);
+                    }
+
+                    if (ProfileManager.Current != null && ProfileManager.Current.RelativeDragAndDropItems)
+                    {
+                        Point p = new Point(centerX - (Mouse.Position.X - ScreenCoordinateX), centerY - (Mouse.Position.Y - ScreenCoordinateY));
+                        GameActions.PickUp(LocalSerial, centerX, centerY, offset: p);
+                    }
+                    else
+                    {
+                        GameActions.PickUp(LocalSerial, centerX, centerY);
+                    }
+                }
             }
         }
     }

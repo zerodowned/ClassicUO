@@ -32,7 +32,7 @@ using ClassicUO.Utility;
 
 namespace ClassicUO.IO.Resources
 {
-    internal class TileDataLoader : ResourceLoader
+    internal class TileDataLoader : UOFileLoader
     {
         private static StaticTiles[] _staticData;
         private static LandTiles[] _landData;
@@ -46,8 +46,7 @@ namespace ClassicUO.IO.Resources
             {
                 string path = Path.Combine(FileManager.UoFolderPath, "tiledata.mul");
 
-                if (!File.Exists(path))
-                    throw new FileNotFoundException();
+                FileSystemHelper.EnsureFileExists(path);
 
                 UOFileMul tiledata = new UOFileMul(path);
                 bool isold = FileManager.ClientVersion < ClientVersions.CV_7090;

@@ -22,6 +22,7 @@
 #endregion
 
 using ClassicUO.Game.Data;
+using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using ClassicUO.IO;
@@ -118,17 +119,17 @@ namespace ClassicUO.Game.UI.Gumps
 
                         _primAbility.DragBegin += (sender, e) =>
                         {
-                            if (Engine.UI.IsDragging)
+                            if (UIManager.IsDragging)
                                 return;
 
-                            AbilityDefinition def = AbilityData.Abilities[((byte) World.Player.PrimaryAbility & 0x7F) - 1];
+                            ref readonly AbilityDefinition def = ref AbilityData.Abilities[((byte) World.Player.PrimaryAbility & 0x7F) - 1];
 
                             UseAbilityButtonGump gump = new UseAbilityButtonGump(def, true)
                             {
                                 X = Mouse.Position.X - 22, Y = Mouse.Position.Y - 22
                             };
-                            Engine.UI.Add(gump);
-                            Engine.UI.AttemptDragControl(gump, Mouse.Position, true);
+                            UIManager.Add(gump);
+                            UIManager.AttemptDragControl(gump, Mouse.Position, true);
                         };
 
                         _secAbility = new GumpPic(215, 150, (ushort) (0x5200 + ((byte) World.Player.SecondaryAbility & 0x7F) - 1), 0);
@@ -138,18 +139,18 @@ namespace ClassicUO.Game.UI.Gumps
 
                         _secAbility.DragBegin += (sender, e) =>
                         {
-                            if (Engine.UI.IsDragging)
+                            if (UIManager.IsDragging)
                                 return;
 
-                            AbilityDefinition def = AbilityData.Abilities[((byte) World.Player.SecondaryAbility & 0x7F) - 1];
+                            ref readonly AbilityDefinition def = ref AbilityData.Abilities[((byte) World.Player.SecondaryAbility & 0x7F) - 1];
 
                             UseAbilityButtonGump gump = new UseAbilityButtonGump(def, false)
                             {
                                 X = Mouse.Position.X - 22,
                                 Y = Mouse.Position.Y - 22
                             };
-                            Engine.UI.Add(gump);
-                            Engine.UI.AttemptDragControl(gump, Mouse.Position, true);
+                            UIManager.Add(gump);
+                            UIManager.AttemptDragControl(gump, Mouse.Position, true);
                         };
                     }
                 }
@@ -167,7 +168,7 @@ namespace ClassicUO.Game.UI.Gumps
             {
                 int index = ((byte) (i == 0 ? World.Player.PrimaryAbility : World.Player.SecondaryAbility) & 0x7F) - 1;
 
-                AbilityDefinition def = AbilityData.Abilities[index];
+                ref readonly AbilityDefinition def = ref AbilityData.Abilities[index];
 
                 if (i == 0)
                 {
@@ -203,7 +204,7 @@ namespace ClassicUO.Game.UI.Gumps
             _pageCornerLeft.Page = ActivePage != 1 ? 0 : int.MaxValue;
             _pageCornerRight.Page = ActivePage != _dictionaryPagesCount ? 0 : int.MaxValue;
 
-            Engine.SceneManager.CurrentScene.Audio.PlaySound(0x0055);
+            CUOEnviroment.Client.Scene.Audio.PlaySound(0x0055);
         }
     }
 }

@@ -24,16 +24,21 @@
 using System;
 using System.IO;
 
+using Microsoft.Xna.Framework;
+
 using Newtonsoft.Json;
 
 namespace ClassicUO.Configuration
 {
     internal sealed class Settings
     {
+        public static Settings GlobalSettings = new Settings();
+
         [JsonConstructor]
         public Settings()
         {
         }
+
 
         [JsonProperty(PropertyName = "username")]
         public string Username { get; set; } = string.Empty;
@@ -60,9 +65,13 @@ namespace ClassicUO.Configuration
         [JsonProperty(PropertyName = "lastservernum")]
         public ushort LastServerNum { get; set; } = 1;
 
-        [JsonProperty(PropertyName = "login_fps")]
-        public int MaxLoginFPS { get; set; } = 60;
+        [JsonProperty(PropertyName = "fps")]
+        public int FPS { get; set; } = 60;
+        [JsonProperty(PropertyName = "window_position")] public Point? WindowPosition { get; set; }
+        [JsonProperty(PropertyName = "window_size")] public Point? WindowSize { get; set; }
 
+        [JsonProperty(PropertyName = "is_win_maximized")]
+        public bool IsWindowMaximized { get; set; } = true;
         [JsonProperty(PropertyName = "debug")] public bool Debug { get; set; }
 
         [JsonProperty(PropertyName = "profiler")]
@@ -95,12 +104,29 @@ namespace ClassicUO.Configuration
         [JsonProperty(propertyName: "run_mouse_in_separate_thread")]
         public bool RunMouseInASeparateThread { get; set; } = true;
 
-
         [JsonProperty(PropertyName = "plugins")]
         public string[] Plugins { get; set; } = {@"./Assistant/Razor.dll"};
 
 
+
+
         public const string SETTINGS_FILENAME = "settings.json";
+        public static string CustomSettingsFilepath = null;
+
+        public static string GetSettingsFilepath()
+        {
+            if (CustomSettingsFilepath != null)
+            {
+                if (Path.IsPathRooted(CustomSettingsFilepath))
+                    return CustomSettingsFilepath;
+                else
+                    return Path.Combine(CUOEnviroment.ExecutablePath, CustomSettingsFilepath);
+            }
+
+            return Path.Combine(CUOEnviroment.ExecutablePath, SETTINGS_FILENAME);
+        }
+
+
 
         public void Save()
         {
@@ -117,7 +143,7 @@ namespace ClassicUO.Configuration
 
             // NOTE: We can do any other settings clean-ups here before we save them
 
-            ConfigurationResolver.Save(settingsToSave, Path.Combine(Engine.ExePath, SETTINGS_FILENAME));
+            ConfigurationResolver.Save(settingsToSave, GetSettingsFilepath());
         }
 
         public bool IsValid()
