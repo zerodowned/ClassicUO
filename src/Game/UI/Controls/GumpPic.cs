@@ -49,7 +49,7 @@ namespace ClassicUO.Game.UI.Controls
             {
                 _graphic = value;
 
-                Texture = FileManager.Gumps.GetTexture(_graphic);
+                Texture = UOFileManager.Gumps.GetTexture(_graphic);
 
                 if (Texture == null)
                 {
@@ -88,6 +88,7 @@ namespace ClassicUO.Game.UI.Controls
             {
                 var c = Children[i];
 
+                // might be wrong x, y. They should be calculated by position
                 if (c.Contains(x, y))
                     return true;
             }

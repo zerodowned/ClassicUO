@@ -29,6 +29,8 @@ using ClassicUO.IO;
 using ClassicUO.IO.Resources;
 using ClassicUO.Renderer;
 
+using Microsoft.Xna.Framework;
+
 namespace ClassicUO.Game.GameObjects
 {
     internal sealed partial class MovingEffect
@@ -46,7 +48,7 @@ namespace ClassicUO.Game.GameObjects
             if (AnimationGraphic != _displayedGraphic || Texture == null || Texture.IsDisposed)
             {
                 _displayedGraphic = AnimationGraphic;
-                Texture = FileManager.Art.GetTexture(AnimationGraphic);
+                Texture = UOFileManager.Art.GetTexture(AnimationGraphic);
                 Bounds.X = -((Texture.Width >> 1) - 22);
                 Bounds.Y = -(Texture.Height - 44);
                 Bounds.Width = Texture.Width;
@@ -59,6 +61,8 @@ namespace ClassicUO.Game.GameObjects
 
             //posX += 22;
             //posY += 22;
+
+
 
             if (ProfileManager.Current.NoColorObjectsOutOfRange && Distance > World.ClientViewRange)
             {
@@ -83,7 +87,7 @@ namespace ClassicUO.Game.GameObjects
             //Select(posX, posY);
             Texture.Ticks = Time.Ticks;
 
-            ref readonly StaticTiles data = ref FileManager.TileData.StaticData[_displayedGraphic];
+            ref readonly StaticTiles data = ref UOFileManager.TileData.StaticData[_displayedGraphic];
 
             if (data.IsLight && Source != null)
             {

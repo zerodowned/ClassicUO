@@ -82,6 +82,7 @@ namespace ClassicUO.Game.GameObjects
                 m.UpdateGraphicBySeason();
                 m.AllowedToDraw = !GameObjectHelper.IsNoDrawable(m.Graphic);
                 m.AlphaHue = 0;
+                m.FoliageIndex = 0;
                 m.IsFromTarget = false;
 
                 if (m.ItemData.Height > 5)
@@ -94,7 +95,6 @@ namespace ClassicUO.Game.GameObjects
                     m._canBeTransparent = 0;
 
                 m.MultiOffsetX = m.MultiOffsetY = m.MultiOffsetZ = 0;
-                m.CharacterIsBehindFoliage = false;
                 m.IsCustom = false;
                 m.State = 0;
 
@@ -112,7 +112,7 @@ namespace ClassicUO.Game.GameObjects
         public CUSTOM_HOUSE_MULTI_OBJECT_FLAGS State = 0;
         public bool IsCustom;
 
-        public ref readonly StaticTiles ItemData => ref FileManager.TileData.StaticData[Graphic];
+        public ref readonly StaticTiles ItemData => ref UOFileManager.TileData.StaticData[Graphic];
 
         public override void UpdateGraphicBySeason()
         {

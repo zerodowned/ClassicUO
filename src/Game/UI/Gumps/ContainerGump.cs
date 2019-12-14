@@ -293,7 +293,7 @@ namespace ClassicUO.Game.UI.Gumps
             if (Configuration.Profile.GumpsVersion == 2)
             {
                 reader.ReadUInt32();
-                IsMinimized = reader.ReadBoolean();
+                _isMinimized = reader.ReadBoolean();
             }
 
             LocalSerial = reader.ReadUInt32();
@@ -302,7 +302,7 @@ namespace ClassicUO.Game.UI.Gumps
 
             if (Profile.GumpsVersion >= 3)
             {
-                IsMinimized = reader.ReadBoolean();
+                _isMinimized = reader.ReadBoolean();
             }
 
             Dispose();
@@ -356,7 +356,7 @@ namespace ClassicUO.Game.UI.Gumps
             int x = (int) (itemGump.X * scale);
             int y = (int) (itemGump.Y * scale);
           
-            ArtTexture texture = FileManager.Art.GetTexture(item.DisplayedGraphic);
+            ArtTexture texture = UOFileManager.Art.GetTexture(item.DisplayedGraphic);
 
             int boundX = (int)(_data.Bounds.X * scale);
             int boundY = (int)(_data.Bounds.Y * scale);

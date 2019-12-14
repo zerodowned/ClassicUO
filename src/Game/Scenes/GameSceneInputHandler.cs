@@ -192,7 +192,7 @@ namespace ClassicUO.Game.Scenes
 
             bool useCHB = ProfileManager.Current.CustomBarsToggled;
 
-            Rectangle rect = useCHB ? new Rectangle(0,0,  HealthBarGumpCustom.HPB_BAR_WIDTH, HealthBarGumpCustom.HPB_HEIGHT_MULTILINE) : FileManager.Gumps.GetTexture(0x0804).Bounds;
+            Rectangle rect = useCHB ? new Rectangle(0,0,  HealthBarGumpCustom.HPB_BAR_WIDTH, HealthBarGumpCustom.HPB_HEIGHT_MULTILINE) : UOFileManager.Gumps.GetTexture(0x0804).Bounds;
 
             foreach (Mobile mobile in World.Mobiles)
             {
@@ -305,7 +305,7 @@ namespace ClassicUO.Game.Scenes
             if (!IsMouseOverViewport)
                 return;
 
-            _dragginObject = SelectedObject.Object as GameObject;
+            _dragginObject = SelectedObject.Object as Entity;
 
             if (ProfileManager.Current.EnableDragSelect && DragSelectModifierActive())
             {
@@ -501,7 +501,7 @@ namespace ClassicUO.Game.Scenes
                     case Static st:
                         string name = st.Name;
                         if (string.IsNullOrEmpty(name))
-                            name = FileManager.Cliloc.GetString(1020000 + st.Graphic);
+                            name = UOFileManager.Cliloc.GetString(1020000 + st.Graphic);
                         obj.AddMessage(MessageType.Label, name, 3, 1001, false);
 
 
@@ -513,7 +513,7 @@ namespace ClassicUO.Game.Scenes
                         name = multi.Name;
 
                         if (string.IsNullOrEmpty(name))
-                            name = FileManager.Cliloc.GetString(1020000 + multi.Graphic);
+                            name = UOFileManager.Cliloc.GetString(1020000 + multi.Graphic);
                         obj.AddMessage(MessageType.Label, name, 3, 1001, false);
 
                         if (obj.TextContainer != null && obj.TextContainer.MaxSize == 5)
@@ -645,7 +645,7 @@ namespace ClassicUO.Game.Scenes
                 {
                     if (obj is Static || obj is Multi || obj is Item)
                     {
-                        ref readonly var itemdata = ref FileManager.TileData.StaticData[obj.Graphic];
+                        ref readonly var itemdata = ref UOFileManager.TileData.StaticData[obj.Graphic];
 
                         if (itemdata.IsSurface && Pathfinder.WalkTo(obj.X, obj.Y, obj.Z, 0))
                         {
@@ -703,50 +703,48 @@ namespace ClassicUO.Game.Scenes
 
                 if (Math.Abs(offset.X) > Constants.MIN_PICKUP_DRAG_DISTANCE_PIXELS || Math.Abs(offset.Y) > Constants.MIN_PICKUP_DRAG_DISTANCE_PIXELS)
                 {
-                    GameObject obj = ProfileManager.Current.SallosEasyGrab && SelectedObject.LastObject is GameObject o ? o : _dragginObject;
-
-                    switch (obj)
+                    Entity obj;
+                    if (ProfileManager.Current.SallosEasyGrab && SelectedObject.LastObject is Entity ent && _dragginObject == null)
                     {
-                        case Mobile _:
-                            mobile:
-                            Entity entity = obj as Entity;
-                            if (entity == null)
-                                break;
+                        obj = ent;
+                    }
+                    else
+                    {
+                        obj = _dragginObject;
+                    }
 
-                            GameActions.RequestMobileStatus(entity);
-                            var customgump = UIManager.GetGump<BaseHealthBarGump>(entity);
+                    if (obj != null)
+                    {
+                        if (obj.Serial.IsMobile || obj is Item it && it.IsDamageable)
+                        {
+                            GameActions.RequestMobileStatus(obj);
+                            var customgump = UIManager.GetGump<BaseHealthBarGump>(obj);
                             if (customgump != null)
                             {
                                 if (!customgump.IsInitialized)
-                                    break;
+                                    return;
                                 customgump.Dispose();
                             }
 
-                            if (entity == World.Player)
+                            if (obj == World.Player)
                                 StatusGumpBase.GetStatusGump()?.Dispose();
 
                             if (ProfileManager.Current.CustomBarsToggled)
                             {
                                 Rectangle rect = new Rectangle(0, 0, HealthBarGumpCustom.HPB_WIDTH, HealthBarGumpCustom.HPB_HEIGHT_SINGLELINE);
-                                UIManager.Add(customgump = new HealthBarGumpCustom(entity) { X = Mouse.Position.X - (rect.Width >> 1), Y = Mouse.Position.Y - (rect.Height >> 1) });
+                                UIManager.Add(customgump = new HealthBarGumpCustom(obj) { X = Mouse.Position.X - (rect.Width >> 1), Y = Mouse.Position.Y - (rect.Height >> 1) });
                             }
                             else
                             {
-                                Rectangle rect = FileManager.Gumps.GetTexture(0x0804).Bounds;
-                                UIManager.Add(customgump = new HealthBarGump(entity) { X = Mouse.Position.X - (rect.Width >> 1), Y = Mouse.Position.Y - (rect.Height >> 1) });
+                                Rectangle rect = UOFileManager.Gumps.GetTexture(0x0804).Bounds;
+                                UIManager.Add(customgump = new HealthBarGump(obj) { X = Mouse.Position.X - (rect.Width >> 1), Y = Mouse.Position.Y - (rect.Height >> 1) });
                             }
                             UIManager.AttemptDragControl(customgump, Mouse.Position, true);
-
-                            break;
-
-                        case Item item:
-
-                            if (item.IsDamageable)
-                                goto mobile;
-
-                            PickupItemBegin(item, Mouse.Position.X, Mouse.Position.Y);
-
-                            break;
+                        }
+                        else
+                        {                     
+                            PickupItemBegin(obj as Item, Mouse.Position.X, Mouse.Position.Y);
+                        }
                     }
 
                     _dragginObject = null;

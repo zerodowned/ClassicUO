@@ -41,7 +41,7 @@ namespace ClassicUO.Game.Managers
         {
             Groups.Clear();
 
-            int count = FileManager.Skills.SkillsCount;
+            int count = UOFileManager.Skills.SkillsCount;
 
             Groups.Add("Miscellaneous", new List<int>
                        {
@@ -121,79 +121,77 @@ namespace ClassicUO.Game.Managers
 
         public static void LoadDefault()
         {
-            FileInfo info = new FileInfo(Path.Combine(FileManager.UoFolderPath, "skillgrp.mul"));
+            FileInfo info = new FileInfo(UOFileManager.GetUOFilePath("skillgrp.mul"));
+
+            if (!info.Exists)
+            {
+                Log.Info("skillgrp.mul not present, using CUO defaults!");
+                MakeCUODefault();
+
+                return;
+            }
+
+            Groups.Clear();
+            Log.Info("Loading skillgrp.mul...");
 
             try
             {
-                if (!info.Exists)
+                int skillidx = 0;
+                bool unicode = false;
+
+                using (BinaryReader bin = new BinaryReader(File.OpenRead(info.FullName)))
                 {
-                    Log.Info("skillgrp.mul not present, using CUO defaults!");
-                    MakeCUODefault();
+                    int start = 4;
+                    int strlen = 17;
+                    int count = bin.ReadInt32();
 
-                    return;
-                }
-
-                Groups.Clear();
-                Log.Info("Loading skillgrp.mul...");
-
-                using (FileStream fs = new FileStream(info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read))
-                {
-                    int skillidx = 0;
-                    bool unicode = false;
-
-                    using (BinaryReader bin = new BinaryReader(fs))
+                    if (count == -1)
                     {
-                        int start = 4;
-                        int strlen = 17;
-                        int count = bin.ReadInt32();
+                        unicode = true;
+                        count = bin.ReadInt32();
+                        start *= 2;
+                        strlen *= 2;
+                    }
 
-                        if (count == -1)
-                        {
-                            unicode = true;
-                            count = bin.ReadInt32();
-                            start *= 2;
-                            strlen *= 2;
-                        }
-
-                        List<string> groups = new List<string>
+                    List<string> groups = new List<string>
                         {
                             "Miscellaneous"
                         };
-                        Groups.Add("Miscellaneous", new List<int>());
-                        StringBuilder sb = new StringBuilder(17);
+                    Groups.Add("Miscellaneous", new List<int>());
+                    StringBuilder sb = new StringBuilder(17);
 
-                        for (int i = 0; i < count - 1; ++i)
+                    for (int i = 0; i < count - 1; ++i)
+                    {
+                        short strbuild;
+                        bin.BaseStream.Seek(start + i * strlen, SeekOrigin.Begin);
+
+                        if (unicode)
                         {
-                            short strbuild;
-                            fs.Seek(start + i * strlen, SeekOrigin.Begin);
-
-                            if (unicode)
-                            {
-                                while ((strbuild = bin.ReadInt16()) != 0)
-                                    sb.Append((char) strbuild);
-                            }
-                            else
-                            {
-                                while ((strbuild = bin.ReadByte()) != 0)
-                                    sb.Append((char) strbuild);
-                            }
-
-                            groups.Add(sb.ToString());
-                            Groups.Add(sb.ToString(), new List<int>());
-                            sb.Clear();
+                            while ((strbuild = bin.ReadInt16()) != 0)
+                                sb.Append((char) strbuild);
+                        }
+                        else
+                        {
+                            while ((strbuild = bin.ReadByte()) != 0)
+                                sb.Append((char) strbuild);
                         }
 
-                        fs.Seek(start + (count - 1) * strlen, SeekOrigin.Begin);
+                        groups.Add(sb.ToString());
+                        Groups.Add(sb.ToString(), new List<int>());
+                        sb.Clear();
+                    }
 
-                        while (bin.BaseStream.Length != bin.BaseStream.Position)
-                        {
-                            int grp = bin.ReadInt32();
+                    bin.BaseStream.Seek(start + (count - 1) * strlen, SeekOrigin.Begin);
 
-                            if (grp < groups.Count && skillidx + 1 < FileManager.Skills.SkillsCount)
-                                Groups[groups[grp]].Add(skillidx++);
-                        }
+                    while (bin.BaseStream.Length != bin.BaseStream.Position)
+                    {
+                        int grp = bin.ReadInt32();
+
+                        if (grp < groups.Count && skillidx + 1 < UOFileManager.Skills.SkillsCount)
+                            Groups[groups[grp]].Add(skillidx++);
                     }
                 }
+
             }
             catch (Exception e)
             {
@@ -278,7 +276,7 @@ namespace ClassicUO.Game.Managers
                 for (int j = 0; j < entriesCount; j++)
                 {
                     int skillIndex = reader.ReadInt32();
-                    if (skillIndex < FileManager.Skills.SkillsCount)
+                    if (skillIndex < UOFileManager.Skills.SkillsCount)
                         list.Add(skillIndex);
                 }
             }

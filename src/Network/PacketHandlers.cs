@@ -198,7 +198,7 @@ namespace ClassicUO.Network
         {
             if (World.ClientFeatures.TooltipsEnabled && ToClient._clilocRequests.Count != 0)
             {
-                if (FileManager.ClientVersion >= ClientVersions.CV_500A)
+                if (UOFileManager.ClientVersion >= ClientVersions.CV_500A)
                 {
                     while (ToClient._clilocRequests.Count != 0)
                         NetClient.Socket.Send(new PMegaClilocRequest(ref ToClient._clilocRequests));
@@ -391,7 +391,7 @@ namespace ClassicUO.Network
                     }
                     else
                     {
-                        if (FileManager.ClientVersion >= ClientVersions.CV_500A)
+                        if (UOFileManager.ClientVersion >= ClientVersions.CV_500A)
                             World.Player.WeightMax = (ushort) (7 * (World.Player.Strength >> 1) + 40);
                         else
                             World.Player.WeightMax = (ushort) (World.Player.Strength * 4 + 25);
@@ -459,7 +459,7 @@ namespace ClassicUO.Network
             if (World.Player == null)
                 return;
 
-            if (p.ID == 0x16 && FileManager.ClientVersion < ClientVersions.CV_500A)
+            if (p.ID == 0x16 && UOFileManager.ClientVersion < ClientVersions.CV_500A)
                 return;
 
             Mobile mobile = World.Mobiles.Get(p.ReadUInt());
@@ -478,14 +478,14 @@ namespace ClassicUO.Network
                 {
                     if (enabled)
                     {
-                        if (FileManager.ClientVersion >= ClientVersions.CV_7000)
+                        if (UOFileManager.ClientVersion >= ClientVersions.CV_7000)
                             mobile.SetSAPoison(true);
                         else
                             flags |= 0x04;
                     }
                     else
                     {
-                        if (FileManager.ClientVersion >= ClientVersions.CV_7000)
+                        if (UOFileManager.ClientVersion >= ClientVersions.CV_7000)
                             mobile.SetSAPoison(false);
                         else
                             flags = (byte) (flags & ~0x04);
@@ -640,7 +640,7 @@ namespace ClassicUO.Network
             if (ProfileManager.Current.UseCustomLightLevel)
                 World.Light.Overall = ProfileManager.Current.LightLevel;
 
-            if (FileManager.ClientVersion >= ClientVersions.CV_200)
+            if (UOFileManager.ClientVersion >= ClientVersions.CV_200)
             {
                 NetClient.Socket.Send(new PGameWindowSize((uint) ProfileManager.Current.GameWindowSize.X, (uint) ProfileManager.Current.GameWindowSize.Y));
                 NetClient.Socket.Send(new PLanguage("ENU"));
@@ -768,13 +768,6 @@ namespace ClassicUO.Network
                     if (it.Layer != Layer.Invalid)
                     {
                         UIManager.GetGump<PaperDollGump>(cont)?.Update();
-                    }
-
-                    if (ProfileManager.Current.GridLootType > 0)
-                    {
-                        GridLootGump grid = UIManager.GetGump<GridLootGump>(it.Container);
-
-                        if (grid != null) grid.RedrawItems();
                     }
                 }
 
@@ -951,10 +944,9 @@ namespace ClassicUO.Network
             if (!source.IsValid || !dest.IsValid)
             {
                 effect = new MovingEffect(source, dest, sourceX, sourceY, sourceZ,
-                                          destX, destY, destZ, graphic, hue, true)
+                                          destX, destY, destZ, graphic, hue, true, 5)
                 {
                     Duration = Time.Ticks + 5000,
-                    MovingDelay = 5
                 };
             }
             else
@@ -1076,7 +1068,7 @@ namespace ClassicUO.Network
             ushort x = p.ReadUShort();
             ushort y = p.ReadUShort();
 
-            if (FileManager.ClientVersion >= ClientVersions.CV_6017)
+            if (UOFileManager.ClientVersion >= ClientVersions.CV_6017)
                 p.Skip(1);
 
             Serial containerSerial = p.ReadUInt();
@@ -1437,7 +1429,7 @@ namespace ClassicUO.Network
                 ushort x = p.ReadUShort();
                 ushort y = p.ReadUShort();
 
-                if (FileManager.ClientVersion >= ClientVersions.CV_6017)
+                if (UOFileManager.ClientVersion >= ClientVersions.CV_6017)
                     p.Skip(1);
                 Serial containerSerial = p.ReadUInt();
                 Hue hue = p.ReadUShort();
@@ -1491,17 +1483,13 @@ namespace ClassicUO.Network
                         _requestedGridLoot = 0;
                     }
                 }
-
-                if (grid != null) grid.RedrawItems();
             }
 
             container?.Items.ProcessDelta();
 
-            if (container is Item itemContainer && itemContainer.IsSpellBook && SpellbookData.GetTypeByGraphic(itemContainer.Graphic) != SpellBookType.Unknown)
+            if (container != null && container.Serial.IsItem)
             {
-                SpellbookData.GetData(itemContainer, out ulong field, out SpellBookType type);
-
-                if (itemContainer.FillSpellbook(type, field)) UIManager.GetGump<SpellbookGump>(itemContainer)?.Update();
+                UIManager.GetGump<SpellbookGump>(container)?.Update();
             }
 
 
@@ -1569,7 +1557,7 @@ namespace ClassicUO.Network
                 distanceFactor = volumeByDist * distance;
             }
 
-            CUOEnviroment.Client.Scene.Audio.PlaySoundWithDistance(index, volume, distanceFactor, true);
+            CUOEnviroment.Client.Scene.Audio.PlaySoundWithDistance(index, volume, distanceFactor);
         }
 
         private static void PlayMusic(Packet p)
@@ -1587,10 +1575,10 @@ namespace ClassicUO.Network
 
                 NetClient.Socket.Send(new PSkillsRequest(World.Player));
 
-                if (FileManager.ClientVersion >= ClientVersions.CV_306E)
+                if (UOFileManager.ClientVersion >= ClientVersions.CV_306E)
                     NetClient.Socket.Send(new PClientType());
 
-                if (FileManager.ClientVersion >= ClientVersions.CV_305D)
+                if (UOFileManager.ClientVersion >= ClientVersions.CV_305D)
                     NetClient.Socket.Send(new PClientViewRange(World.ClientViewRange));
 
                 //Engine.FpsLimit = ProfileManager.Current.MaxFPS;
@@ -1780,7 +1768,7 @@ namespace ClassicUO.Network
             Position srcPos = new Position(p.ReadUShort(), p.ReadUShort(), p.ReadSByte());
             Position targPos = new Position(p.ReadUShort(), p.ReadUShort(), p.ReadSByte());
             byte speed = p.ReadByte();
-            ushort duration = (ushort) (p.ReadByte() * 50);
+            ushort duration = p.ReadByte();
             p.Skip(2);
             bool fixedDirection = p.ReadBool();
             bool doesExplode = p.ReadBool();
@@ -1983,7 +1971,7 @@ namespace ClassicUO.Network
 
                     if (int.TryParse(name, out int cliloc))
                     {
-                        it.Name = FileManager.Cliloc.GetString(cliloc);
+                        it.Name = UOFileManager.Cliloc.GetString(cliloc);
                         fromcliloc = true;
                     }
                     else if (string.IsNullOrEmpty(it.Name))
@@ -2097,9 +2085,10 @@ namespace ClassicUO.Network
             {
                 Item item = World.GetOrCreateItem(itemSerial);
                 Graphic itemGraphic = p.ReadUShort();
-                item.Layer = (Layer) p.ReadByte();
+                byte layer = p.ReadByte();
+                item.Layer = (Layer) layer;
 
-                if (FileManager.ClientVersion >= ClientVersions.CV_70331)
+                if (UOFileManager.ClientVersion >= ClientVersions.CV_70331)
                     item.FixHue(p.ReadUShort());
                 else if ((itemGraphic & 0x8000) != 0)
                 {
@@ -2113,7 +2102,15 @@ namespace ClassicUO.Network
                 item.Amount = 1;
                 item.Container = mobile;
                 mobile.Items.Add(item);
-                mobile.Equipment[(int) item.Layer] = item;
+
+                if (layer < mobile.Equipment.Length)
+                {
+                    mobile.Equipment[layer] = item;
+                }
+                else
+                {
+                    Log.Warn($"Invalid layer in UpdateObject(). Layer: {layer}");
+                }
 
                 //if (World.OPL.Contains(serial))
                 //    NetClient.Socket.Send(new PMegaClilocRequest(item));
@@ -2204,7 +2201,7 @@ namespace ClassicUO.Network
                     Hue hue = p.ReadUShort();
                     name = p.ReadASCII(p.ReadByte());
 
-                    Rectangle rect = FileManager.Art.GetTexture(graphic).Bounds;
+                    Rectangle rect = UOFileManager.Art.GetTexture(graphic).Bounds;
 
                     if (rect.Width != 0 && rect.Height != 0)
                     {
@@ -2336,20 +2333,20 @@ namespace ClassicUO.Network
 
             MapGump gump = new MapGump(serial, gumpid, width, height);
 
-            if (p.ID == 0xF5 || FileManager.ClientVersion >= ClientVersions.CV_308Z)
+            if (p.ID == 0xF5 || UOFileManager.ClientVersion >= ClientVersions.CV_308Z)
             {
                 ushort facet = 0;
 
                 if (p.ID == 0xF5)
                     facet = p.ReadUShort();
 
-                if (FileManager.Multimap.HasFacet(facet))
-                    gump.SetMapTexture(FileManager.Multimap.LoadFacet(facet, width, height, startX, startY, endX, endY));
+                if (UOFileManager.Multimap.HasFacet(facet))
+                    gump.SetMapTexture(UOFileManager.Multimap.LoadFacet(facet, width, height, startX, startY, endX, endY));
                 else
-                    gump.SetMapTexture(FileManager.Multimap.LoadMap(width, height, startX, startY, endX, endY));
+                    gump.SetMapTexture(UOFileManager.Multimap.LoadMap(width, height, startX, startY, endX, endY));
             }
             else
-                gump.SetMapTexture(FileManager.Multimap.LoadMap(width, height, startX, startY, endX, endY));
+                gump.SetMapTexture(UOFileManager.Multimap.LoadMap(width, height, startX, startY, endX, endY));
 
             UIManager.Add(gump);
         }
@@ -2415,7 +2412,7 @@ namespace ClassicUO.Network
             p.Skip(2);
             Graphic graphic = p.ReadUShort();
 
-            Rectangle rect = FileManager.Gumps.GetTexture(0x0906).Bounds;
+            Rectangle rect = UOFileManager.Gumps.GetTexture(0x0906).Bounds;
 
             int x = (CUOEnviroment.Client.Window.ClientBounds.Width >> 1) - (rect.Width >> 1);
             int y = (CUOEnviroment.Client.Window.ClientBounds.Height >> 1) - (rect.Height >> 1);
@@ -2495,7 +2492,7 @@ namespace ClassicUO.Network
 
                 if (int.TryParse(name, out int clilocnum))
                 {
-                    name = FileManager.Cliloc.GetString(clilocnum);
+                    name = UOFileManager.Cliloc.GetString(clilocnum);
                     fromcliloc = true;
                 }
 
@@ -2727,7 +2724,7 @@ namespace ClassicUO.Network
                 World.CorpseManager.Add(corpseSerial, serial, owner.Direction, running != 0);
 
 
-            byte group = FileManager.Animations.GetDieGroupIndex(owner.Graphic, running != 0, true);
+            byte group = UOFileManager.Animations.GetDieGroupIndex(owner.Graphic, running != 0, true);
             owner.SetAnimation(group, 0, 5, 1);
 
             if (ProfileManager.Current.AutoOpenCorpses)
@@ -2790,13 +2787,13 @@ namespace ClassicUO.Network
         {
             uint flags = 0;
 
-            if (FileManager.ClientVersion >= ClientVersions.CV_60142)
+            if (UOFileManager.ClientVersion >= ClientVersions.CV_60142)
                 flags = p.ReadUInt();
             else
                 flags = p.ReadUShort();
             World.ClientLockedFeatures.SetFlags((LockedFeatureFlags) flags);
 
-            FileManager.Animations.UpdateAnimationTable(flags);
+            UOFileManager.Animations.UpdateAnimationTable(flags);
         }
 
         private static void DisplayQuestArrow(Packet p)
@@ -2807,7 +2804,7 @@ namespace ClassicUO.Network
 
             var serial = default(Serial);
 
-            if (FileManager.ClientVersion >= ClientVersions.CV_7090)
+            if (UOFileManager.ClientVersion >= ClientVersions.CV_7090)
                 serial = p.ReadUInt();
 
             var arrow = UIManager.GetGump<QuestArrowGump>(serial);
@@ -2953,7 +2950,7 @@ namespace ClassicUO.Network
 
                     if (cliloc > 0)
                     {
-                        str = FileManager.Cliloc.Translate(FileManager.Cliloc.GetString((int) cliloc), capitalize: true);
+                        str = UOFileManager.Cliloc.Translate(UOFileManager.Cliloc.GetString((int) cliloc), capitalize: true);
 
                         if (!string.IsNullOrEmpty(str))
                             item.Name = str;
@@ -2985,7 +2982,7 @@ namespace ClassicUO.Network
                     {
                         if (count != 0 || next == 0xFFFFFFFD || next == 0xFFFFFFFC) next = p.ReadUInt();
                         short charges = (short) p.ReadUShort();
-                        string attr = FileManager.Cliloc.GetString((int) next);
+                        string attr = UOFileManager.Cliloc.GetString((int) next);
 
                         if (charges == -1)
                         {
@@ -3070,7 +3067,7 @@ namespace ClassicUO.Network
                 //===========================================================================================
                 case 0x18: // enable map patches
 
-                    if (FileManager.Map.ApplyPatches(p))
+                    if (UOFileManager.Map.ApplyPatches(p))
                     {
                         //int indx = World.MapIndex;
                         //World.MapIndex = -1;
@@ -3130,52 +3127,34 @@ namespace ClassicUO.Network
                     p.Skip(2);
                     Item spellbook = World.GetOrCreateItem(p.ReadUInt());
                     spellbook.Graphic = p.ReadUShort();
-
-                    if (!spellbook.IsSpellBook)
-                        return;
-
+                    spellbook.Items.Clear();
                     ushort type = p.ReadUShort();
-                    ulong filed = p.ReadUInt() + ((ulong) p.ReadUInt() << 32);
-                    SpellBookType sbtype = SpellBookType.Unknown;
 
-                    switch (type)
+                    for (int j = 0; j < 2; j++)
                     {
-                        case 1:
-                            sbtype = SpellBookType.Magery;
+                        uint spells = 0;
 
-                            break;
+                        for (int i = 0; i < 4; i++)
+                        {
+                            spells |= (uint) (p.ReadByte() << (i * 8));
+                        }
 
-                        case 101:
-                            sbtype = SpellBookType.Necromancy;
+                        for (int i = 0; i < 32; i++)
+                        {
+                            if ((spells & (1 << i)) != 0)
+                            {
+                                ushort cc = (ushort) ((j * 32) + i + 1);
 
-                            break;
-
-                        case 201:
-                            sbtype = SpellBookType.Chivalry;
-
-                            break;
-
-                        case 401:
-                            sbtype = SpellBookType.Bushido;
-
-                            break;
-
-                        case 501:
-                            sbtype = SpellBookType.Ninjitsu;
-
-                            break;
-
-                        case 601:
-                            sbtype = SpellBookType.Spellweaving;
-
-                            break;
+                                Item spellItem = new Item(cc)
+                                {
+                                    Graphic = 0x1F2E, Amount = cc, Container = spellbook
+                                };
+                                spellbook.Items.Add(spellItem);
+                            }
+                        }
                     }
-
-                    if (spellbook.FillSpellbook(sbtype, filed))
-                    {
-                        SpellbookGump gump = UIManager.GetGump<SpellbookGump>(spellbook);
-                        gump?.Update();
-                    }
+                    spellbook.Items.ProcessDelta();
+                    UIManager.GetGump<SpellbookGump>(spellbook)?.Update();
 
                     break;
 
@@ -3285,7 +3264,7 @@ namespace ClassicUO.Network
 
             string arguments = null;
             
-            if (cliloc == 1008092) // value for "You notify them you don't want to join the party"
+            if (cliloc == 1008092 || cliloc == 1005445) // value for "You notify them you don't want to join the party" || "You have been added to the party"
             {
                 foreach (var PartyInviteGump in UIManager.Gumps.OfType<PartyInviteGump>())
                 {
@@ -3296,7 +3275,7 @@ namespace ClassicUO.Network
             if (p.Position < p.Length)
                 arguments = p.ReadUnicodeReversed(p.Length - p.Position);
 
-            string text = FileManager.Cliloc.Translate((int) cliloc, arguments);
+            string text = UOFileManager.Cliloc.Translate((int) cliloc, arguments);
 
             if (text == null)
                 return;
@@ -3312,7 +3291,7 @@ namespace ClassicUO.Network
             if ((flags & AffixType.System) != 0)
                 type = MessageType.System;
 
-            if (!FileManager.Fonts.UnicodeFontExists((byte) font))
+            if (!UOFileManager.Fonts.UnicodeFontExists((byte) font))
                 font = 0;
 
             if (entity != null)
@@ -3402,7 +3381,7 @@ namespace ClassicUO.Network
                 {
                     string argument = p.ReadUnicodeReversed(p.ReadUShort());
 
-                    string str = FileManager.Cliloc.Translate(cliloc, argument, true);
+                    string str = UOFileManager.Cliloc.Translate(cliloc, argument, true);
 
 
                     for (int i = 0; i < list.Count; i++)
@@ -3749,21 +3728,21 @@ namespace ClassicUO.Network
                     uint descriptionCliloc = p.ReadUInt();
                     uint wtfCliloc = p.ReadUInt();
                     p.Skip(4);
-                    string title = FileManager.Cliloc.GetString((int) titleCliloc);
+                    string title = UOFileManager.Cliloc.GetString((int) titleCliloc);
                     string description = string.Empty;
                     string wtf = string.Empty;
 
                     if (descriptionCliloc != 0)
                     {
                         string args = p.ReadUnicodeReversed();
-                        description = "\n" + FileManager.Cliloc.Translate((int) descriptionCliloc, args, true);
+                        description = "\n" + UOFileManager.Cliloc.Translate((int) descriptionCliloc, args, true);
 
                         if (description.Length < 2)
                             description = string.Empty;
                     }
 
                     if (wtfCliloc != 0)
-                        wtf = "\n" + FileManager.Cliloc.GetString((int) wtfCliloc);
+                        wtf = "\n" + UOFileManager.Cliloc.GetString((int) wtfCliloc);
                     string text = $"<left>{title}{description}{wtf}</left>";
 
                     World.Player.AddBuff(BuffTable.Table[iconID], timer, text);

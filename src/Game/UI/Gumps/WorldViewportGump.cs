@@ -72,10 +72,9 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     Point n = ResizeGameWindow(_lastSize);
 
-                    OptionsGump options = UIManager.GetGump<OptionsGump>();
-                    options?.UpdateVideo();
+                    UIManager.GetGump<OptionsGump>()?.UpdateVideo();
 
-                    if (FileManager.ClientVersion >= ClientVersions.CV_200)
+                    if (UOFileManager.ClientVersion >= ClientVersions.CV_200)
                         NetClient.Socket.Send(new PGameWindowSize((uint) n.X, (uint) n.Y));
 
                     _clicked = false;
@@ -88,8 +87,7 @@ namespace ClassicUO.Game.UI.Gumps
             _border = new GameBorder(0, 0, Width, Height, 4);
             _border.DragEnd += (sender, e) => 
             {
-                OptionsGump options = UIManager.GetGump<OptionsGump>();
-                options?.UpdateVideo();
+                UIManager.GetGump<OptionsGump>()?.UpdateVideo();
             };
             _viewport = new WorldViewport(scene, BORDER_WIDTH, BORDER_HEIGHT, _worldWidth, _worldHeight);
 
@@ -155,14 +153,14 @@ namespace ClassicUO.Game.UI.Gumps
         {
             Point position = Location;
 
-            if (position.X + Width - BORDER_WIDTH > CUOEnviroment.Client.GraphicsDevice.Viewport.Width)
-                position.X = CUOEnviroment.Client.GraphicsDevice.Viewport.Width - (Width - BORDER_WIDTH);
+            if (position.X + Width - BORDER_WIDTH > CUOEnviroment.Client.Window.ClientBounds.Width)
+                position.X = CUOEnviroment.Client.Window.ClientBounds.Width - (Width - BORDER_WIDTH);
 
             if (position.X < -BORDER_WIDTH)
                 position.X = -BORDER_WIDTH;
 
-            if (position.Y + Height - BORDER_HEIGHT > CUOEnviroment.Client.GraphicsDevice.Viewport.Height)
-                position.Y = CUOEnviroment.Client.GraphicsDevice.Viewport.Height - (Height - BORDER_HEIGHT);
+            if (position.Y + Height - BORDER_HEIGHT > CUOEnviroment.Client.Window.ClientBounds.Height)
+                position.Y = CUOEnviroment.Client.Window.ClientBounds.Height - (Height - BORDER_HEIGHT);
 
             if (position.Y < -BORDER_HEIGHT)
                 position.Y = -BORDER_HEIGHT;
@@ -237,8 +235,8 @@ namespace ClassicUO.Game.UI.Gumps
             Y = y;
             Width = w;
             Height = h;
-            _borders[0] = FileManager.Gumps.GetTexture(0x0A8C);
-            _borders[1] = FileManager.Gumps.GetTexture(0x0A8D);
+            _borders[0] = UOFileManager.Gumps.GetTexture(0x0A8C);
+            _borders[1] = UOFileManager.Gumps.GetTexture(0x0A8D);
             _borderSize = borderSize;
             CanMove = true;
             AcceptMouseInput = true;

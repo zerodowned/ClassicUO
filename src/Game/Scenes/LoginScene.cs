@@ -38,7 +38,7 @@ using ClassicUO.IO;
 using ClassicUO.Network;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
-
+using Microsoft.Xna.Framework;
 using SDL2;
 
 namespace ClassicUO.Game.Scenes
@@ -64,9 +64,7 @@ namespace ClassicUO.Game.Scenes
         private int _reconnectTryCounter = 1;
 
 
-        public LoginScene() : base(
-            640,
-            480,
+        public LoginScene() : base((int) SceneID.Login,
             false,
             false,
             true)
@@ -109,18 +107,24 @@ namespace ClassicUO.Game.Scenes
             NetClient.LoginSocket.Connected += NetClient_Connected;
             NetClient.LoginSocket.Disconnected += Login_NetClient_Disconnected;
 
-            int music = FileManager.ClientVersion >= ClientVersions.CV_7000 ? 78 : FileManager.ClientVersion > ClientVersions.CV_308Z ? 0 : 8;
+            int music = UOFileManager.ClientVersion >= ClientVersions.CV_7000 ? 78 : UOFileManager.ClientVersion > ClientVersions.CV_308Z ? 0 : 8;
 
             Audio.PlayMusic(music);
 
-            if ((Settings.GlobalSettings.AutoLogin || Reconnect) && CurrentLoginStep != LoginStep.Main)
+            if (((Settings.GlobalSettings.AutoLogin || Reconnect) && (CurrentLoginStep != LoginStep.Main)) || CUOEnviroment.SkipLoginScreen)
             {
                 if (!string.IsNullOrEmpty(Settings.GlobalSettings.Username))
+                {
+                    // disable if it's the 2nd attempt
+                    CUOEnviroment.SkipLoginScreen = false;
                     Connect(Settings.GlobalSettings.Username, Crypter.Decrypt(Settings.GlobalSettings.Password));
+                }
             }
 
-            CUOEnviroment.Client.SetWindowBorderless(false);
-            CUOEnviroment.Client.SetWindowSize(Width, Height);
+            if (CUOEnviroment.Client.IsWindowMaximized())
+                CUOEnviroment.Client.RestoreWindow();
+            CUOEnviroment.Client.SetWindowSize(640, 480);
+            //CUOEnviroment.Client.SetWindowPositionBySettings();
         }
 
 
@@ -139,7 +143,6 @@ namespace ClassicUO.Game.Scenes
             NetClient.PacketReceived -= NetClient_PacketReceived;
 
             UIManager.GameCursor.IsLoading = false;
-
             base.Unload();
         }
 
@@ -231,22 +234,22 @@ namespace ClassicUO.Game.Scenes
                 switch (CurrentLoginStep)
                 {
                     case LoginStep.Connecting:
-                        labelText = FileManager.Cliloc.GetString(3000002); // "Connecting..."
+                        labelText = UOFileManager.Cliloc.GetString(3000002); // "Connecting..."
 
                         break;
 
                     case LoginStep.VerifyingAccount:
-                        labelText = FileManager.Cliloc.GetString(3000003); // "Verifying Account..."
+                        labelText = UOFileManager.Cliloc.GetString(3000003); // "Verifying Account..."
 
                         break;
 
                     case LoginStep.LoginInToServer:
-                        labelText = FileManager.Cliloc.GetString(3000053); // logging into shard
+                        labelText = UOFileManager.Cliloc.GetString(3000053); // logging into shard
 
                         break;
 
                     case LoginStep.EnteringBritania:
-                        labelText = FileManager.Cliloc.GetString(3000001); // Entering Britania...
+                        labelText = UOFileManager.Cliloc.GetString(3000001); // Entering Britania...
 
                         break;
                 }
@@ -396,9 +399,9 @@ namespace ClassicUO.Game.Scenes
             Log.Info("Connected!");
             CurrentLoginStep = LoginStep.VerifyingAccount;
 
-            if (FileManager.ClientVersion > ClientVersions.CV_6040)
+            if (UOFileManager.ClientVersion > ClientVersions.CV_6040)
             {
-                uint clientVersion = (uint) FileManager.ClientVersion;
+                uint clientVersion = (uint) UOFileManager.ClientVersion;
 
                 byte major = (byte) (clientVersion >> 24);
                 byte minor = (byte) (clientVersion >> 16);
@@ -591,7 +594,7 @@ namespace ClassicUO.Game.Scenes
             var count = p.ReadByte();
             var cities = new CityInfo[count];
 
-            bool isNew = FileManager.ClientVersion >= ClientVersions.CV_70130;
+            bool isNew = UOFileManager.ClientVersion >= ClientVersions.CV_70130;
             string[] descriptions = null;
 
             if (!isNew)
@@ -620,7 +623,7 @@ namespace ClassicUO.Game.Scenes
                     var cityDescription = p.ReadUInt();
                     p.ReadUInt();
 
-                    cityInfo = new CityInfo(cityIndex, cityName, cityBuilding, FileManager.Cliloc.GetString((int) cityDescription), cityPosition, cityMapIndex, isNew);
+                    cityInfo = new CityInfo(cityIndex, cityName, cityBuilding, UOFileManager.Cliloc.GetString((int) cityDescription), cityPosition, cityMapIndex, isNew);
                 }
                 else
                 {
@@ -639,7 +642,7 @@ namespace ClassicUO.Game.Scenes
 
         private string[] ReadCityTextFile(int count)
         {
-            string path = Path.Combine(FileManager.UoFolderPath, "citytext.enu");
+            string path = UOFileManager.GetUOFilePath("citytext.enu");
 
             if (!File.Exists(path))
                 return null;

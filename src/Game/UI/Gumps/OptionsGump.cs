@@ -87,7 +87,7 @@ namespace ClassicUO.Game.UI.Gumps
         // GameWindowSize
         private TextBox _gameWindowWidth;
         private Combobox _gridLoot;
-        private Checkbox _highlightObjects, /*_smoothMovements,*/ _enablePathfind, _useShiftPathfind, _alwaysRun, _alwaysRunUnlessHidden, _showHpMobile, _highlightByState, _drawRoofs, _treeToStumps, _hideVegetation, _noColorOutOfRangeObjects, _useCircleOfTransparency, _enableTopbar, _holdDownKeyTab, _holdDownKeyAlt, _chatAfterEnter, _chatAdditionalButtonsCheckbox, _chatShiftEnterCheckbox, _enableCaveBorder;
+        private Checkbox _highlightObjects, /*_smoothMovements,*/ _enablePathfind, _useShiftPathfind, _alwaysRun, _alwaysRunUnlessHidden, _showHpMobile, _highlightByState, _drawRoofs, _treeToStumps, _hideVegetation, _noColorOutOfRangeObjects, _useCircleOfTransparency, _enableTopbar, _holdDownKeyTab, _holdDownKeyAlt, _closeAllAnchoredGumpsWithRClick, _chatAfterEnter, _chatAdditionalButtonsCheckbox, _chatShiftEnterCheckbox, _enableCaveBorder;
         private Combobox _hpComboBox, _healtbarType, _fieldsType, _hpComboBoxShowWhen;
 
         // combat & spells
@@ -118,7 +118,7 @@ namespace ClassicUO.Game.UI.Gumps
         private ColorBox _poisonColorPickerBox, _paralyzedColorPickerBox, _invulnerableColorPickerBox;
         private TextBox _spellFormatBox;
         private Checkbox _useStandardSkillsGump, _showMobileNameIncoming, _showCorpseNameIncoming;
-        private Checkbox _holdShiftForContext, _holdShiftToSplitStack, _reduceFPSWhenInactive, _sallosEasyGrab, _partyInviteGump, _objectsFading;
+        private Checkbox _holdShiftForContext, _holdShiftToSplitStack, _reduceFPSWhenInactive, _sallosEasyGrab, _partyInviteGump, _objectsFading, _holdAltToMoveGumps;
 
         //VendorGump Size Option
         private ArrowNumbersTextBox _vendorGumpSize;
@@ -276,6 +276,8 @@ namespace ClassicUO.Game.UI.Gumps
             _enableTopbar = CreateCheckBox(rightArea, "Disable the Menu Bar", ProfileManager.Current.TopbarGumpIsDisabled, 0, 0);
             _holdDownKeyTab = CreateCheckBox(rightArea, "Hold TAB key for combat", ProfileManager.Current.HoldDownKeyTab, 0, 0);
             _holdDownKeyAlt = CreateCheckBox(rightArea, "Hold ALT key + right click to close Anchored gumps", ProfileManager.Current.HoldDownKeyAltToCloseAnchored, 0, 0);
+            _closeAllAnchoredGumpsWithRClick = CreateCheckBox(rightArea, "Close all Anchored gumps when right click on a group", ProfileManager.Current.CloseAllAnchoredGumpsInGroupWithRightClick, 0, 0);
+            _holdAltToMoveGumps = CreateCheckBox(rightArea, "Hold ALT key to move gumps", ProfileManager.Current.HoldAltToMoveGumps, 0, 0);
             _holdShiftForContext = CreateCheckBox(rightArea, "Hold Shift for Context Menus", ProfileManager.Current.HoldShiftForContext, 0, 0);
             _holdShiftToSplitStack = CreateCheckBox(rightArea, "Hold Shift to split stack of items", ProfileManager.Current.HoldShiftToSplitStack, 0, 0);
             _highlightByState = CreateCheckBox(rightArea, "Highlight by state (poisoned, yellow hits, paralyzed)", ProfileManager.Current.HighlightMobilesByFlags, 0, 0);
@@ -1391,7 +1393,9 @@ namespace ClassicUO.Game.UI.Gumps
                     _enableTopbar.IsChecked = false;
                     _holdDownKeyTab.IsChecked = true;
                     _holdDownKeyAlt.IsChecked = true;
+                    _closeAllAnchoredGumpsWithRClick.IsChecked = false;
                     _holdShiftForContext.IsChecked = false;
+                    _holdAltToMoveGumps.IsChecked = false;
                     _holdShiftToSplitStack.IsChecked = false;
                     _enablePathfind.IsChecked = false;
                     _useShiftPathfind.IsChecked = false;
@@ -1401,9 +1405,9 @@ namespace ClassicUO.Game.UI.Gumps
                     _hpComboBox.SelectedIndex = 0;
                     _hpComboBoxShowWhen.SelectedIndex = 0;
                     _highlightByState.IsChecked = true;
-                    _poisonColorPickerBox.SetColor(0x0044, FileManager.Hues.GetPolygoneColor(12, 0x0044));
-                    _paralyzedColorPickerBox.SetColor(0x014C, FileManager.Hues.GetPolygoneColor(12, 0x014C));
-                    _invulnerableColorPickerBox.SetColor(0x0030, FileManager.Hues.GetPolygoneColor(12, 0x0030));
+                    _poisonColorPickerBox.SetColor(0x0044, UOFileManager.Hues.GetPolygoneColor(12, 0x0044));
+                    _paralyzedColorPickerBox.SetColor(0x014C, UOFileManager.Hues.GetPolygoneColor(12, 0x014C));
+                    _invulnerableColorPickerBox.SetColor(0x0030, UOFileManager.Hues.GetPolygoneColor(12, 0x0030));
                     _drawRoofs.IsChecked = true;
                     _enableCaveBorder.IsChecked = false;
                     _treeToStumps.IsChecked = false;
@@ -1468,7 +1472,7 @@ namespace ClassicUO.Game.UI.Gumps
                     _xBR.IsChecked = true;
                     _hideChatGradient.IsChecked = false;
                     _partyAura.IsChecked = true;
-                    _partyAuraColorPickerBox.SetColor(0x0044, FileManager.Hues.GetPolygoneColor(12, 0x0044));
+                    _partyAuraColorPickerBox.SetColor(0x0044, UOFileManager.Hues.GetPolygoneColor(12, 0x0044));
 
                     _windowSizeArea.IsVisible = !_gameWindowFullsize.IsChecked;
                     _zoomSizeArea.IsVisible = _zoomCheckbox.IsChecked;
@@ -1490,13 +1494,13 @@ namespace ClassicUO.Game.UI.Gumps
                 case 7: // speech
                     _scaleSpeechDelay.IsChecked = true;
                     _sliderSpeechDelay.Value = 100;
-                    _speechColorPickerBox.SetColor(0x02B2, FileManager.Hues.GetPolygoneColor(12, 0x02B2));
-                    _emoteColorPickerBox.SetColor(0x0021, FileManager.Hues.GetPolygoneColor(12, 0x0021));
-                    _yellColorPickerBox.SetColor(0x0021, FileManager.Hues.GetPolygoneColor(12, 0x0021));
-                    _whisperColorPickerBox.SetColor(0x0033, FileManager.Hues.GetPolygoneColor(12, 0x0033));
-                    _partyMessageColorPickerBox.SetColor(0x0044, FileManager.Hues.GetPolygoneColor(12, 0x0044));
-                    _guildMessageColorPickerBox.SetColor(0x0044, FileManager.Hues.GetPolygoneColor(12, 0x0044));
-                    _allyMessageColorPickerBox.SetColor(0x0057, FileManager.Hues.GetPolygoneColor(12, 0x0057));
+                    _speechColorPickerBox.SetColor(0x02B2, UOFileManager.Hues.GetPolygoneColor(12, 0x02B2));
+                    _emoteColorPickerBox.SetColor(0x0021, UOFileManager.Hues.GetPolygoneColor(12, 0x0021));
+                    _yellColorPickerBox.SetColor(0x0021, UOFileManager.Hues.GetPolygoneColor(12, 0x0021));
+                    _whisperColorPickerBox.SetColor(0x0033, UOFileManager.Hues.GetPolygoneColor(12, 0x0033));
+                    _partyMessageColorPickerBox.SetColor(0x0044, UOFileManager.Hues.GetPolygoneColor(12, 0x0044));
+                    _guildMessageColorPickerBox.SetColor(0x0044, UOFileManager.Hues.GetPolygoneColor(12, 0x0044));
+                    _allyMessageColorPickerBox.SetColor(0x0057, UOFileManager.Hues.GetPolygoneColor(12, 0x0057));
                     _chatAfterEnter.IsChecked = false;
                     UIManager.SystemChat.IsActive = !_chatAfterEnter.IsChecked;
                     _chatAdditionalButtonsCheckbox.IsChecked = true;
@@ -1507,18 +1511,18 @@ namespace ClassicUO.Game.UI.Gumps
                     break;
 
                 case 8: // combat
-                    _innocentColorPickerBox.SetColor(0x005A, FileManager.Hues.GetPolygoneColor(12, 0x005A));
-                    _friendColorPickerBox.SetColor(0x0044, FileManager.Hues.GetPolygoneColor(12, 0x0044));
-                    _crimialColorPickerBox.SetColor(0x03B2, FileManager.Hues.GetPolygoneColor(12, 0x03B2));
-                    _genericColorPickerBox.SetColor(0x03B2, FileManager.Hues.GetPolygoneColor(12, 0x03B2));
-                    _murdererColorPickerBox.SetColor(0x0023, FileManager.Hues.GetPolygoneColor(12, 0x0023));
-                    _enemyColorPickerBox.SetColor(0x0031, FileManager.Hues.GetPolygoneColor(12, 0x0031));
+                    _innocentColorPickerBox.SetColor(0x005A, UOFileManager.Hues.GetPolygoneColor(12, 0x005A));
+                    _friendColorPickerBox.SetColor(0x0044, UOFileManager.Hues.GetPolygoneColor(12, 0x0044));
+                    _crimialColorPickerBox.SetColor(0x03B2, UOFileManager.Hues.GetPolygoneColor(12, 0x03B2));
+                    _genericColorPickerBox.SetColor(0x03B2, UOFileManager.Hues.GetPolygoneColor(12, 0x03B2));
+                    _murdererColorPickerBox.SetColor(0x0023, UOFileManager.Hues.GetPolygoneColor(12, 0x0023));
+                    _enemyColorPickerBox.SetColor(0x0031, UOFileManager.Hues.GetPolygoneColor(12, 0x0031));
                     _queryBeforAttackCheckbox.IsChecked = true;
                     _castSpellsByOneClick.IsChecked = false;
                     _buffBarTime.IsChecked = false;
-                    _beneficColorPickerBox.SetColor(0x0059, FileManager.Hues.GetPolygoneColor(12, 0x0059));
-                    _harmfulColorPickerBox.SetColor(0x0020, FileManager.Hues.GetPolygoneColor(12, 0x0020));
-                    _neutralColorPickerBox.SetColor(0x03B1, FileManager.Hues.GetPolygoneColor(12, 0x03B1));
+                    _beneficColorPickerBox.SetColor(0x0059, UOFileManager.Hues.GetPolygoneColor(12, 0x0059));
+                    _harmfulColorPickerBox.SetColor(0x0020, UOFileManager.Hues.GetPolygoneColor(12, 0x0020));
+                    _neutralColorPickerBox.SetColor(0x03B1, UOFileManager.Hues.GetPolygoneColor(12, 0x03B1));
                     _spellFormatBox.SetText("{power} [{spell}]");
                     _spellColoringCheckbox.IsChecked = false;
                     _spellFormatCheckbox.IsChecked = false;
@@ -1600,7 +1604,9 @@ namespace ClassicUO.Game.UI.Gumps
             ProfileManager.Current.MobileHPShowWhen = _hpComboBoxShowWhen.SelectedIndex;
             ProfileManager.Current.HoldDownKeyTab = _holdDownKeyTab.IsChecked;
             ProfileManager.Current.HoldDownKeyAltToCloseAnchored = _holdDownKeyAlt.IsChecked;
+            ProfileManager.Current.CloseAllAnchoredGumpsInGroupWithRightClick = _closeAllAnchoredGumpsWithRClick.IsChecked;
             ProfileManager.Current.HoldShiftForContext = _holdShiftForContext.IsChecked;
+            ProfileManager.Current.HoldAltToMoveGumps = _holdAltToMoveGumps.IsChecked;
             ProfileManager.Current.HoldShiftToSplitStack = _holdShiftToSplitStack.IsChecked;
             ProfileManager.Current.CloseHealthBarType = _healtbarType.SelectedIndex;
 
@@ -1623,7 +1629,7 @@ namespace ClassicUO.Game.UI.Gumps
             if (ProfileManager.Current.EnableCaveBorder != _enableCaveBorder.IsChecked)
             {
                 ProfileManager.Current.EnableCaveBorder = _enableCaveBorder.IsChecked;
-                FileManager.Art.ClearCaveTextures();
+                UOFileManager.Art.ClearCaveTextures();
             }
 
             ProfileManager.Current.TreeToStumps = _treeToStumps.IsChecked;
@@ -2068,12 +2074,11 @@ namespace ClassicUO.Game.UI.Gumps
         }
 
         internal void UpdateVideo()
-        {
-            WorldViewportGump gump = UIManager.GetGump<WorldViewportGump>();
-            _gameWindowWidth.Text = gump.Width.ToString();
-            _gameWindowHeight.Text = gump.Height.ToString();
-            _gameWindowPositionX.Text = gump.X.ToString();
-            _gameWindowPositionY.Text = gump.Y.ToString();
+        {            
+            _gameWindowWidth.Text = ProfileManager.Current.GameWindowSize.X.ToString();
+            _gameWindowHeight.Text = ProfileManager.Current.GameWindowSize.Y.ToString();
+            _gameWindowPositionX.Text = ProfileManager.Current.GameWindowPosition.X.ToString();
+            _gameWindowPositionY.Text = ProfileManager.Current.GameWindowPosition.Y.ToString();
         }
 
         public override bool Draw(UltimaBatcher2D batcher, int x, int y)
@@ -2145,7 +2150,7 @@ namespace ClassicUO.Game.UI.Gumps
             uint color = 0xFF7F7F7F;
 
             if (hue != 0xFFFF)
-                color = FileManager.Hues.GetPolygoneColor(12, hue);
+                color = UOFileManager.Hues.GetPolygoneColor(12, hue);
 
             ClickableColorBox box = new ClickableColorBox(x, y, 13, 14, hue, color);
             item.Add(box);
@@ -2195,7 +2200,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                 for (byte i = 0; i < 20; i++)
                 {
-                    if (FileManager.Fonts.UnicodeFontExists(i))
+                    if (UOFileManager.Fonts.UnicodeFontExists(i))
                     {
                         Add(_buttons[i] = new RadioButton(0, 0x00D0, 0x00D1, "That's ClassicUO!", i, HUE_FONT)
                         {

@@ -405,7 +405,7 @@ namespace ClassicUO.Game.Managers
                                             break;
 
                                         case MacroSubType.BardSpellbook:
-                                            type = SpellBookType.Bardic;
+                                            type = SpellBookType.Mastery;
 
                                             break;
                                     }
@@ -442,7 +442,17 @@ namespace ClassicUO.Game.Managers
                                     break;
 
                                 case MacroSubType.WorldMap:
-                                    Log.Warn( $"Macro '{macro.SubCode}' not implemented");
+
+                                    WorldMapGump worldMap = UIManager.GetGump<WorldMapGump>();
+                                    if (worldMap == null)
+                                    {
+                                        UIManager.Add(new WorldMapGump());
+                                    }
+                                    else
+                                    {
+                                        worldMap.SetInScreen();
+                                        worldMap.BringOnTop();
+                                    }
 
                                     break;
 
@@ -967,7 +977,7 @@ namespace ClassicUO.Game.Managers
                 case MacroType.BandageSelf:
                 case MacroType.BandageTarget:
 
-                    if (FileManager.ClientVersion < ClientVersions.CV_5020 || ProfileManager.Current.BandageSelfOld)
+                    if (UOFileManager.ClientVersion < ClientVersions.CV_5020 || ProfileManager.Current.BandageSelfOld)
                     {
                         if (WaitingBandageTarget)
                         {
@@ -1002,7 +1012,6 @@ namespace ClassicUO.Game.Managers
                         {
                             if (macro.Code == MacroType.BandageSelf)
                             {
-                                TargetManager.Target(World.Player.Serial);
                                 NetClient.Socket.Send(new PTargetSelectedObject(bandage.Serial, World.Player.Serial));
                             }
                             else if (TargetManager.SelectedTarget.IsMobile)

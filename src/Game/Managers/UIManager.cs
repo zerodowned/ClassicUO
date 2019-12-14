@@ -155,7 +155,12 @@ namespace ClassicUO.Game.Managers
 
             //if (_mouseDownControls[0] == MouseOverControl && MouseOverControl != null)
             if (_mouseDownControls[0] != null)
-                AttemptDragControl(_mouseDownControls[0], Mouse.Position, true);
+            {
+                if (ProfileManager.Current == null || !ProfileManager.Current.HoldAltToMoveGumps || Keyboard.Alt)
+                {
+                    AttemptDragControl(_mouseDownControls[0], Mouse.Position, true);
+                }
+            }
 
             if (_isDraggingControl)
             {
@@ -566,30 +571,30 @@ namespace ClassicUO.Game.Managers
                             switch (pic.Graphic)
                             {
                                 case 0x69:
-                                    s = FileManager.Cliloc.GetString(1051000 + 2);
+                                    s = UOFileManager.Cliloc.GetString(1051000 + 2);
                                     break;
                                 case 0x6A:
-                                    s = FileManager.Cliloc.GetString(1051000 + 7);
+                                    s = UOFileManager.Cliloc.GetString(1051000 + 7);
                                     break;
                                 case 0x6B:
-                                    s = FileManager.Cliloc.GetString(1051000 + 5);
+                                    s = UOFileManager.Cliloc.GetString(1051000 + 5);
                                     break;
                                 case 0x6D:
-                                    s = FileManager.Cliloc.GetString(1051000 + 6);
+                                    s = UOFileManager.Cliloc.GetString(1051000 + 6);
                                     break;
                                 case 0x6E:
-                                    s = FileManager.Cliloc.GetString(1051000 + 1);
+                                    s = UOFileManager.Cliloc.GetString(1051000 + 1);
                                     break;
                                 case 0x6F:
-                                    s = FileManager.Cliloc.GetString(1051000 + 3);
+                                    s = UOFileManager.Cliloc.GetString(1051000 + 3);
                                     break;
                                 case 0x70:
-                                    s = FileManager.Cliloc.GetString(1051000 + 4);
+                                    s = UOFileManager.Cliloc.GetString(1051000 + 4);
                                     break;
 
                                 case 0x6C:
                                 default:
-                                    s = FileManager.Cliloc.GetString(1051000);
+                                    s = UOFileManager.Cliloc.GetString(1051000);
                                     break;
                             }
 
@@ -614,7 +619,7 @@ namespace ClassicUO.Game.Managers
                         break;
 
                     case "xmfhtmlgump":
-                        gump.Add(new HtmlControl(int.Parse(gparams[1]), int.Parse(gparams[2]), int.Parse(gparams[3]), int.Parse(gparams[4]), int.Parse(gparams[6]) == 1, int.Parse(gparams[7]) != 0, gparams[6] != "0" && gparams[7] == "2", FileManager.Cliloc.GetString(int.Parse(gparams[5])), 0, true), page);
+                        gump.Add(new HtmlControl(int.Parse(gparams[1]), int.Parse(gparams[2]), int.Parse(gparams[3]), int.Parse(gparams[4]), int.Parse(gparams[6]) == 1, int.Parse(gparams[7]) != 0, gparams[6] != "0" && gparams[7] == "2", UOFileManager.Cliloc.GetString(int.Parse(gparams[5])), 0, true), page);
 
                         break;
 
@@ -623,7 +628,7 @@ namespace ClassicUO.Game.Managers
 
                         if (color == 0x7FFF)
                             color = 0x00FFFFFF;
-                        gump.Add(new HtmlControl(int.Parse(gparams[1]), int.Parse(gparams[2]), int.Parse(gparams[3]), int.Parse(gparams[4]), int.Parse(gparams[6]) == 1, int.Parse(gparams[7]) != 0, gparams[6] != "0" && gparams[7] == "2", FileManager.Cliloc.GetString(int.Parse(gparams[5])), color, true), page);
+                        gump.Add(new HtmlControl(int.Parse(gparams[1]), int.Parse(gparams[2]), int.Parse(gparams[3]), int.Parse(gparams[4]), int.Parse(gparams[6]) == 1, int.Parse(gparams[7]) != 0, gparams[6] != "0" && gparams[7] == "2", UOFileManager.Cliloc.GetString(int.Parse(gparams[5])), color, true), page);
 
                         break;
 
@@ -646,7 +651,7 @@ namespace ClassicUO.Game.Managers
                             }
                         }
 
-                        gump.Add(new HtmlControl(int.Parse(gparams[1]), int.Parse(gparams[2]), int.Parse(gparams[3]), int.Parse(gparams[4]), int.Parse(gparams[5]) == 1, int.Parse(gparams[6]) != 0, gparams[5] != "0" && gparams[6] == "2", sb == null ? FileManager.Cliloc.GetString(int.Parse(gparams[8])) : FileManager.Cliloc.Translate(FileManager.Cliloc.GetString(int.Parse(gparams[8])), sb.ToString().Trim('@')), color, true), page);
+                        gump.Add(new HtmlControl(int.Parse(gparams[1]), int.Parse(gparams[2]), int.Parse(gparams[3]), int.Parse(gparams[4]), int.Parse(gparams[5]) == 1, int.Parse(gparams[6]) != 0, gparams[5] != "0" && gparams[6] == "2", sb == null ? UOFileManager.Cliloc.GetString(int.Parse(gparams[8])) : UOFileManager.Cliloc.Translate(UOFileManager.Cliloc.GetString(int.Parse(gparams[8])), sb.ToString().Trim('@')), color, true), page);
 
                         break;
 
@@ -715,7 +720,7 @@ namespace ClassicUO.Game.Managers
 
                         if (World.ClientFeatures.TooltipsEnabled)
                         {
-                            string cliloc = FileManager.Cliloc.GetString(int.Parse(gparams[1]));
+                            string cliloc = UOFileManager.Cliloc.GetString(int.Parse(gparams[1]));
 
                             if (gparams.Count > 2 && gparams[2][0] == '@')
                             {
@@ -724,7 +729,7 @@ namespace ClassicUO.Game.Managers
                                 args = args.Trim('@').Replace('@', '\t');
 
                                 if (args.Length > 1)
-                                    cliloc = FileManager.Cliloc.Translate(cliloc, args);
+                                    cliloc = UOFileManager.Cliloc.Translate(cliloc, args);
                                 else
                                     Log.Error( $"String '{args}' too short, something wrong with gump tooltip: {cliloc}");
                             }
@@ -997,7 +1002,12 @@ namespace ClassicUO.Game.Managers
                 gump.InvokeMouseOver(Mouse.Position);
 
                 if (_mouseDownControls[0] == gump)
-                    AttemptDragControl(gump, Mouse.Position);
+                {
+                    if (ProfileManager.Current == null || !ProfileManager.Current.HoldAltToMoveGumps || Keyboard.Alt)
+                    {
+                        AttemptDragControl(gump, Mouse.Position);
+                    }
+                }
             }
 
             MouseOverControl = gump;
@@ -1132,7 +1142,7 @@ namespace ClassicUO.Game.Managers
         {
             if (_isDraggingControl || (CUOEnviroment.Client.Scene is GameScene gs && gs.IsHoldingItem))
                 return;
-
+       
             Control dragTarget = control;
 
             if (!dragTarget.CanMove)
@@ -1146,7 +1156,7 @@ namespace ClassicUO.Game.Managers
                 if (attemptAlwaysSuccessful)
                 {
                     DraggingControl = dragTarget;
-                    //if (control == dragTarget && _needSort)
+                    if (_needSort && control == dragTarget)
                     {
                         _dragOriginX = mousePosition.X;
                         _dragOriginY = mousePosition.Y;

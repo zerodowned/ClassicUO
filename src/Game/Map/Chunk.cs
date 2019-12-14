@@ -239,9 +239,9 @@ namespace ClassicUO.Game.Map
 
         private ref IndexMap GetIndex(int map)
         {
-            FileManager.Map.SanitizeMapIndex(ref map);
+            UOFileManager.Map.SanitizeMapIndex(ref map);
 
-            return ref FileManager.Map.GetIndex(map, X, Y);
+            return ref UOFileManager.Map.GetIndex(map, X, Y);
         }
 
         public void Destroy()
@@ -285,17 +285,6 @@ namespace ClassicUO.Game.Map
 
                     for (; obj != null; obj = obj.Right)
                     {
-                        if (obj is GameEffect effect)
-                        {
-                            switch (effect.Source)
-                            {
-                                case Static _: continue;
-                                case Item _: return false;
-                                default: continue;
-                            }
-                        }
-
-
                         if (!(obj is Land) && !(obj is Static) /*&& !(obj is Multi)*/)
                             return false;
                     }

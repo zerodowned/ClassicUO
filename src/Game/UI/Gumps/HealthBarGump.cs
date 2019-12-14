@@ -96,7 +96,7 @@ namespace ClassicUO.Game.UI.Gumps
         {
             var entity = World.Get(LocalSerial);
 
-            if (FileManager.ClientVersion >= ClientVersions.CV_200 && World.InGame && entity != null)
+            if (UOFileManager.ClientVersion >= ClientVersions.CV_200 && World.InGame && entity != null)
                 NetClient.Socket.Send(new PCloseStatusBarGump(entity));
 
             if (SelectedObject.HealthbarObject == entity && entity != null)
@@ -179,6 +179,8 @@ namespace ClassicUO.Game.UI.Gumps
                 _textBox.IsEditable = false;
                 UIManager.SystemChat.SetFocus();
             }
+
+            base.OnMouseDown(x, y, button);
         }
 
         protected override bool OnMouseDoubleClick(int x, int y, MouseButton button)
@@ -1215,7 +1217,7 @@ namespace ClassicUO.Game.UI.Gumps
         {
             var entity = World.Get(LocalSerial);
 
-            if (FileManager.ClientVersion >= ClientVersions.CV_200 && World.InGame && entity != null)
+            if (UOFileManager.ClientVersion >= ClientVersions.CV_200 && World.InGame && entity != null)
                 NetClient.Socket.Send(new PCloseStatusBarGump(entity));
 
             if (SelectedObject.HealthbarObject == entity && entity != null)

@@ -46,11 +46,11 @@ namespace ClassicUO.Game.GameObjects
 
         public PlayerMobile(Serial serial) : base(serial)
         {
-            Skills = new Skill[FileManager.Skills.SkillsCount];
+            Skills = new Skill[UOFileManager.Skills.SkillsCount];
 
             for (int i = 0; i < Skills.Length; i++)
             {
-                SkillEntry skill = FileManager.Skills.GetSkill(i);
+                SkillEntry skill = UOFileManager.Skills.GetSkill(i);
                 Skills[i] = new Skill(skill.Name, skill.Index, skill.HasAction);
             }
         }
@@ -306,7 +306,7 @@ namespace ClassicUO.Game.GameObjects
 
                     ushort testGraphic = (ushort) (equippedGraphic - 1);
 
-                    if (FileManager.TileData.StaticData[testGraphic].AnimID == imageID)
+                    if (UOFileManager.TileData.StaticData[testGraphic].AnimID == imageID)
                     {
                         graphics[1] = testGraphic;
                         count = 2;
@@ -315,7 +315,7 @@ namespace ClassicUO.Game.GameObjects
                     {
                         testGraphic = (ushort) (equippedGraphic + 1);
 
-                        if (FileManager.TileData.StaticData[testGraphic].AnimID == imageID)
+                        if (UOFileManager.TileData.StaticData[testGraphic].AnimID == imageID)
                         {
                             graphics[1] = testGraphic;
                             count = 2;
@@ -1294,7 +1294,7 @@ namespace ClassicUO.Game.GameObjects
                 Pathfinder.GetNewXY((byte) Direction, ref x, ref y);
 
                 if (World.Items.Any(s =>
-                                        IsDoor(s.Graphic) && s.X == x && s.Y == y && s.Z - 15 <= z &&
+                                        s.ItemData.IsDoor && s.X == x && s.Y == y && s.Z - 15 <= z &&
                                         s.Position.Z + 15 >= z))
                     GameActions.OpenDoor();
             }
@@ -1413,7 +1413,7 @@ namespace ClassicUO.Game.GameObjects
         public bool Walk(Direction direction, bool run)
         {
             if (Walker.WalkingFailed || Walker.LastStepRequestTime > Time.Ticks || Walker.StepsCount >= Constants.MAX_STEP_COUNT ||
-                (FileManager.ClientVersion >= ClientVersions.CV_60142 && IsParalyzed))
+                (UOFileManager.ClientVersion >= ClientVersions.CV_60142 && IsParalyzed))
                 return false;
 
             if (SpeedMode >= CharacterSpeedType.CantRun || Stamina <= 1 && !IsDead)
@@ -1840,30 +1840,6 @@ namespace ClassicUO.Game.GameObjects
 #else
             Walker.ConfirmWalk(seq);
 #endif
-        }
-
-        private bool IsDoor(ushort type)
-        {
-            return type >= 0x0675 && type <= 0x06F6
-                   || type >= 0x0824 && type <= 0x0833
-                   || type >= 0x0839 && type <= 0x0848
-                   || type >= 0x084C && type <= 0x085B
-                   || type >= 0x0866 && type <= 0x0875
-                   || type >= 0x1FED && type <= 0x1FFC
-                   || type >= 0x241F && type <= 0x2424
-                   || type >= 0x2A05 && type <= 0x2A1C
-                   || type >= 0x2D46 && type <= 0x2D49
-                   || type >= 0x2D63 && type <= 0x2D6E
-                   || type >= 0x319C && type <= 0x31AF
-                   || type >= 0x367B && type <= 0x369A
-                   || type >= 0x410C && type <= 0x4113
-                   || type >= 0x41C2 && type <= 0x41C9
-                   || type >= 0x41CF && type <= 0x41D6
-                   || type >= 0x46DD && type <= 0x46E4
-                   || type >= 0x4D1A && type <= 0x4D29
-                   || type >= 0x50C8 && type <= 0x50D7
-                   || type >= 0x9AD7 && type <= 0x9AE6
-                   || type >= 0x9B3C && type <= 0x9B4B;
         }
 
         public readonly HashSet<Serial> AutoOpenedCorpses = new HashSet<Serial>();

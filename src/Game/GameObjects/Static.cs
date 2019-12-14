@@ -79,7 +79,7 @@ namespace ClassicUO.Game.GameObjects
                 s.Index = index;
                 s.IsDestroyed = false;
                 s.AlphaHue = 0;
-                s.CharacterIsBehindFoliage = false;
+                s.FoliageIndex = 0;
                 s.UpdateGraphicBySeason();
 
                 if (s.ItemData.Height > 5)
@@ -103,7 +103,7 @@ namespace ClassicUO.Game.GameObjects
 
         public Graphic OriginalGraphic { get; private set; }
 
-        public ref readonly StaticTiles ItemData => ref FileManager.TileData.StaticData[Graphic];
+        public ref readonly StaticTiles ItemData => ref UOFileManager.TileData.StaticData[Graphic];
 
         public void SetGraphic(Graphic g)
         {

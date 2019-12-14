@@ -71,9 +71,7 @@ namespace ClassicUO.Game.Scenes
         private Weather _weather;
 
 
-        public GameScene() : base(
-            ProfileManager.Current.WindowClientBounds.X,
-            ProfileManager.Current.WindowClientBounds.Y,
+        public GameScene() : base( (int) SceneID.Game,
             true,
             !ProfileManager.Current.RestoreLastGameSize,
             true)
@@ -181,7 +179,26 @@ namespace ClassicUO.Game.Scenes
             ProfileManager.Current.RestoreScaleValue = ProfileManager.Current.ScaleZoom = Scale;
             UIManager.ContainerScale = ProfileManager.Current.ContainersScale / 100f;
 
-            if (ProfileManager.Current.WindowBorderless) CUOEnviroment.Client.SetWindowBorderless(false);
+            if (ProfileManager.Current.WindowBorderless)
+            {
+                CUOEnviroment.Client.SetWindowBorderless(true);
+            }
+            else if (Settings.GlobalSettings.IsWindowMaximized)
+            {
+                CUOEnviroment.Client.MaximizeWindow();
+            }
+            else if (Settings.GlobalSettings.WindowSize.HasValue)
+            {
+                int w = Settings.GlobalSettings.WindowSize.Value.X;
+                int h = Settings.GlobalSettings.WindowSize.Value.Y;
+
+                w = Math.Max(640, w);
+                h = Math.Max(480, h);
+
+                CUOEnviroment.Client.SetWindowSize(w, h);
+                //CUOEnviroment.Client.SetWindowPositionBySettings();
+            }
+
 
             Plugin.OnConnected();
         }
@@ -274,11 +291,6 @@ namespace ClassicUO.Game.Scenes
         {
             HeldItem?.Clear();
 
-            if (ProfileManager.Current != null)
-            {
-                SDL.SDL_GetWindowPosition(CUOEnviroment.Client.Window.Handle, out int x, out int y);
-            }
-            
             try
             {
                 Plugin.OnDisconnected();
@@ -311,6 +323,11 @@ namespace ClassicUO.Game.Scenes
             Hotkeys = null;
             Macros = null;
             Chat.MessageReceived -= ChatOnMessageReceived;
+
+
+            Settings.GlobalSettings.WindowSize = new Point(CUOEnviroment.Client.Window.ClientBounds.Width, CUOEnviroment.Client.Window.ClientBounds.Height);
+            Settings.GlobalSettings.IsWindowMaximized = CUOEnviroment.Client.IsWindowMaximized();
+            CUOEnviroment.Client.SetWindowBorderless(false);
 
             base.Unload();
         }
@@ -390,7 +407,7 @@ namespace ClassicUO.Game.Scenes
                         light.ID = 1;
                     else
                     {
-                        ref readonly var data = ref FileManager.TileData.StaticData[obj.Graphic];
+                        ref readonly var data = ref UOFileManager.TileData.StaticData[obj.Graphic];
                         light.ID = data.Layer;
                     }
                     //else if (GameObjectHelper.TryGetStaticData(lightObject, out StaticTiles data))
@@ -418,6 +435,13 @@ namespace ClassicUO.Game.Scenes
 
             if (_alphaChanged)
                 _alphaTimer = Time.Ticks + Constants.ALPHA_TIME;
+
+            _foliageIndex++;
+            if (_foliageIndex >= 100)
+            {
+                _foliageIndex = 1;
+            }
+            _foliageCount = 0;
 
             GetViewPort();
 
@@ -479,6 +503,23 @@ namespace ClassicUO.Game.Scenes
                 }
             }
 
+            if (_alphaChanged)
+            {
+                for (int i = 0; i < _foliageCount; i++)
+                {
+                    var f = _foliages[i];
+
+                    if (f.FoliageIndex == _foliageIndex)
+                    {
+                        f.ProcessAlpha(Constants.FOLIAGE_ALPHA);
+                    }
+                    else
+                    {
+                        f.ProcessAlpha(0xFF);
+                    }
+                }
+            }
+                
 
             UpdateTextServerEntities(World.Mobiles);
             UpdateTextServerEntities(World.Items);
@@ -734,14 +775,12 @@ namespace ClassicUO.Game.Scenes
             }
 
             //batcher.SetStencil(null);
-            batcher.End();
-
-            DrawLights(batcher);
 
             // draw weather
-            batcher.Begin();
             _weather.Draw(batcher, 0, 0 /*ProfileManager.Current.GameWindowPosition.X, ProfileManager.Current.GameWindowPosition.Y*/);
             batcher.End();
+
+            DrawLights(batcher);          
 
             batcher.GraphicsDevice.SetRenderTarget(null);
         }
@@ -781,7 +820,7 @@ namespace ClassicUO.Game.Scenes
             {
                 ref var l = ref _lights[i];
 
-                UOTexture texture = FileManager.Lights.GetTexture(l.ID);
+                UOTexture texture = UOFileManager.Lights.GetTexture(l.ID);
 
                 hue.X = l.Color;
                 hue.Y = ShaderHuesTraslator.SHADER_LIGHTS;
