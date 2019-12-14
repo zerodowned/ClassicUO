@@ -208,10 +208,10 @@ namespace ClassicUO
         public void SetWindowPositionBySettings()
         {
             SDL_GetWindowBordersSize(Window.Handle, out int top, out int left, out int bottom, out int right);
-            if (Settings.GlobalSettings.WindowPosition.HasValue)
+            if (Settings.GlobalSettings.WindowPosition != Point.Zero)
             {
-                int x = left + Settings.GlobalSettings.WindowPosition.Value.X;
-                int y = top + Settings.GlobalSettings.WindowPosition.Value.Y;
+                int x = left + Settings.GlobalSettings.WindowPosition.X;
+                int y = top + Settings.GlobalSettings.WindowPosition.Y;
                 x = Math.Max(0, x);
                 y = Math.Max(0, y);
 

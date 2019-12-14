@@ -112,7 +112,7 @@ namespace ClassicUO.IO.Resources
 
                 if (pos != -1)
                 {
-#if NETCOREAPP3_0
+#if NETCOREAPP3_1
                     arguments.Add(arg[..pos]);
                     arg = arg[(pos + 1)..];
 #else
@@ -146,7 +146,7 @@ namespace ClassicUO.IO.Resources
                 {
                     if (
                         int.TryParse(
-#if NETCOREAPP3_0
+#if NETCOREAPP3_1
                         a[1..]
 #else
                         a.Substring(1)

@@ -321,7 +321,7 @@ namespace ClassicUO.Game.UI
             }
             else if (startidx == endidx || endidx == 0) return string.Empty;
 
-#if NETCOREAPP3_0
+#if NETCOREAPP3_1
             string str = Text[startidx..(endidx - startidx)];
 #else 
             string str = Text.Substring(startidx, endidx - startidx);

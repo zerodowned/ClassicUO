@@ -268,7 +268,7 @@ namespace ClassicUO.IO.Resources
                                 int commentIdx = parts[2].IndexOf('#');
 
                             if (commentIdx > 0)
-#if NETCOREAPP3_0
+#if NETCOREAPP3_1
                                 parts[2] = parts[2][..(commentIdx - 1)];
 #else
                                 parts[2] = parts[2].Substring(0, commentIdx - 1);

@@ -187,10 +187,10 @@ namespace ClassicUO.Game.Scenes
             {
                 CUOEnviroment.Client.MaximizeWindow();
             }
-            else if (Settings.GlobalSettings.WindowSize.HasValue)
+            else if (Settings.GlobalSettings.WindowSize != Point.Zero)
             {
-                int w = Settings.GlobalSettings.WindowSize.Value.X;
-                int h = Settings.GlobalSettings.WindowSize.Value.Y;
+                int w = Settings.GlobalSettings.WindowSize.X;
+                int h = Settings.GlobalSettings.WindowSize.Y;
 
                 w = Math.Max(640, w);
                 h = Math.Max(480, h);

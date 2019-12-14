@@ -24,7 +24,7 @@ namespace ClassicUO
         public static readonly bool IsUnix = Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX;
         public static readonly Version Version = Assembly.GetExecutingAssembly().GetName().Version;
 
-#if NETCOREAPP3_0
+#if NETCOREAPP3_1
         public static readonly string ExecutablePath = Environment.CurrentDirectory;
 #else
         public static readonly string ExecutablePath = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);

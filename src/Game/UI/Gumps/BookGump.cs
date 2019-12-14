@@ -318,7 +318,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                                 for (int i = MaxBookLines - m_Pages[prevpage].LinesCount; i > 0 && prevlen > 0; --i) sb.Append('\n');
 
-#if NETCOREAPP3_0
+#if NETCOREAPP3_1
                                 sb.Append(entry.Text[..chonline]);
 #else
                                 sb.Append(entry.Text.Substring(0, chonline));
@@ -327,7 +327,7 @@ namespace ClassicUO.Game.UI.Gumps
                                 if (curlen > 0)
                                 {
                                     sb.Append('\n');
-#if NETCOREAPP3_0
+#if NETCOREAPP3_1
                                     entry.Text = entry.Text[chonline..];
 #else
                                     entry.Text = entry.Text.Substring(chonline);
