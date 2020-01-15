@@ -1,24 +1,22 @@
 ﻿#region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System;
@@ -26,7 +24,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-
+using ClassicUO.Data;
 using ClassicUO.Game;
 using ClassicUO.Utility;
 
@@ -44,12 +42,12 @@ namespace ClassicUO.IO.Resources
         {
             return Task.Run(() =>
             {
-                string path = Path.Combine(FileManager.UoFolderPath, "tiledata.mul");
+                string path = UOFileManager.GetUOFilePath("tiledata.mul");
 
                 FileSystemHelper.EnsureFileExists(path);
 
                 UOFileMul tiledata = new UOFileMul(path);
-                bool isold = FileManager.ClientVersion < ClientVersions.CV_7090;
+                bool isold = Client.Version < ClientVersion.CV_7090;
                 int staticscount = !isold ? (int) (tiledata.Length - 512 * UnsafeMemoryManager.SizeOf<LandGroupNew>()) / UnsafeMemoryManager.SizeOf<StaticGroupNew>() : (int) (tiledata.Length - 512 * UnsafeMemoryManager.SizeOf<LandGroupOld>()) / UnsafeMemoryManager.SizeOf<StaticGroupOld>();
 
                 if (staticscount > 2048)
@@ -238,7 +236,7 @@ namespace ClassicUO.IO.Resources
                 //    reader.ReleaseData();
                 //}
 
-                string pathdef = Path.Combine(FileManager.UoFolderPath, "art.def");
+                string pathdef = UOFileManager.GetUOFilePath("art.def");
 
                 if (File.Exists(pathdef))
                 {
@@ -479,7 +477,7 @@ namespace ClassicUO.IO.Resources
     }
 
     [Flags]
-    public enum TileFlag : ulong
+    enum TileFlag : ulong
     {
         /// <summary>
         ///     Nothing is flagged.

@@ -1,28 +1,27 @@
 ﻿#region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System;
 using System.IO;
+using System.Xml;
 
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
@@ -51,8 +50,7 @@ namespace ClassicUO.Game.UI.Gumps
         {
             Height = 300;
             CanMove = true;
-            CanBeSaved = true;
-
+            CanCloseWithRightClick = true;
             Add(_gumpPic = new GumpPic(160, 0, 0x82D, 0));
             Add(_background = new ExpandableScroll(0, _diffY, Height - _diffY, 0x1F40)
             {
@@ -62,7 +60,7 @@ namespace ClassicUO.Game.UI.Gumps
             const ushort DARK_MODE_JOURNAL_HUE = 903;
 
             string str = "Dark mode";
-            int width = FileManager.Fonts.GetWidthASCII(6, str);
+            int width = UOFileManager.Fonts.GetWidthASCII(6, str);
 
             Checkbox darkMode;
             Add(darkMode = new Checkbox(0x00D2, 0x00D3, str, 6, 0x0288, false)
@@ -88,11 +86,15 @@ namespace ClassicUO.Game.UI.Gumps
             Add(_hitBox = new HitBox(160, 0, 23, 24));
             _hitBox.MouseUp += _hitBox_MouseUp;
             _gumpPic.MouseDoubleClick += _gumpPic_MouseDoubleClick;
+
+
+            InitializeJournalEntries();
+            World.Journal.EntryAdded += AddJournalEntry;
         }
 
-       
+        public override GUMP_TYPE GumpType => GUMP_TYPE.GT_JOURNAL;
 
-        public Hue Hue
+        public ushort Hue
         {
             get => _background.Hue;
             set => _background.Hue = value;
@@ -107,7 +109,7 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     _isMinimized = value;
 
-                    _gumpPic.Graphic = value ? (Graphic) 0x830 : (Graphic) 0x82D;
+                    _gumpPic.Graphic = value ? (ushort) 0x830 : (ushort) 0x82D;
 
                     if (value)
                     {
@@ -120,8 +122,6 @@ namespace ClassicUO.Game.UI.Gumps
 
                     foreach (var c in Children)
                     {
-                        if (!c.IsInitialized)
-                            c.Initialize();
                         c.IsVisible = !value;
                     }
 
@@ -131,16 +131,11 @@ namespace ClassicUO.Game.UI.Gumps
             }
         }
 
-        protected override void OnMouseWheel(MouseEvent delta)
+        protected override void OnMouseWheel(MouseEventType delta)
         {
             _scrollBar.InvokeMouseWheel(delta);
         }
 
-        protected override void OnInitialize()
-        {
-            InitializeJournalEntries();
-            World.Journal.EntryAdded += AddJournalEntry;
-        }
 
         public override void Dispose()
         {
@@ -158,27 +153,9 @@ namespace ClassicUO.Game.UI.Gumps
         private void AddJournalEntry(object sender, JournalEntry entry)
         {
             string text = $"{(entry.Name != string.Empty ? $"{entry.Name}: " : string.Empty)}{entry.Text}";
-            //TransformFont(ref font, ref asUnicode);
+            
             _journalEntries.AddEntry(text, entry.Font, entry.Hue, entry.IsUnicode, entry.Time);
         }
-
-        //private void TransformFont(ref byte font, ref bool asUnicode)
-        //{
-        //    if (asUnicode)
-        //        return;
-
-        //    switch (font)
-        //    {
-        //        case 3:
-
-        //        {
-        //            font = 1;
-        //            asUnicode = true;
-
-        //            break;
-        //        }
-        //    }
-        //}
 
         public override void Save(BinaryWriter writer)
         {
@@ -203,9 +180,24 @@ namespace ClassicUO.Game.UI.Gumps
             }
         }
 
+        public override void Save(XmlTextWriter writer)
+        {
+            base.Save(writer);
+            writer.WriteAttributeString("height", _background.SpecialHeight.ToString());
+            writer.WriteAttributeString("isminimized", IsMinimized.ToString());
+        }
+
+        public override void Restore(XmlElement xml)
+        {
+            base.Restore(xml);
+
+            _background.Height = _background.SpecialHeight = int.Parse(xml.GetAttribute("height"));
+            IsMinimized = bool.Parse(xml.GetAttribute("isminimized"));
+        }
+
         private void InitializeJournalEntries()
         {
-            foreach (JournalEntry t in World.Journal.Entries)
+            foreach (JournalEntry t in JournalManager.Entries)
                 AddJournalEntry(null, t);
 
             _scrollBar.MinValue = 0;
@@ -213,7 +205,7 @@ namespace ClassicUO.Game.UI.Gumps
 
         private void _gumpPic_MouseDoubleClick(object sender, MouseDoubleClickEventArgs e)
         {
-            if (e.Button == MouseButton.Left && IsMinimized)
+            if (e.Button == MouseButtonType.Left && IsMinimized)
             {
                 IsMinimized = false;
                 e.Result = true;
@@ -222,7 +214,7 @@ namespace ClassicUO.Game.UI.Gumps
 
         private void _hitBox_MouseUp(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButton.Left && !IsMinimized)
+            if (e.Button == MouseButtonType.Left && !IsMinimized)
             {
                 IsMinimized = true;
             }
@@ -276,8 +268,8 @@ namespace ClassicUO.Game.UI.Gumps
                         if (yy < 0)
                         {
                             // this entry starts above the renderable area, but exists partially within it.
-                            hour.Draw(batcher, mx, y, t.Width, t.Height + yy, 0, -yy);
-                            t.Draw(batcher, mx + hour.Width, y, t.Width, t.Height + yy, 0, -yy);
+                            hour.Draw(batcher, hour.Width, hour.Height, mx, y, t.Width, t.Height + yy, 0, -yy);
+                            t.Draw(batcher, t.Width, t.Height, mx + hour.Width, y, t.Width, t.Height + yy, 0, -yy);
                             my += t.Height + yy;
                         }
                         else
@@ -293,8 +285,8 @@ namespace ClassicUO.Game.UI.Gumps
                     else
                     {
                         int yyy = maxheight - height;
-                        hour.Draw(batcher, mx, y + _scrollBar.Height - yyy, t.Width, yyy, 0, 0);
-                        t.Draw(batcher, mx + hour.Width, y + _scrollBar.Height - yyy, t.Width, yyy, 0, 0);
+                        hour.Draw(batcher, hour.Width, hour.Height, mx, y + _scrollBar.Height - yyy, t.Width, yyy, 0, 0);
+                        t.Draw(batcher, t.Width, t.Height, mx + hour.Width, y + _scrollBar.Height - yyy, t.Width, yyy, 0, 0);
 
                         // can't fit any more entries - so we break!
                         break;
@@ -340,7 +332,7 @@ namespace ClassicUO.Game.UI.Gumps
                 }
             }
 
-            public void AddEntry(string text, int font, Hue hue, bool isUnicode, DateTime time)
+            public void AddEntry(string text, int font, ushort hue, bool isUnicode, DateTime time)
             {
                 bool maxScroll = _scrollBar.Value == _scrollBar.MaxValue;
 

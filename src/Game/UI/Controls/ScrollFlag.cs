@@ -1,24 +1,22 @@
 ﻿#region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System;
@@ -63,12 +61,12 @@ namespace ClassicUO.Game.UI.Controls
         {
             AcceptMouseInput = true;
 
-            Texture = FileManager.Gumps.GetTexture(0x0828);
+            Texture = UOFileManager.Gumps.GetTexture(0x0828);
             Width = Texture.Width;
             Height = Texture.Height;
 
-            _upButton = FileManager.Gumps.GetTexture(0x0824);
-            _downButton = FileManager.Gumps.GetTexture(0x0825);
+            _upButton = UOFileManager.Gumps.GetTexture(0x0824);
+            _downButton = UOFileManager.Gumps.GetTexture(0x0825);
 
             _rectUpButton = new Rectangle(0, 0, _upButton.Width, _upButton.Height);
             _rectDownButton = new Rectangle(0, Height, _downButton.Width, _downButton.Height);
@@ -131,7 +129,7 @@ namespace ClassicUO.Game.UI.Controls
         {
             base.Update(totalMS, frameMS);
 
-            if (MaxValue <= MinValue || MinValue >= MaxValue)
+            if (MaxValue <= MinValue)
                 Value = MaxValue = MinValue;
             _sliderPosition = GetSliderYPosition();
 
@@ -189,9 +187,9 @@ namespace ClassicUO.Game.UI.Controls
             return Height - Texture.Height;
         }
 
-        protected override void OnMouseDown(int x, int y, MouseButton button)
+        protected override void OnMouseDown(int x, int y, MouseButtonType button)
         {
-            if (button != MouseButton.Left)
+            if (button != MouseButtonType.Left)
                 return;
 
             _timeUntilNextClick = 0f;
@@ -207,9 +205,9 @@ namespace ClassicUO.Game.UI.Controls
             }
         }
 
-        protected override void OnMouseUp(int x, int y, MouseButton button)
+        protected override void OnMouseUp(int x, int y, MouseButtonType button)
         {
-            if (button != MouseButton.Left)
+            if (button != MouseButtonType.Left)
                 return;
 
             _btDownClicked = false;
@@ -239,16 +237,16 @@ namespace ClassicUO.Game.UI.Controls
             }
         }
 
-        protected override void OnMouseWheel(MouseEvent delta)
+        protected override void OnMouseWheel(MouseEventType delta)
         {
             switch (delta)
             {
-                case MouseEvent.WheelScrollUp:
+                case MouseEventType.WheelScrollUp:
                     Value -= ScrollStep;
 
                     break;
 
-                case MouseEvent.WheelScrollDown:
+                case MouseEventType.WheelScrollDown:
                     Value += ScrollStep;
 
                     break;

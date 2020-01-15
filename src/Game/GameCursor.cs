@@ -1,24 +1,22 @@
 ﻿#region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System;
@@ -58,25 +56,25 @@ namespace ClassicUO.Game
 
         private readonly Texture2D _aura;
         private readonly int[,] _cursorOffset = new int[2, 16];
-
         private readonly CursorInfo[,] _cursorPixels = new CursorInfo[2, 16];
         private readonly Tooltip _tooltip;
         private Vector3 _auraVector = new Vector3(0, 13, 0);
-        private RenderedText _targetDistanceText = RenderedText.Create(String.Empty, 0x0481, style: FontStyle.BlackBorder);
-
+        private readonly RenderedText _targetDistanceText = RenderedText.Create(String.Empty, 0x0481, style: FontStyle.BlackBorder);
         private IntPtr _cursor, _surface;
         private UOTexture _draggedItemTexture;
-        private Graphic _graphic = 0x2073;
-
+        private ushort _graphic = 0x2073;
         private ItemHold _itemHold;
         private bool _needGraphicUpdate = true;
         private Point _offset;
+        private static Vector3 _vec = Vector3.Zero;
+        private readonly List<Multi> _temp = new List<Multi>();
+
 
         public GameCursor()
         {
             short ww = 0;
             short hh = 0;
-            uint[] data = CircleOfTransparency.CreateTexture(25, ref ww, ref hh);
+            uint[] data = CircleOfTransparency.CreateCircleTexture(25, ref ww, ref hh);
 
             for (int i = 0; i < data.Length; i++)
             {
@@ -93,7 +91,7 @@ namespace ClassicUO.Game
                 }
             }
 
-            _aura = new Texture2D(CUOEnviroment.Client.GraphicsDevice, ww, hh);
+            _aura = new Texture2D(Client.Game.GraphicsDevice, ww, hh);
             _aura.SetData(data);
 
             _tooltip = new Tooltip();
@@ -104,7 +102,7 @@ namespace ClassicUO.Game
                 {
                     ushort id = _cursorData[i, j];
 
-                    ushort[] pixels = FileManager.Art.ReadStaticArt(id, out short w, out short h, out _);
+                    ushort[] pixels = UOFileManager.Art.ReadStaticArt(id, out short w, out short h, out _);
 
                     if (i == 0)
                     {
@@ -232,7 +230,7 @@ namespace ClassicUO.Game
             }
         }
 
-        public Graphic Graphic
+        public ushort Graphic
         {
             get => _graphic;
             set
@@ -252,7 +250,7 @@ namespace ClassicUO.Game
         public void SetDraggedItem(ItemHold hold, Point? offset)
         {
             _itemHold = hold;
-            _draggedItemTexture = FileManager.Art.GetTexture(_itemHold.DisplayedGraphic);
+            _draggedItemTexture = UOFileManager.Art.GetTexture(_itemHold.DisplayedGraphic);
             if (_draggedItemTexture == null)
                 return;
 
@@ -311,23 +309,36 @@ namespace ClassicUO.Game
                 _draggedItemTexture.Ticks = (long) totalMS;
         }
 
-        private static Vector3 _vec = Vector3.Zero;
+     
         public void Draw(UltimaBatcher2D sb)
         {
-            if (TargetManager.IsTargeting && ProfileManager.Current != null)
+            if (World.InGame && TargetManager.IsTargeting && ProfileManager.Current != null)
             {
                 if (TargetManager.TargetingState == CursorTarget.MultiPlacement)
                 {
                     if (World.CustomHouseManager != null && World.CustomHouseManager.SelectedGraphic != 0)
                     {
-                        Vector3 hue = Vector3.Zero;
-
                         RawList<CustomBuildObject> list = new RawList<CustomBuildObject>();
+                        ushort hue = 0;
 
                         if (!World.CustomHouseManager.CanBuildHere(list, out var type))
                         {
-                            hue.X = 0x0021;
-                            hue.Y = 1;
+                            hue = 0x0021;
+                        }
+
+                        //if (_temp.Count != list.Count)
+                        {
+                            _temp.ForEach(s => s.Destroy());
+                            _temp.Clear();
+
+                            for (int i = 0; i < list.Count; i++)
+                            {
+                                Multi m = Multi.Create(list[i].Graphic);
+                                m.AlphaHue = 0xFF;
+                                m.Hue = hue;
+                                m.State = CUSTOM_HOUSE_MULTI_OBJECT_FLAGS.CHMOF_PREVIEW;
+                                _temp.Add(m);
+                            }
                         }
 
                         if (list.Count != 0)
@@ -346,28 +357,32 @@ namespace ClassicUO.Game
                                     }
                                 }                           
 
-                                int startX = selectedObj.RealScreenPosition.X + Math.Max(0, ProfileManager.Current.GameWindowPosition.X);
-                                int startY = selectedObj.RealScreenPosition.Y + Math.Max(0, ProfileManager.Current.GameWindowPosition.Y);
+                                GameScene gs = Client.Game.GetScene<GameScene>();
 
-                                GameScene gs = CUOEnviroment.Client.GetScene<GameScene>();
-                                float scale = gs?.Scale ?? 1;
-
-                                foreach (CustomBuildObject item in list)
+                                for (int i = 0; i < list.Count; i++)
                                 {
-                                    int x = startX + (item.X - item.Y) * 22;
-                                    int y = startY + (item.X + item.Y) * 22 - ((item.Z + z) * 4);
+                                    ref readonly CustomBuildObject item = ref list[i];
 
-                                    var texture = FileManager.Art.GetTexture(item.Graphic);
-
-                                    x -= ((texture.Width >> 1) - 22);
-                                    y -= ((texture.Height - 44));
-
-                                    sb.Draw2D(texture, (int)(x / scale), (int)(y / scale), texture.Width / scale, texture.Height / scale, ref hue);
-                                    //sb.DrawSprite(texture, x, y, false, ref hue);
+                                    _temp[i].X = (ushort) (selectedObj.X + item.X);
+                                    _temp[i].Y = (ushort) (selectedObj.Y + item.Y);
+                                    _temp[i].Z = (sbyte) (selectedObj.Z + z + item.Z);
+                                    _temp[i].UpdateRealScreenPosition(gs.ScreenOffset.X, gs.ScreenOffset.Y);
+                                    _temp[i].UpdateScreenPosition();
+                                    _temp[i].AddToTile();
                                 }
                             }                           
                         }
                     }
+                    else if (_temp.Count != 0)
+                    {
+                        _temp.ForEach(s => s.Destroy());
+                        _temp.Clear();
+                    }
+                }
+                else if (_temp.Count != 0)
+                {
+                    _temp.ForEach(s => s.Destroy());
+                    _temp.Clear();
                 }
 
                 if (ProfileManager.Current.AuraOnMouse)
@@ -405,7 +420,7 @@ namespace ClassicUO.Game
 
                 if (ProfileManager.Current.ShowTargetRangeIndicator)
                 {
-                    GameScene gs = CUOEnviroment.Client.GetScene<GameScene>();
+                    GameScene gs = Client.Game.GetScene<GameScene>();
 
                     if (gs != null && gs.IsMouseOverViewport)
                     {
@@ -418,8 +433,12 @@ namespace ClassicUO.Game
                     }
                 }
             }
+            else if (_temp.Count != 0)
+            {
+                _temp.ForEach(s => s.Destroy());
+                _temp.Clear();
+            }
 
-           
             if (_itemHold != null && _itemHold.Enabled && !_itemHold.Dropped)
             {
                 float scale = 1;
@@ -457,16 +476,16 @@ namespace ClassicUO.Game
                 int offX = _cursorOffset[0, graphic];
                 int offY = _cursorOffset[1, graphic];
 
-                sb.Draw2D(FileManager.Art.GetTexture(Graphic), Mouse.Position.X + offX, Mouse.Position.Y + offY, ref _vec);
+                sb.Draw2D(UOFileManager.Art.GetTexture(Graphic), Mouse.Position.X + offX, Mouse.Position.Y + offY, ref _vec);
             }
 
         }
 
         private void DrawToolTip(UltimaBatcher2D batcher, Point position)
         {
-            if (CUOEnviroment.Client.Scene is GameScene gs)
+            if (Client.Game.Scene is GameScene gs)
             {
-                if (!World.ClientFeatures.TooltipsEnabled || gs.IsHoldingItem)
+                if (!World.ClientFeatures.TooltipsEnabled || (SelectedObject.Object is Item selectedItem && selectedItem.IsLocked && selectedItem.ItemData.Weight == 255 && !selectedItem.ItemData.IsContainer) || gs.IsHoldingItem)
                 {
                     if (!_tooltip.IsEmpty)
                         _tooltip.Clear();
@@ -542,7 +561,7 @@ namespace ClassicUO.Game
 
             if (TargetManager.IsTargeting)
             {
-                GameScene gs = CUOEnviroment.Client.GetScene<GameScene>();
+                GameScene gs = Client.Game.GetScene<GameScene>();
 
                 if (gs != null && !gs.IsHoldingItem)
                     return _cursorData[war, 12];

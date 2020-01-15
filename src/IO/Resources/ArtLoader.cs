@@ -1,24 +1,22 @@
 ﻿#region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System;
@@ -47,7 +45,7 @@ namespace ClassicUO.IO.Resources
         {
             return Task.Run(() =>
             {
-                string filepath = Path.Combine(FileManager.UoFolderPath, "artLegacyMUL.uop");
+                string filepath = UOFileManager.GetUOFilePath("artLegacyMUL.uop");
 
                 if (File.Exists(filepath))
                 {
@@ -56,8 +54,8 @@ namespace ClassicUO.IO.Resources
                 }
                 else
                 {
-                    filepath = Path.Combine(FileManager.UoFolderPath, "art.mul");
-                    string idxpath = Path.Combine(FileManager.UoFolderPath, "artidx.mul");
+                    filepath = UOFileManager.GetUOFilePath("art.mul");
+                    string idxpath = UOFileManager.GetUOFilePath("artidx.mul");
 
                     if (File.Exists(filepath) && File.Exists(idxpath))
                     {
@@ -76,9 +74,6 @@ namespace ClassicUO.IO.Resources
                 ReadStaticArt(ref texture, (ushort) g);
                 ResourceDictionary.Add(g, texture);
             }
-
-            //else
-            //    texture.Ticks = Time.Ticks + 3000;
             return texture;
         }
 
@@ -89,9 +84,6 @@ namespace ClassicUO.IO.Resources
                 ReadLandArt(ref texture, (ushort) g);
                 _landDictionary.Add(g, texture);
             }
-
-            //else
-            //    texture.Ticks = Time.Ticks + 3000;
             return texture;
         }
 
@@ -128,10 +120,10 @@ namespace ClassicUO.IO.Resources
             });
         }
 
-        public override void CleaUnusedResources()
+        public override void CleaUnusedResources(int count)
         {
-            base.CleaUnusedResources();
-            ClearUnusedResources(_landDictionary, Constants.MAX_ART_OBJECT_REMOVED_BY_GARBAGE_COLLECTOR);
+            base.CleaUnusedResources(count);
+            ClearUnusedResources(_landDictionary, count);
         }
 
         public unsafe ushort[] ReadStaticArt(ushort graphic, out short width, out short height, out Rectangle imageRectangle)
@@ -281,6 +273,11 @@ namespace ClassicUO.IO.Resources
         {
             Rectangle imageRectangle = new Rectangle();
 
+            if (StaticFilters.IsTree(graphic, out int stumpidx))
+            {
+                graphic = Constants.TREE_REPLACE_GRAPHIC;
+            }
+
             ref readonly var entry = ref GetValidRefEntry(graphic + 0x4000);
 
             if (entry.Length == 0)
@@ -419,26 +416,12 @@ namespace ClassicUO.IO.Resources
             texture = new ArtTexture(imageRectangle, width, height);
             texture.PushData(pixels);
         }
-
-        public void ClearCaveTextures()
-        {
-            for (ushort index = 0x053B; index <= 0x0554; index++)
-            {
-                if (index == 0x0550)
-                    continue;
-
-                if (ResourceDictionary.TryGetValue(index, out ArtTexture texture))
-                    texture.Ticks = 0;
-            }
-
-            CleaUnusedResources();
-        }
-
+        
         private void ReadLandArt(ref UOTexture16 texture, ushort graphic)
         {
             const int SIZE = 44 * 44;
 
-            graphic &= FileManager.GraphicMask;
+            graphic &= Client.GraphicMask;
             ref readonly var entry = ref GetValidRefEntry(graphic);
 
             if (entry.Length == 0)

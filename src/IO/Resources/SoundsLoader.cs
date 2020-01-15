@@ -1,24 +1,22 @@
 ﻿#region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System;
@@ -26,7 +24,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-
+using ClassicUO.Data;
 using ClassicUO.Game;
 using ClassicUO.IO.Audio;
 
@@ -44,7 +42,7 @@ namespace ClassicUO.IO.Resources
         {
             return Task.Run(() =>
             {
-                string path = Path.Combine(FileManager.UoFolderPath, "soundLegacyMUL.uop");
+                string path = UOFileManager.GetUOFilePath("soundLegacyMUL.uop");
 
                 if (File.Exists(path))
                 {
@@ -53,8 +51,8 @@ namespace ClassicUO.IO.Resources
                 }
                 else
                 {
-                    path = Path.Combine(FileManager.UoFolderPath, "sound.mul");
-                    string idxpath = Path.Combine(FileManager.UoFolderPath, "soundidx.mul");
+                    path = UOFileManager.GetUOFilePath("sound.mul");
+                    string idxpath = UOFileManager.GetUOFilePath("soundidx.mul");
 
                     if (File.Exists(path) && File.Exists(idxpath))
                     {
@@ -66,7 +64,7 @@ namespace ClassicUO.IO.Resources
 
                 _file.FillEntries(ref Entries);
 
-                string def = Path.Combine(FileManager.UoFolderPath, "Sound.def");
+                string def = UOFileManager.GetUOFilePath("Sound.def");
 
                 if (File.Exists(def))
                 {
@@ -109,7 +107,7 @@ namespace ClassicUO.IO.Resources
                     }
                 }
 
-                path = Path.Combine(FileManager.UoFolderPath, @"Music/Digital/Config.txt");
+                path = UOFileManager.GetUOFilePath(@"Music/Digital/Config.txt");
 
                 if (File.Exists(path))
                 {
@@ -124,7 +122,7 @@ namespace ClassicUO.IO.Resources
                         }
                     }
                 }
-                else if (FileManager.ClientVersion <= ClientVersions.CV_5090)
+                else if (Client.Version <= ClientVersion.CV_5090)
                 {
                     _mMusicData.Add(0, new Tuple<string, bool>("oldult01", true));
                     _mMusicData.Add(1, new Tuple<string, bool>("create1", false));

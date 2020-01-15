@@ -1,24 +1,22 @@
 ﻿#region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System;
@@ -46,7 +44,7 @@ namespace ClassicUO.IO.Resources
             {
                 bool result = false;
 
-                FileInfo file = new FileInfo(Path.Combine(FileManager.UoFolderPath, "Prof.txt"));
+                FileInfo file = new FileInfo(UOFileManager.GetUOFilePath("Prof.txt"));
 
                 if (file.Exists)
                 {
@@ -224,9 +222,9 @@ namespace ClassicUO.IO.Resources
                                 }
                             }
 
-                            for (int j = 0; j < FileManager.Skills.SkillsCount; j++)
+                            for (int j = 0; j < UOFileManager.Skills.SkillsCount; j++)
                             {
-                                SkillEntry skill = FileManager.Skills.GetSkill(j);
+                                SkillEntry skill = UOFileManager.Skills.Skills[j];
 
                                 if (strings[1] == skill.Name)
                                 {
@@ -263,7 +261,7 @@ namespace ClassicUO.IO.Resources
 
                     {
                         int.TryParse(strings[1], out nameClilocID);
-                        name = FileManager.Cliloc.GetString(nameClilocID);
+                        name = UOFileManager.Cliloc.GetString(nameClilocID);
 
                         break;
                     }

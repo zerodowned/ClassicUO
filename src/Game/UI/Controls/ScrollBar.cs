@@ -1,24 +1,22 @@
 #region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System;
@@ -50,6 +48,29 @@ namespace ClassicUO.Game.UI.Controls
             Height = height;
             Location = new Point(x, y);
             AcceptMouseInput = true;
+
+
+            _textureUpButton = new UOTexture[2];
+            _textureUpButton[0] = UOFileManager.Gumps.GetTexture(251);
+            _textureUpButton[1] = UOFileManager.Gumps.GetTexture(250);
+            _textureDownButton = new UOTexture[2];
+            _textureDownButton[0] = UOFileManager.Gumps.GetTexture(253);
+            _textureDownButton[1] = UOFileManager.Gumps.GetTexture(252);
+            _textureBackground = new UOTexture[3];
+            _textureBackground[0] = UOFileManager.Gumps.GetTexture(257);
+            _textureBackground[1] = UOFileManager.Gumps.GetTexture(256);
+            _textureBackground[2] = UOFileManager.Gumps.GetTexture(255);
+            _textureSlider = UOFileManager.Gumps.GetTexture(254);
+            Width = _textureBackground[0].Width;
+
+
+            _rectDownButton = new Rectangle(0, Height - _textureDownButton[0].Height, _textureDownButton[0].Width, _textureDownButton[0].Height);
+            _rectUpButton = new Rectangle(0, 0, _textureUpButton[0].Width, _textureUpButton[0].Height);
+            _rectSlider = new Rectangle((_textureBackground[0].Width - _textureSlider.Width) >> 1, _textureUpButton[0].Height + (int) _sliderPosition, _textureSlider.Width, _textureSlider.Height);
+            _emptySpace.X = 0;
+            _emptySpace.Y = _textureUpButton[0].Height;
+            _emptySpace.Width = _textureSlider.Width;
+            _emptySpace.Height = Height - (_textureDownButton[0].Height + _textureUpButton[0].Height);
         }
 
         public event EventHandler ValueChanged;
@@ -103,37 +124,12 @@ namespace ClassicUO.Game.UI.Controls
             return Contains(x, y);
         }
 
-        protected override void OnInitialize()
-        {
-            base.OnInitialize();
-            _textureUpButton = new UOTexture[2];
-            _textureUpButton[0] = FileManager.Gumps.GetTexture(251);
-            _textureUpButton[1] = FileManager.Gumps.GetTexture(250);
-            _textureDownButton = new UOTexture[2];
-            _textureDownButton[0] = FileManager.Gumps.GetTexture(253);
-            _textureDownButton[1] = FileManager.Gumps.GetTexture(252);
-            _textureBackground = new UOTexture[3];
-            _textureBackground[0] = FileManager.Gumps.GetTexture(257);
-            _textureBackground[1] = FileManager.Gumps.GetTexture(256);
-            _textureBackground[2] = FileManager.Gumps.GetTexture(255);
-            _textureSlider = FileManager.Gumps.GetTexture(254);
-            Width = _textureBackground[0].Width;
-
-
-            _rectDownButton = new Rectangle(0, Height - _textureDownButton[0].Height, _textureDownButton[0].Width, _textureDownButton[0].Height);
-            _rectUpButton = new Rectangle(0, 0, _textureUpButton[0].Width, _textureUpButton[0].Height);
-            _rectSlider = new Rectangle((_textureBackground[0].Width - _textureSlider.Width) >> 1, _textureUpButton[0].Height + (int) _sliderPosition, _textureSlider.Width, _textureSlider.Height);
-            _emptySpace.X = 0;
-            _emptySpace.Y = _textureUpButton[0].Height;
-            _emptySpace.Width = _textureSlider.Width;
-            _emptySpace.Height = Height - (_textureDownButton[0].Height + _textureUpButton[0].Height);
-        }
 
         public override void Update(double totalMS, double frameMS)
         {
             base.Update(totalMS, frameMS);
 
-            if (MaxValue <= MinValue || MinValue >= MaxValue)
+            if (MaxValue <= MinValue)
                 Value = MaxValue = MinValue;
             _sliderPosition = GetSliderYPosition();
             _rectSlider.Y = _textureUpButton[0].Height + (int) _sliderPosition;
@@ -219,9 +215,9 @@ namespace ClassicUO.Game.UI.Controls
             return Height - _textureUpButton[0].Height - _textureDownButton[0].Height - _textureSlider.Height;
         }
 
-        protected override void OnMouseDown(int x, int y, MouseButton button)
+        protected override void OnMouseDown(int x, int y, MouseButtonType button)
         {
-            if (button != MouseButton.Left)
+            if (button != MouseButtonType.Left)
                 return;
 
             _timeUntilNextClick = 0;
@@ -262,9 +258,9 @@ namespace ClassicUO.Game.UI.Controls
             }
         }
 
-        protected override void OnMouseUp(int x, int y, MouseButton button)
+        protected override void OnMouseUp(int x, int y, MouseButtonType button)
         {
-            if (button != MouseButton.Left)
+            if (button != MouseButtonType.Left)
                 return;
 
             _btDownClicked = false;
@@ -304,16 +300,16 @@ namespace ClassicUO.Game.UI.Controls
             }
         }
 
-        protected override void OnMouseWheel(MouseEvent delta)
+        protected override void OnMouseWheel(MouseEventType delta)
         {
             switch (delta)
             {
-                case MouseEvent.WheelScrollUp:
+                case MouseEventType.WheelScrollUp:
                     Value -= ScrollStep;
 
                     break;
 
-                case MouseEvent.WheelScrollDown:
+                case MouseEventType.WheelScrollDown:
                     Value += ScrollStep;
 
                     break;

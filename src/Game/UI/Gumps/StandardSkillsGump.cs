@@ -1,30 +1,29 @@
 ﻿#region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Xml;
 
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
@@ -62,9 +61,10 @@ namespace ClassicUO.Game.UI.Gumps
 
         public StandardSkillsGump() : base(Constants.SKILLSTD_LOCALSERIAL, 0)
         {
-            CanBeSaved = true;
             AcceptMouseInput = false;
             CanMove = true;
+            CanCloseWithRightClick = true;
+
             Height = 200 + _diffY;
 
             Add(_gumpPic = new GumpPic(160, 0, 0x82D, 0));
@@ -99,7 +99,7 @@ namespace ClassicUO.Game.UI.Gumps
             _checkReal.ValueChanged += UpdateGump;
             _checkCaps.ValueChanged += UpdateGump;
 
-            _allSkillControls = new SkillControl[FileManager.Skills.SkillsCount];
+            _allSkillControls = new SkillControl[UOFileManager.Skills.SkillsCount];
 
             foreach (KeyValuePair<string, List<int>> k in SkillsGroupManager.Groups)
                 AddSkillsToGroup(k.Key, k.Value.OrderBy(s => s, _instance).ToList());
@@ -110,7 +110,8 @@ namespace ClassicUO.Game.UI.Gumps
             _hitBox.MouseUp += _hitBox_MouseUp;
         }
 
-      
+        public override GUMP_TYPE GumpType => GUMP_TYPE.GT_SKILLMENU;
+
         public bool IsMinimized
         {
             get => _isMinimized;
@@ -120,7 +121,7 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     _isMinimized = value;
 
-                    _gumpPic.Graphic = value ? (Graphic)0x839 : (Graphic)0x82D;
+                    _gumpPic.Graphic = value ? (ushort)0x839 : (ushort) 0x82D;
 
                     if (value)
                     {
@@ -133,8 +134,6 @@ namespace ClassicUO.Game.UI.Gumps
 
                     foreach (var c in Children)
                     {
-                        if (!c.IsInitialized)
-                            c.Initialize();
                         c.IsVisible = !value;
                     }
 
@@ -147,7 +146,7 @@ namespace ClassicUO.Game.UI.Gumps
 
         private void _picBase_MouseDoubleClick(object sender, MouseDoubleClickEventArgs e)
         {
-            if (e.Button == MouseButton.Left && IsMinimized)
+            if (e.Button == MouseButtonType.Left && IsMinimized)
             {
                 IsMinimized = false;
             }
@@ -155,7 +154,7 @@ namespace ClassicUO.Game.UI.Gumps
 
         private void _hitBox_MouseUp(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButton.Left && !IsMinimized)
+            if (e.Button == MouseButtonType.Left && !IsMinimized)
             {
                 IsMinimized = true;
             }
@@ -300,7 +299,8 @@ namespace ClassicUO.Game.UI.Gumps
 
             writer.Write(_boxes.Count);
 
-            for (int i = 0; i < _boxes.Count; i++) writer.Write(_boxes[i].Opened);
+            for (int i = 0; i < _boxes.Count; i++) 
+                writer.Write(_boxes[i].Opened);
             writer.Write(IsMinimized);
         }
 
@@ -332,14 +332,50 @@ namespace ClassicUO.Game.UI.Gumps
             }
         }
 
+        public override void Save(XmlTextWriter writer)
+        {
+            base.Save(writer);
+            writer.WriteAttributeString("isminimized", IsMinimized.ToString());
+            writer.WriteAttributeString("height", _scrollArea.SpecialHeight.ToString());
+
+            writer.WriteStartElement("groups");
+
+            for (int i = 0; i < _boxes.Count; i++)
+            {
+                writer.WriteStartElement("group");
+                writer.WriteAttributeString("isopen", _boxes[i].Opened.ToString());
+                writer.WriteEndElement();
+            }
+
+            writer.WriteEndElement();
+        }
+
+        public override void Restore(XmlElement xml)
+        {
+            base.Restore(xml);
+            _scrollArea.Height = _scrollArea.SpecialHeight = int.Parse(xml.GetAttribute("height"));
+
+            XmlElement groupsXml = xml["groups"];
+
+            if (groupsXml != null)
+            {
+                int index = 0;
+                foreach (XmlElement groupXml in groupsXml.GetElementsByTagName("group"))
+                {
+                    if (index >= 0 && index < _boxes.Count)
+                        _boxes[index++].Opened = bool.Parse(groupXml.GetAttribute("isopen"));
+                }
+            }
+        }
+
         private class SkillNameComparer : IComparer<int>
         {
             public int Compare(int x, int y)
             {
-                if (x >= FileManager.Skills.SkillNames.Length || y >= FileManager.Skills.SkillNames.Length)
+                if (x >= UOFileManager.Skills.Skills.Count || y >= UOFileManager.Skills.Skills.Count)
                     return 0;
 
-                return FileManager.Skills.SkillNames[x].CompareTo(FileManager.Skills.SkillNames[y]);
+                return UOFileManager.Skills.Skills[x].Name.CompareTo(UOFileManager.Skills.Skills[y].Name);
             }
         }
 
@@ -396,7 +432,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                         ushort graphic = GetLockValue(skill.Lock);
                         _lock.Graphic = graphic;
-                        _lock.Texture = FileManager.Gumps.GetTexture(graphic);
+                        _lock.Texture = UOFileManager.Gumps.GetTexture(graphic);
                     }
                 };
                 Add(_lock);
@@ -430,12 +466,12 @@ namespace ClassicUO.Game.UI.Gumps
 
                     default:
 
-                        return Graphic.INVALID;
+                        return 0xFFFF;
                 }
             }
 
            
-            protected override void OnMouseDown(int x, int y, MouseButton button)
+            protected override void OnMouseDown(int x, int y, MouseButtonType button)
             {
                 CanMove = false;
             }
@@ -486,19 +522,18 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     uint serial = (uint) (World.Player + _skillIndex + 1);
 
-                    if (UIManager.GetGump<SkillButtonGump>(serial) != null)
-                        UIManager.Remove<SkillButtonGump>(serial);
+                    UIManager.GetGump<SkillButtonGump>(serial)?.Dispose();
 
                     SkillButtonGump skillButtonGump = new SkillButtonGump(World.Player.Skills[_skillIndex], Mouse.Position.X, Mouse.Position.Y);
                     UIManager.Add(skillButtonGump);
-                    Rectangle rect = FileManager.Gumps.GetTexture(0x24B8).Bounds;
+                    Rectangle rect = UOFileManager.Gumps.GetTexture(0x24B8).Bounds;
                     UIManager.AttemptDragControl(skillButtonGump, new Point(Mouse.Position.X + (rect.Width >> 1), Mouse.Position.Y + (rect.Height >> 1)), true);
                 }
 
                 base.OnMouseOver(x, y);
             }
 
-            protected override void OnMouseUp(int x, int y, MouseButton button)
+            protected override void OnMouseUp(int x, int y, MouseButtonType button)
             {
                 CanMove = true;
             }
@@ -507,7 +542,7 @@ namespace ClassicUO.Game.UI.Gumps
             {
                 ResetHueVector();
 
-                if (!CanMove) batcher.Draw2D(Textures.GetTexture(Color.Wheat), x, y, Width, Height, ref _hueVector);
+                if (!CanMove) batcher.Draw2D(Texture2DCache.GetTexture(Color.Wheat), x, y, Width, Height, ref _hueVector);
 
                 return base.Draw(batcher, x, y);
             }
@@ -524,7 +559,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                     ushort graphic = GetLockValue(skill.Lock);
                     _lock.Graphic = graphic;
-                    _lock.Texture = FileManager.Gumps.GetTexture(graphic);
+                    _lock.Texture = UOFileManager.Gumps.GetTexture(graphic);
                 }
             }
         }

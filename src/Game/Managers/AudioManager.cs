@@ -1,24 +1,22 @@
 ﻿#region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System.Collections.Generic;
@@ -53,8 +51,8 @@ namespace ClassicUO.Game.Managers
 
             _currentSounds = new List<UOSound>();
 
-            CUOEnviroment.Client.Activated += OnWindowActivated;
-            CUOEnviroment.Client.Deactivated += OnWindowDeactivated;
+            Client.Game.Activated += OnWindowActivated;
+            Client.Game.Deactivated += OnWindowDeactivated;
         }
 
         private void OnWindowDeactivated(object sender, System.EventArgs e)
@@ -87,7 +85,7 @@ namespace ClassicUO.Game.Managers
 
             float volume = ProfileManager.Current.SoundVolume / Constants.SOUND_DELTA;
 
-            if (CUOEnviroment.Client.IsActive)
+            if (Client.Game.IsActive)
             {
                 if (!ProfileManager.Current.ReproduceSoundsInBackground) volume = ProfileManager.Current.SoundVolume / Constants.SOUND_DELTA;
             }
@@ -97,7 +95,7 @@ namespace ClassicUO.Game.Managers
             if (volume < -1 || volume > 1f)
                 return;
 
-            UOSound sound = (UOSound)FileManager.Sounds.GetSound(index);
+            UOSound sound = (UOSound)UOFileManager.Sounds.GetSound(index);
 
             if (sound != null)
             {
@@ -111,15 +109,15 @@ namespace ClassicUO.Game.Managers
             if (!_canReproduceAudio)
                 return;
 
-            if (ProfileManager.Current == null || !ProfileManager.Current.EnableSound || !CUOEnviroment.Client.IsActive && !ProfileManager.Current.ReproduceSoundsInBackground)
+            if (ProfileManager.Current == null || !ProfileManager.Current.EnableSound || !Client.Game.IsActive && !ProfileManager.Current.ReproduceSoundsInBackground)
                 return;
 
-            if (!CUOEnviroment.Client.IsActive && !ProfileManager.Current.ReproduceSoundsInBackground) volume = 0;
+            if (!Client.Game.IsActive && !ProfileManager.Current.ReproduceSoundsInBackground) volume = 0;
 
             if (volume < -1 || volume > 1f)
                 return;
 
-            UOSound sound = (UOSound)FileManager.Sounds.GetSound(index);
+            UOSound sound = (UOSound)UOFileManager.Sounds.GetSound(index);
 
             if (sound != null)
             {
@@ -138,7 +136,7 @@ namespace ClassicUO.Game.Managers
 
             float volume;
 
-            if (CUOEnviroment.Client.Scene is LoginScene)
+            if (Client.Game.Scene is LoginScene)
             {
                 if (!Settings.GlobalSettings.LoginMusic)
                     return;
@@ -157,7 +155,7 @@ namespace ClassicUO.Game.Managers
             if (volume < -1 || volume > 1f)
                 return;
 
-            Sound m = FileManager.Sounds.GetMusic(music);
+            Sound m = UOFileManager.Sounds.GetMusic(music);
 
             if (m == null && _currentMusic != null)
                 StopMusic();
@@ -235,7 +233,7 @@ namespace ClassicUO.Game.Managers
 
             if (_currentMusic != null && ProfileManager.Current != null)
             {
-                if (CUOEnviroment.Client.IsActive)
+                if (Client.Game.IsActive)
                 {
                     if (!ProfileManager.Current.ReproduceSoundsInBackground) _currentMusic.Volume = ProfileManager.Current.MusicVolume / Constants.SOUND_DELTA;
                 }

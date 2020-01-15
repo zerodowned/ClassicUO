@@ -1,24 +1,22 @@
 ﻿#region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System.Linq;
@@ -75,23 +73,23 @@ namespace ClassicUO.Game.UI
             {
                 if (_maxWidth == 0)
                 {
-                    FileManager.Fonts.SetUseHTML(true);
-                    FileManager.Fonts.RecalculateWidthByInfo = true;
+                    UOFileManager.Fonts.SetUseHTML(true);
+                    UOFileManager.Fonts.RecalculateWidthByInfo = true;
 
-                    int width = FileManager.Fonts.GetWidthUnicode(1, Text);
+                    int width = UOFileManager.Fonts.GetWidthUnicode(1, Text);
 
                     if (width > 600)
                         width = 600;
 
-                    width = FileManager.Fonts.GetWidthExUnicode(1, Text, width, TEXT_ALIGN_TYPE.TS_CENTER, (ushort) FontStyle.BlackBorder);
+                    width = UOFileManager.Fonts.GetWidthExUnicode(1, Text, width, TEXT_ALIGN_TYPE.TS_CENTER, (ushort) FontStyle.BlackBorder);
 
                     if (width > 600)
                         width = 600;
 
                     _renderedText.MaxWidth = width;
 
-                    FileManager.Fonts.RecalculateWidthByInfo = false;
-                    FileManager.Fonts.SetUseHTML(false);
+                    UOFileManager.Fonts.RecalculateWidthByInfo = false;
+                    UOFileManager.Fonts.SetUseHTML(false);
                 }
                 else
                     _renderedText.MaxWidth = _maxWidth;
@@ -101,18 +99,19 @@ namespace ClassicUO.Game.UI
 
             if (x < 0)
                 x = 0;
-            else if (x > CUOEnviroment.Client.Window.ClientBounds.Width - (_renderedText.Width + 8))
-                x = CUOEnviroment.Client.Window.ClientBounds.Width - (_renderedText.Width + 8);
+            else if (x > Client.Game.Window.ClientBounds.Width - (_renderedText.Width + 8))
+                x = Client.Game.Window.ClientBounds.Width - (_renderedText.Width + 8);
 
             if (y < 0)
                 y = 0;
-            else if (y > CUOEnviroment.Client.Window.ClientBounds.Height - (_renderedText.Height + 8))
-                y = CUOEnviroment.Client.Window.ClientBounds.Height - (_renderedText.Height + 8);
+            else if (y > Client.Game.Window.ClientBounds.Height - (_renderedText.Height + 8))
+                y = Client.Game.Window.ClientBounds.Height - (_renderedText.Height + 8);
 
             Vector3 hue = Vector3.Zero;
             ShaderHuesTraslator.GetHueVector(ref hue, 0, false, 0.3f, true);
 
-            batcher.Draw2D(Textures.GetTexture(Color.Black), x - 4, y - 2, _renderedText.Width + 8, _renderedText.Height + 4, ref hue);
+            batcher.Draw2D(Texture2DCache.GetTexture(Color.Black), x - 4, y - 2, _renderedText.Width + 8, _renderedText.Height + 4, ref hue);
+            batcher.DrawRectangle(Texture2DCache.GetTexture(Color.Gray), x - 4, y - 2, _renderedText.Width + 8, _renderedText.Height + 4, ref hue);
 
             return _renderedText.Draw(batcher, x, y);
         }
@@ -150,11 +149,12 @@ namespace ClassicUO.Game.UI
             bool hasStartColor = false;
 
 
-            if (obj != null && World.OPL.TryGetNameAndData(obj, out string name, out string data))
+            if (obj != null && 
+                World.OPL.TryGetNameAndData(obj, out string name, out string data))
             {
                 if (!string.IsNullOrEmpty(name))
                 {
-                    if (obj is Item)
+                    if (SerialHelper.IsItem(obj.Serial))
                     {
                         _sbHTML.Append("<basefont color=\"yellow\">");
                         hasStartColor = true;

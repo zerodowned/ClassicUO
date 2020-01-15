@@ -1,31 +1,29 @@
 ﻿#region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-
+using ClassicUO.Data;
 using ClassicUO.Game;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
@@ -44,7 +42,7 @@ namespace ClassicUO.IO.Resources
         {
             return Task.Run(() =>
             {
-                string uopPath = Path.Combine(FileManager.UoFolderPath, "MultiCollection.uop");
+                string uopPath = UOFileManager.GetUOFilePath("MultiCollection.uop");
 
                 if (File.Exists(uopPath))
                 {
@@ -55,13 +53,13 @@ namespace ClassicUO.IO.Resources
                 }
                 else
                 {
-                    string path = Path.Combine(FileManager.UoFolderPath, "multi.mul");
-                    string pathidx = Path.Combine(FileManager.UoFolderPath, "multi.idx");
+                    string path = UOFileManager.GetUOFilePath("multi.mul");
+                    string pathidx = UOFileManager.GetUOFilePath("multi.idx");
 
                     if (File.Exists(path) && File.Exists(pathidx))
                     {
                         _file = new UOFileMul(path, pathidx, Constants.MAX_MULTI_DATA_INDEX_COUNT, 14);
-                        Count = _itemOffset = FileManager.ClientVersion >= ClientVersions.CV_7090 ? UnsafeMemoryManager.SizeOf<MultiBlockNew>() : UnsafeMemoryManager.SizeOf<MultiBlock>();
+                        Count = _itemOffset = Client.Version >= ClientVersion.CV_7090 ? UnsafeMemoryManager.SizeOf<MultiBlockNew>() : UnsafeMemoryManager.SizeOf<MultiBlock>();
                     }
                 }
 

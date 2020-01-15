@@ -1,24 +1,22 @@
 #region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering
-//	new technologies.
-//
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System;
@@ -70,16 +68,16 @@ namespace ClassicUO.Game.Scenes
         private double _dequeueAt;
 
         private bool _followingMode;
-        private Serial _followingTarget;
-        private bool _inqueue;
+        private uint _followingTarget;
+        //private bool _inqueue;
         private bool _isCtrlDown;
         private bool _isSelectionActive;
 
         private bool _isShiftDown;
         private bool _isUpDown, _isDownDown, _isLeftDown, _isRightDown, _isMacroMoveDown, _isAuraActive;
         public Direction _numPadDirection;
-        private Action _queuedAction;
-        private Entity _queuedObject;
+        //private Action _queuedAction;
+        //private Entity _queuedObject;
         private bool _wasShiftDown;
 
         private bool _requestedWarMode;
@@ -192,7 +190,7 @@ namespace ClassicUO.Game.Scenes
 
             bool useCHB = ProfileManager.Current.CustomBarsToggled;
 
-            Rectangle rect = useCHB ? new Rectangle(0,0,  HealthBarGumpCustom.HPB_BAR_WIDTH, HealthBarGumpCustom.HPB_HEIGHT_MULTILINE) : FileManager.Gumps.GetTexture(0x0804).Bounds;
+            Rectangle rect = useCHB ? new Rectangle(0,0,  HealthBarGumpCustom.HPB_BAR_WIDTH, HealthBarGumpCustom.HPB_HEIGHT_MULTILINE) : UOFileManager.Gumps.GetTexture(0x0804).Bounds;
 
             foreach (Mobile mobile in World.Mobiles)
             {
@@ -219,7 +217,7 @@ namespace ClassicUO.Game.Scenes
                 {
                     if (mobile != World.Player)
                     {
-                        if (UIManager.GetGump<BaseHealthBarGump>(mobile)?.IsInitialized ?? false)
+                        if (UIManager.GetGump<BaseHealthBarGump>(mobile) != null)
                         {
                             continue;
                         }
@@ -237,12 +235,6 @@ namespace ClassicUO.Game.Scenes
                         {
                             hbgc = new HealthBarGump(mobile);
                         }
-
-                        // Need to initialize before setting X Y otherwise AnchorableGump.OnMove() is not called
-                        // if OnMove() is not called, _prevX _prevY are not set, anchoring is unpredictable
-                        // maybe should be fixed elsewhere
-                        hbgc.Initialize();
-
 
                         if (finalY >= ProfileManager.Current.GameWindowPosition.Y + ProfileManager.Current.GameWindowSize.Y - 100)
                         {
@@ -305,20 +297,39 @@ namespace ClassicUO.Game.Scenes
             if (!IsMouseOverViewport)
                 return;
 
-            _dragginObject = SelectedObject.Object as GameObject;
-
-            if (ProfileManager.Current.EnableDragSelect && DragSelectModifierActive())
+            if (World.CustomHouseManager != null)
             {
-                if (CanDragSelectOnObject(SelectedObject.Object as GameObject))
+                _isMouseLeftDown = true;
+
+                if (TargetManager.IsTargeting && 
+                    TargetManager.TargetingState == CursorTarget.MultiPlacement && 
+                    (World.CustomHouseManager.SelectedGraphic != 0 || 
+                     World.CustomHouseManager.Erasing || 
+                     World.CustomHouseManager.SeekTile) &&
+                    SelectedObject.LastObject is GameObject obj)
                 {
-                    _selectionStart = (Mouse.Position.X, Mouse.Position.Y);
-                    _isSelectionActive = true;
+                    World.CustomHouseManager.OnTargetWorld(obj);
+                    _lastSelectedMultiPositionInHouseCustomization.X = obj.X;
+                    _lastSelectedMultiPositionInHouseCustomization.Y = obj.Y;
                 }
             }
             else
             {
-                _isMouseLeftDown = true;
-                _holdMouse2secOverItemTime = Time.Ticks;
+                _dragginObject = SelectedObject.Object as Entity;
+
+                if (ProfileManager.Current.EnableDragSelect && DragSelectModifierActive())
+                {
+                    if (CanDragSelectOnObject(SelectedObject.Object as GameObject))
+                    {
+                        _selectionStart = (Mouse.Position.X, Mouse.Position.Y);
+                        _isSelectionActive = true;
+                    }
+                }
+                else
+                {
+                    _isMouseLeftDown = true;
+                    _holdMouse2secOverItemTime = Time.Ticks;
+                }
             }
         }
 
@@ -345,12 +356,13 @@ namespace ClassicUO.Game.Scenes
             {
                 if (IsHoldingItem)
                 {
-                    UIManager.MouseOverControl?.InvokeMouseUp(Mouse.Position, MouseButton.Left);
+                    UIManager.MouseOverControl?.InvokeMouseUp(Mouse.Position, MouseButtonType.Left);
                 }
                 return;
             }
 
-            if (_rightMousePressed) _continueRunning = true;
+            if (_rightMousePressed) 
+                _continueRunning = true;
 
             if (_dragginObject != null)
                 _dragginObject = null;
@@ -380,23 +392,23 @@ namespace ClassicUO.Game.Scenes
                                 if (item.Graphic == HeldItem.Graphic && HeldItem.IsStackable)
                                     MergeHeldItem(item);
                                 else
-                                    DropHeldItemToWorld(obj.Position.X, obj.Position.Y, (sbyte)(obj.Position.Z + item.ItemData.Height));
+                                    DropHeldItemToWorld(obj.X, obj.Y, (sbyte)(obj.Z + item.ItemData.Height));
                             }
 
                             break;
 
                         case Multi multi:
-                            DropHeldItemToWorld(obj.Position.X, obj.Position.Y, (sbyte)(obj.Position.Z + multi.ItemData.Height));
+                            DropHeldItemToWorld(obj.X, obj.Y, (sbyte)(obj.Z + multi.ItemData.Height));
 
                             break;
 
                         case Static st:
-                            DropHeldItemToWorld(obj.Position.X, obj.Position.Y, (sbyte)(obj.Position.Z + st.ItemData.Height));
+                            DropHeldItemToWorld(obj.X, obj.Y, (sbyte)(obj.Z + st.ItemData.Height));
 
                             break;
 
                         case Land _:
-                            DropHeldItemToWorld(obj.Position);
+                            DropHeldItemToWorld(obj.X, obj.Y, obj.Z);
 
                             break;
 
@@ -407,7 +419,7 @@ namespace ClassicUO.Game.Scenes
                     }
                 }
                 else
-                    CUOEnviroment.Client.Scene.Audio.PlaySound(0x0051);
+                    Client.Game.Scene.Audio.PlaySound(0x0051);
             }
             else if (TargetManager.IsTargeting)
             {
@@ -417,14 +429,8 @@ namespace ClassicUO.Game.Scenes
                     case CursorTarget.SetGrabBag:
                     case CursorTarget.Position:
                     case CursorTarget.Object:
-                    case CursorTarget.MultiPlacement:
-
-                        if (World.CustomHouseManager != null)
-                        {
-                            World.CustomHouseManager.OnTargetWorld(SelectedObject.Object as GameObject);
-                        }
-                        else
-                        {
+                    case CursorTarget.MultiPlacement when World.CustomHouseManager == null:
+                    {
                             var obj = SelectedObject.Object;
                             if (obj is TextOverhead ov)
                                 obj = ov.Owner;
@@ -460,15 +466,15 @@ namespace ClassicUO.Game.Scenes
                         {
                             case Entity ent:
                                 TargetManager.Target(ent.Serial);
-                                UIManager.Add(new InfoGump(ent));
+                                UIManager.Add(new InspectorGump(ent));
                                 break;
                             case Land land:
                                 TargetManager.Target(land.X, land.Y, land.Z);
-                                UIManager.Add(new InfoGump(land));
+                                UIManager.Add(new InspectorGump(land));
                                 break;
                             case GameObject o:
                                 TargetManager.Target(o.Graphic, o.X, o.Y, o.Z);
-                                UIManager.Add(new InfoGump(o));
+                                UIManager.Add(new InspectorGump(o));
                                 break;
                         }
 
@@ -485,23 +491,18 @@ namespace ClassicUO.Game.Scenes
                         }
 
                         break;
-
-                    default:
-                        Log.Warn( "Not implemented.");
-
-                        break;
                 }
             }
             else
             {
-                GameObject obj = SelectedObject.Object as GameObject;
+                GameObject obj = SelectedObject.LastObject as GameObject;
 
                 switch (obj)
                 {
                     case Static st:
                         string name = st.Name;
                         if (string.IsNullOrEmpty(name))
-                            name = FileManager.Cliloc.GetString(1020000 + st.Graphic);
+                            name = UOFileManager.Cliloc.GetString(1020000 + st.Graphic);
                         obj.AddMessage(MessageType.Label, name, 3, 1001, false);
 
 
@@ -513,7 +514,7 @@ namespace ClassicUO.Game.Scenes
                         name = multi.Name;
 
                         if (string.IsNullOrEmpty(name))
-                            name = FileManager.Cliloc.GetString(1020000 + multi.Graphic);
+                            name = UOFileManager.Cliloc.GetString(1020000 + multi.Graphic);
                         obj.AddMessage(MessageType.Label, name, 3, 1001, false);
 
                         if (obj.TextContainer != null && obj.TextContainer.MaxSize == 5)
@@ -528,19 +529,9 @@ namespace ClassicUO.Game.Scenes
                             _followingMode = true;
                             _followingTarget = ent;
                         }
-                        else if (!_inqueue)
+                        else if (!DelayedObjectClickManager.IsEnabled)
                         {
-                            _inqueue = true;
-                            _queuedObject = ent;
-                            _dequeueAt = Mouse.MOUSE_DELAY_DOUBLE_CLICK;
-                            _wasShiftDown = _isShiftDown;
-
-                            _queuedAction = () =>
-                            {
-                                if (!World.ClientFeatures.TooltipsEnabled)
-                                    GameActions.SingleClick(_queuedObject);
-                                GameActions.OpenPopupMenu(_queuedObject, _wasShiftDown);
-                            };
+                            DelayedObjectClickManager.Set(ent.Serial, Mouse.Position.X, Mouse.Position.Y, Time.Ticks + Mouse.MOUSE_DELAY_DOUBLE_CLICK);
                         }
 
                         break;
@@ -555,41 +546,43 @@ namespace ClassicUO.Game.Scenes
 
             if (!IsMouseOverViewport)
             {
-                result = _queuedObject != null;
-                ClearDequeued();
-                return result;
+                result = DelayedObjectClickManager.IsEnabled;
             }
-
-            BaseGameObject obj = SelectedObject.Object;
-
-
-            switch (obj)
+            else
             {
-                case Item item:
-                    result = true;
-                    if (!GameActions.OpenCorpse(item))
-                        GameActions.DoubleClick(item);
+                BaseGameObject obj = SelectedObject.LastObject;
 
-                    break;
+                switch (obj)
+                {
+                    case Item item:
+                        result = true;
+                        if (!GameActions.OpenCorpse(item))
+                            GameActions.DoubleClick(item);
 
-                case Mobile mob:
-                    result = true;
+                        break;
 
-                    if (World.Player.InWarMode && World.Player != mob)
-                        GameActions.Attack(mob);
-                    else
-                        GameActions.DoubleClick(mob);
+                    case Mobile mob:
+                        result = true;
 
-                    break;
+                        if (World.Player.InWarMode && World.Player != mob)
+                            GameActions.Attack(mob);
+                        else
+                            GameActions.DoubleClick(mob);
 
-                case TextOverhead msg when msg.Owner is Entity entity:
-                    result = true;
-                    GameActions.DoubleClick(entity);
+                        break;
 
-                    break;
+                    case TextOverhead msg when msg.Owner is Entity entity:
+                        result = true;
+                        GameActions.DoubleClick(entity);
+
+                        break;
+                }
             }
 
-            ClearDequeued();
+            if (result)
+            {
+                DelayedObjectClickManager.Clear();
+            }
 
             return result;
         }
@@ -605,23 +598,10 @@ namespace ClassicUO.Game.Scenes
             StopFollowing();
         }
 
-
-        private void StopFollowing()
-        {
-            if (_followingMode)
-            {
-                _followingMode = false;
-                _followingTarget = Serial.INVALID;
-                Pathfinder.StopAutoWalk();
-                World.Player.AddMessage(MessageType.Regular, "Stopped following.", 3, 1001, false);
-            }
-        }
-
-
+      
         internal override void OnRightMouseUp()
         {
             _rightMousePressed = false;
-
 
             if (_boatIsMoving)
             {
@@ -645,7 +625,7 @@ namespace ClassicUO.Game.Scenes
                 {
                     if (obj is Static || obj is Multi || obj is Item)
                     {
-                        ref readonly var itemdata = ref FileManager.TileData.StaticData[obj.Graphic];
+                        ref readonly var itemdata = ref UOFileManager.TileData.StaticData[obj.Graphic];
 
                         if (itemdata.IsSurface && Pathfinder.WalkTo(obj.X, obj.Y, obj.Z, 0))
                         {
@@ -703,50 +683,43 @@ namespace ClassicUO.Game.Scenes
 
                 if (Math.Abs(offset.X) > Constants.MIN_PICKUP_DRAG_DISTANCE_PIXELS || Math.Abs(offset.Y) > Constants.MIN_PICKUP_DRAG_DISTANCE_PIXELS)
                 {
-                    GameObject obj = ProfileManager.Current.SallosEasyGrab && SelectedObject.LastObject is GameObject o ? o : _dragginObject;
-
-                    switch (obj)
+                    Entity obj;
+                    if (ProfileManager.Current.SallosEasyGrab && SelectedObject.LastObject is Entity ent && _dragginObject == null)
                     {
-                        case Mobile _:
-                            mobile:
-                            Entity entity = obj as Entity;
-                            if (entity == null)
-                                break;
+                        obj = ent;
+                    }
+                    else
+                    {
+                        obj = _dragginObject;
+                    }
 
-                            GameActions.RequestMobileStatus(entity);
-                            var customgump = UIManager.GetGump<BaseHealthBarGump>(entity);
-                            if (customgump != null)
-                            {
-                                if (!customgump.IsInitialized)
-                                    break;
-                                customgump.Dispose();
-                            }
+                    if (obj != null)
+                    {
+                        if (SerialHelper.IsMobile(obj.Serial) || obj is Item it && it.IsDamageable)
+                        {
+                            GameActions.RequestMobileStatus(obj);
+                            var customgump = UIManager.GetGump<BaseHealthBarGump>(obj);
+                            customgump?.Dispose();
 
-                            if (entity == World.Player)
+                            if (obj == World.Player)
                                 StatusGumpBase.GetStatusGump()?.Dispose();
 
                             if (ProfileManager.Current.CustomBarsToggled)
                             {
                                 Rectangle rect = new Rectangle(0, 0, HealthBarGumpCustom.HPB_WIDTH, HealthBarGumpCustom.HPB_HEIGHT_SINGLELINE);
-                                UIManager.Add(customgump = new HealthBarGumpCustom(entity) { X = Mouse.Position.X - (rect.Width >> 1), Y = Mouse.Position.Y - (rect.Height >> 1) });
+                                UIManager.Add(customgump = new HealthBarGumpCustom(obj) { X = Mouse.Position.X - (rect.Width >> 1), Y = Mouse.Position.Y - (rect.Height >> 1) });
                             }
                             else
                             {
-                                Rectangle rect = FileManager.Gumps.GetTexture(0x0804).Bounds;
-                                UIManager.Add(customgump = new HealthBarGump(entity) { X = Mouse.Position.X - (rect.Width >> 1), Y = Mouse.Position.Y - (rect.Height >> 1) });
+                                Rectangle rect = UOFileManager.Gumps.GetTexture(0x0804).Bounds;
+                                UIManager.Add(customgump = new HealthBarGump(obj) { X = Mouse.Position.X - (rect.Width >> 1), Y = Mouse.Position.Y - (rect.Height >> 1) });
                             }
                             UIManager.AttemptDragControl(customgump, Mouse.Position, true);
-
-                            break;
-
-                        case Item item:
-
-                            if (item.IsDamageable)
-                                goto mobile;
-
-                            PickupItemBegin(item, Mouse.Position.X, Mouse.Position.Y);
-
-                            break;
+                        }
+                        else
+                        {                     
+                            PickupItemBegin(obj as Item, Mouse.Position.X, Mouse.Position.Y);
+                        }
                     }
 
                     _dragginObject = null;

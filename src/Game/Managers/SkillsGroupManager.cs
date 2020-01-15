@@ -1,24 +1,22 @@
 ﻿#region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System;
@@ -26,7 +24,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Xml;
 
+using ClassicUO.Configuration;
 using ClassicUO.IO;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
@@ -41,7 +41,7 @@ namespace ClassicUO.Game.Managers
         {
             Groups.Clear();
 
-            int count = FileManager.Skills.SkillsCount;
+            int count = UOFileManager.Skills.SkillsCount;
 
             Groups.Add("Miscellaneous", new List<int>
                        {
@@ -117,11 +117,13 @@ namespace ClassicUO.Game.Managers
                            15, 29, 9, 22
                        }
                       );
+
+            Save();
         }
 
         public static void LoadDefault()
         {
-            FileInfo info = new FileInfo(Path.Combine(FileManager.UoFolderPath, "skillgrp.mul"));
+            FileInfo info = new FileInfo(UOFileManager.GetUOFilePath("skillgrp.mul"));
 
             if (!info.Exists)
             {
@@ -187,11 +189,12 @@ namespace ClassicUO.Game.Managers
                     {
                         int grp = bin.ReadInt32();
 
-                        if (grp < groups.Count && skillidx + 1 < FileManager.Skills.SkillsCount)
+                        if (grp < groups.Count && skillidx + 1 < UOFileManager.Skills.SkillsCount)
                             Groups[groups[grp]].Add(skillidx++);
                     }
-                }
 
+                    Save();
+                }
             }
             catch (Exception e)
             {
@@ -254,48 +257,90 @@ namespace ClassicUO.Game.Managers
             }
         }
 
-        public static void Load(BinaryReader reader)
+        public static void Load()
         {
             Groups.Clear();
 
-            int version = reader.ReadInt32();
+            string path = Path.Combine(CUOEnviroment.ExecutablePath, "Data", "Profiles", ProfileManager.Current.Username, ProfileManager.Current.ServerName, ProfileManager.Current.CharacterName, "skillsgroups.xml");
 
-            int groupCount = reader.ReadInt32();
-
-            for (int i = 0; i < groupCount; i++)
+            if (!File.Exists(path))
             {
-                int entriesCount = reader.ReadInt32();
-                string groupName = reader.ReadUTF8String(reader.ReadInt32());
+                Log.Trace("No skillsgroups.xml file. Creating a default file.");
+                LoadDefault();
+            }
 
-                if (!Groups.TryGetValue(groupName, out var list) || list == null)
-                {
-                    list = new List<int>();
-                    Groups[groupName] = list;
-                }
+            XmlDocument doc = new XmlDocument();
+            try
+            {
+                doc.Load(path);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.ToString());
+                return;
+            }
 
-                for (int j = 0; j < entriesCount; j++)
+            XmlElement root = doc["skillsgroups"];
+
+            if (root != null)
+            {
+                foreach (XmlElement xml in root.GetElementsByTagName("group"))
                 {
-                    int skillIndex = reader.ReadInt32();
-                    if (skillIndex < FileManager.Skills.SkillsCount)
-                        list.Add(skillIndex);
+                    List<int> list = new List<int>();
+
+                    string name = xml.GetAttribute("name");
+
+                    XmlElement xmlIdsRoot = xml["skillids"];
+
+                    if (xmlIdsRoot != null)
+                    {
+                        foreach (XmlElement xmlIds in xmlIdsRoot.GetElementsByTagName("skill"))
+                        {
+                            int id = int.Parse(xmlIds.GetAttribute("id"));
+                            list.Add(id);
+                        }
+                    }
+
+                    Groups[name] = list;
                 }
             }
         }
 
-        public static void Save(BinaryWriter writer)
+
+        public static void Save()
         {
-            // version
-            writer.Write(1);
+            string path = Path.Combine(CUOEnviroment.ExecutablePath, "Data", "Profiles", ProfileManager.Current.Username, ProfileManager.Current.ServerName, ProfileManager.Current.CharacterName, "skillsgroups.xml");
 
-            writer.Write(Groups.Count);
-
-            foreach (KeyValuePair<string, List<int>> k in Groups)
+            using (XmlTextWriter xml = new XmlTextWriter(path, Encoding.UTF8)
             {
-                writer.Write(k.Value.Count);
+                Formatting = System.Xml.Formatting.Indented,
+                IndentChar = '\t',
+                Indentation = 1
+            })
+            {
+                xml.WriteStartDocument(true);
+                xml.WriteStartElement("skillsgroups");
 
-                writer.Write(k.Key.Length);
-                writer.WriteUTF8String(k.Key);
-                foreach (int i in k.Value) writer.Write(i);
+                foreach (KeyValuePair<string, List<int>> k in Groups)
+                {
+                    xml.WriteStartElement("group");
+
+                    xml.WriteAttributeString("name", k.Key);
+
+                    xml.WriteStartElement("skillids");
+                    foreach (int skillID in k.Value)
+                    {
+                        xml.WriteStartElement("skill");
+                        xml.WriteAttributeString("id", skillID.ToString());
+                        xml.WriteEndElement();
+                    }
+                    xml.WriteEndElement();
+
+                    xml.WriteEndElement();
+                }
+                
+                xml.WriteEndElement();
+                xml.WriteEndDocument();
             }
         }
     }

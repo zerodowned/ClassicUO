@@ -1,29 +1,27 @@
 #region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System;
 using System.Collections.Generic;
-
+using ClassicUO.Data;
 using ClassicUO.Game;
 using ClassicUO.Interfaces;
 using ClassicUO.IO;
@@ -34,7 +32,7 @@ using Microsoft.Xna.Framework;
 namespace ClassicUO.Renderer
 {
     [Flags]
-    public enum FontStyle : ushort
+    enum FontStyle : ushort
     {
         None = 0x0000,
         Solid = 0x0001,
@@ -109,7 +107,7 @@ namespace ClassicUO.Renderer
             set
             {
                 if (value == 0xFF)
-                    value = (byte) (FileManager.ClientVersion >= ClientVersions.CV_305D ? 1 : 0);
+                    value = (byte) (Client.Version >= ClientVersion.CV_305D ? 1 : 0);
                 _font = value;
             }
         }
@@ -130,7 +128,7 @@ namespace ClassicUO.Renderer
 
         public List<WebLinkRect> Links { get; set; } = new List<WebLinkRect>();
 
-        public Hue Hue { get; set; }
+        public ushort Hue { get; set; }
 
         public uint HTMLColor { get; set; } = 0xFFFFFFFF;
 
@@ -152,7 +150,7 @@ namespace ClassicUO.Renderer
                         IsPartialHue = false;
 
                         if (IsHTML)
-                            FileManager.Fonts.SetUseHTML(false);
+                            UOFileManager.Fonts.SetUseHTML(false);
                         Links.Clear();
                         _texture?.Dispose();
                         _texture = null;
@@ -177,20 +175,19 @@ namespace ClassicUO.Renderer
 
         public FontTexture Texture => _texture;
 
-        public bool Draw(UltimaBatcher2D batcher, int x, int y, float alpha = 0, ushort hue = 0)
-        {
-            return Draw(batcher, x, y, Width, Height, 0, 0, alpha, hue);
-        }
 
         private static Vector3 _hueVector = Vector3.Zero;
 
-        public bool Draw(UltimaBatcher2D batcher, int dx, int dy, int dwidth, int dheight, int offsetX, int offsetY, float alpha = 0, ushort hue = 0)
+        public bool Draw(UltimaBatcher2D batcher, 
+            int swidth, int sheight,
+            int dx, int dy, int dwidth, int dheight, 
+            int offsetX, int offsetY, float alpha = 0, ushort hue = 0)
         {
             if (string.IsNullOrEmpty(Text) || Texture == null)
                 return false;
 
 
-            if (offsetX > Width || offsetX < -MaxWidth || offsetY > Height || offsetY < -Height)
+            if (offsetX > swidth || offsetX < -swidth || offsetY > sheight || offsetY < -sheight)
                 return false;
 
             int srcX = offsetX;
@@ -200,21 +197,21 @@ namespace ClassicUO.Renderer
             int srcWidth;
             int srcHeight;
 
-            if (maxX <= Width)
+            if (maxX <= swidth)
                 srcWidth = dwidth;
             else
             {
-                srcWidth = Width - srcX;
+                srcWidth = swidth - srcX;
                 dwidth = srcWidth;
             }
 
             int maxY = srcY + dheight;
 
-            if (maxY <= Height)
+            if (maxY <= sheight)
                 srcHeight = dheight;
             else
             {
-                srcHeight = Height - srcY;
+                srcHeight = sheight - srcY;
                 dheight = srcHeight;
             }
 
@@ -239,6 +236,32 @@ namespace ClassicUO.Renderer
             return batcher.Draw2D(Texture, dx, dy, dwidth, dheight, srcX, srcY, srcWidth, srcHeight, ref _hueVector);
         }
 
+        public bool Draw(UltimaBatcher2D batcher, int x, int y, float alpha = 0, ushort hue = 0)
+        {
+            if (string.IsNullOrEmpty(Text) || Texture == null)
+                return false;
+
+            _hueVector.X = hue;
+
+            if (hue != 0)
+            {
+                if (IsUnicode)
+                    _hueVector.Y = ShaderHuesTraslator.SHADER_TEXT_HUE_NO_BLACK;
+                else if (Font == 3)
+                    _hueVector.Y = 5;
+                else if (Font != 5 && Font != 8)
+                    _hueVector.Y = ShaderHuesTraslator.SHADER_PARTIAL_HUED;
+                else
+                    _hueVector.Y = ShaderHuesTraslator.SHADER_HUED;
+            }
+            else
+                _hueVector.Y = 0;
+
+            _hueVector.Z = alpha;
+
+            return batcher.Draw2D(Texture, x, y, Width, Height, ref _hueVector);
+        }
+
         public void CreateTexture()
         {
             if (_texture != null && !_texture.IsDisposed)
@@ -248,16 +271,16 @@ namespace ClassicUO.Renderer
             }
 
             if (IsHTML)
-                FileManager.Fonts.SetUseHTML(true, HTMLColor, HasBackgroundColor);
+                UOFileManager.Fonts.SetUseHTML(true, HTMLColor, HasBackgroundColor);
 
-            FileManager.Fonts.RecalculateWidthByInfo = RecalculateWidthByInfo;
+            UOFileManager.Fonts.RecalculateWidthByInfo = RecalculateWidthByInfo;
 
             bool ispartial = false;
 
             if (IsUnicode)
-                FileManager.Fonts.GenerateUnicode(ref _texture, Font, Text, Hue, Cell, MaxWidth, Align, (ushort)FontStyle, SaveHitMap, MaxHeight);
+                UOFileManager.Fonts.GenerateUnicode(ref _texture, Font, Text, Hue, Cell, MaxWidth, Align, (ushort)FontStyle, SaveHitMap, MaxHeight);
             else
-                FileManager.Fonts.GenerateASCII(ref _texture, Font, Text, Hue, MaxWidth, Align, (ushort)FontStyle, out ispartial, SaveHitMap, MaxHeight);
+                UOFileManager.Fonts.GenerateASCII(ref _texture, Font, Text, Hue, MaxWidth, Align, (ushort)FontStyle, out ispartial, SaveHitMap, MaxHeight);
 
             IsPartialHue = ispartial;
 
@@ -269,8 +292,8 @@ namespace ClassicUO.Renderer
             }
 
             if (IsHTML)
-                FileManager.Fonts.SetUseHTML(false);
-            FileManager.Fonts.RecalculateWidthByInfo = false;
+                UOFileManager.Fonts.SetUseHTML(false);
+            UOFileManager.Fonts.RecalculateWidthByInfo = false;
         }
 
         public void Destroy()

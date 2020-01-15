@@ -1,24 +1,22 @@
 ﻿#region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using ClassicUO.Configuration;
@@ -37,7 +35,7 @@ namespace ClassicUO.Game.Scenes
 {
     internal partial class GameScene
     {
-        private GameObject _dragginObject;
+        private Entity _dragginObject;
 
         public ItemHold HeldItem { get; private set; }
 
@@ -48,10 +46,10 @@ namespace ClassicUO.Game.Scenes
         {
             if (HeldItem.Enabled && HeldItem.Serial != container)
             {
-                if (container.Serial.IsMobile)
+                if (SerialHelper.IsMobile(container.Serial))
                     GameActions.DropItem(HeldItem.Serial, 0xFFFF, 0xFFFF, 0, container.Serial);
-                else if (container.Serial.IsItem)
-                    GameActions.DropItem(HeldItem.Serial, container.Position.X, container.Position.Y, container.Position.Z, container.Serial);
+                else if (SerialHelper.IsItem(container.Serial))
+                    GameActions.DropItem(HeldItem.Serial, container.X, container.Y, container.Z, container.Serial);
 
                 HeldItem.Enabled = false;
                 HeldItem.Dropped = true;
@@ -121,24 +119,22 @@ namespace ClassicUO.Game.Scenes
 
         private void CloseItemGumps(Item item)
         {
-            UIManager.Remove<Gump>(item);
-
-            if (item.Container.IsValid)
+            if (item != null)
             {
-                foreach (Item i in item.Items)
-                    CloseItemGumps(i);
-            }
-        }
+                UIManager.GetGump<Gump>(item)?.Dispose();
 
-        public void DropHeldItemToWorld(Position position)
-        {
-            DropHeldItemToWorld(position.X, position.Y, position.Z);
+                if (SerialHelper.IsValid(item.Container))
+                {
+                    foreach (Item i in item.Items)
+                        CloseItemGumps(i);
+                }
+            }
         }
 
         public void DropHeldItemToWorld(int x, int y, sbyte z)
         {
             GameObject obj = SelectedObject.Object as GameObject;
-            Serial serial;
+            uint serial;
 
             if (obj is Item item && item.ItemData.IsContainer)
             {
@@ -147,7 +143,7 @@ namespace ClassicUO.Game.Scenes
                 z = 0;
             }
             else
-                serial = Serial.MINUS_ONE;
+                serial = 0xFFFF_FFFF;
 
             if (HeldItem.Enabled && HeldItem.Serial != serial)
             {
@@ -166,7 +162,7 @@ namespace ClassicUO.Game.Scenes
                 if (gump != null && (x != 0xFFFF || y != 0xFFFF))
                 {
                     Rectangle bounds = ContainerManager.Get(gump.Graphic).Bounds;
-                    ArtTexture texture = FileManager.Art.GetTexture(HeldItem.DisplayedGraphic);
+                    ArtTexture texture = UOFileManager.Art.GetTexture(HeldItem.DisplayedGraphic);
                     float scale = UIManager.ContainerScale;
 
                     bounds.X = (int)(bounds.X * scale);
@@ -225,7 +221,7 @@ namespace ClassicUO.Game.Scenes
         {
             if (HeldItem.Enabled && HeldItem.IsWearable)
             {
-                GameActions.Equip(HeldItem.Serial, (Layer) FileManager.TileData.StaticData[HeldItem.Graphic].Layer, target);
+                GameActions.Equip(HeldItem.Serial, (Layer) UOFileManager.TileData.StaticData[HeldItem.Graphic].Layer, target);
                 HeldItem.Enabled = false;
                 HeldItem.Dropped = true;
             }

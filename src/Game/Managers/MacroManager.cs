@@ -1,31 +1,32 @@
 #region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-
+using System.Text;
+using System.Xml;
 using ClassicUO.Configuration;
+using ClassicUO.Data;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Scenes;
@@ -69,21 +70,148 @@ namespace ClassicUO.Game.Managers
         private MacroObject _lastMacro;
         private long _nextTimer;
 
-        public MacroManager(Macro[] macros)
-        {
-            if (macros != null)
-                for (int i = 0; i < macros.Length; i++)
-                    AppendMacro(macros[i]);
-        }
 
         public long WaitForTargetTimer { get; set; }
 
         public bool WaitingBandageTarget { get; set; }
 
-        public void InitMacro(Macro first)
+
+
+
+        public void Load()
         {
-            _firstNode = first;
+            string path = Path.Combine(CUOEnviroment.ExecutablePath, "Data", "Profiles", ProfileManager.Current.Username, ProfileManager.Current.ServerName, ProfileManager.Current.CharacterName, "macros.xml");
+
+            if (!File.Exists(path))
+            {
+                Log.Trace("No macros.xml file. Creating a default file.");
+
+                Clear();
+                CreateDefaultMacros();
+                Save();
+
+                return;
+            }
+
+            XmlDocument doc = new XmlDocument();
+            try
+            {
+                doc.Load(path);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.ToString());
+                return;
+            }
+
+            
+            Clear();
+
+            XmlElement root = doc["macros"];
+
+            if (root != null)
+            {
+                foreach (XmlElement xml in root.GetElementsByTagName("macro"))
+                {
+                    Macro macro = new Macro(xml.GetAttribute("name"));
+                    macro.Load(xml);
+                    AppendMacro(macro);
+                }
+            }
         }
+
+        public void Save()
+        {
+            var list = GetAllMacros();
+
+            string path = Path.Combine(CUOEnviroment.ExecutablePath, "Data", "Profiles", ProfileManager.Current.Username, ProfileManager.Current.ServerName, ProfileManager.Current.CharacterName, "macros.xml");
+
+            using (XmlTextWriter xml = new XmlTextWriter(path, Encoding.UTF8)
+            {
+                Formatting = System.Xml.Formatting.Indented,
+                IndentChar = '\t',
+                Indentation = 1
+            })
+            {
+                xml.WriteStartDocument(true);
+                xml.WriteStartElement("macros");
+
+                foreach (var macro in list)
+                {
+                    macro.Save(xml);
+                }
+
+                xml.WriteEndElement();
+                xml.WriteEndDocument();
+            }
+        }
+
+        private void CreateDefaultMacros()
+        {
+            AppendMacro(new Macro("Paperdoll", (SDL.SDL_Keycode) 112, true, false, false)
+            {
+                FirstNode = new MacroObject((MacroType) 8, (MacroSubType) 10)
+                {
+                    SubMenuType = 1
+                }
+            });
+
+            AppendMacro(new Macro("Options", (SDL.SDL_Keycode) 111, true, false, false)
+            {
+                FirstNode = new MacroObject((MacroType) 8, (MacroSubType) 9)
+                {
+                    SubMenuType = 1
+                }
+            });
+
+            AppendMacro(new Macro("Journal", (SDL.SDL_Keycode) 106, true, false, false)
+            {
+                FirstNode = new MacroObject((MacroType) 8, (MacroSubType) 12)
+                {
+                    SubMenuType = 1
+                }
+            });
+
+            AppendMacro(new Macro("Backpack", (SDL.SDL_Keycode) 105, true, false, false)
+            {
+                FirstNode = new MacroObject((MacroType) 8, (MacroSubType) 16)
+                {
+                    SubMenuType = 1
+                }
+            });
+
+            AppendMacro(new Macro("Radar", (SDL.SDL_Keycode) 114, true, false, false)
+            {
+                FirstNode = new MacroObject((MacroType) 8, (MacroSubType) 17)
+                {
+                    SubMenuType = 1
+                }
+            });
+
+            AppendMacro(new Macro("Bow", (SDL.SDL_Keycode) 98, false, true, false)
+            {
+                FirstNode = new MacroObject((MacroType) 18, 0)
+                {
+                    SubMenuType = 0
+                }
+            });
+
+            AppendMacro(new Macro("Salute", (SDL.SDL_Keycode) 115, false, true, false)
+            {
+                FirstNode = new MacroObject((MacroType) 19, 0)
+                {
+                    SubMenuType = 0
+                }
+            });
+        }
+
+
+        public void Clear()
+        {
+            while (_firstNode != null)
+                RemoveMacro(_firstNode);
+        }
+
 
         public void AppendMacro(Macro macro)
         {
@@ -405,7 +533,7 @@ namespace ClassicUO.Game.Managers
                                             break;
 
                                         case MacroSubType.BardSpellbook:
-                                            type = SpellBookType.Bardic;
+                                            type = SpellBookType.Mastery;
 
                                             break;
                                     }
@@ -415,7 +543,22 @@ namespace ClassicUO.Game.Managers
                                     break;
 
                                 case MacroSubType.Chat:
-                                    Log.Warn( $"Macro '{macro.SubCode}' not implemented");
+                                    if (!UOChatManager.ChatIsEnabled)
+                                    {
+                                        break;
+                                    }
+
+                                    UOChatGump chatGump = UIManager.GetGump<UOChatGump>();
+
+                                    if (chatGump == null)
+                                    {
+                                        UIManager.Add(new UOChatGump());
+                                    }
+                                    else
+                                    {
+                                        chatGump.SetInScreen();
+                                        chatGump.BringOnTop();
+                                    }
 
                                     break;
 
@@ -442,16 +585,30 @@ namespace ClassicUO.Game.Managers
                                     break;
 
                                 case MacroSubType.WorldMap:
-                                    Log.Warn( $"Macro '{macro.SubCode}' not implemented");
+
+                                    WorldMapGump worldMap = UIManager.GetGump<WorldMapGump>();
+                                    if (worldMap == null)
+                                    {
+                                        UIManager.Add(new WorldMapGump());
+                                    }
+                                    else
+                                    {
+                                        worldMap.SetInScreen();
+                                        worldMap.BringOnTop();
+                                    }
 
                                     break;
 
                                 case MacroSubType.Mail:
                                 case MacroSubType.PartyManifest:
-                                    var party = UIManager.GetGump<PartyGumpAdvanced>();
+                                    var party = UIManager.GetGump<PartyGump>();
 
                                     if (party == null)
-                                        UIManager.Add(new PartyGumpAdvanced());
+                                    {
+                                        int x = Client.Game.Window.ClientBounds.Width / 2 - 272;
+                                        int y = Client.Game.Window.ClientBounds.Height / 2 - 240;
+                                        UIManager.Add(new PartyGump(x, y, World.Party.CanLoot));
+                                    }
                                     else
                                         party.BringOnTop();
 
@@ -619,11 +776,6 @@ namespace ClassicUO.Game.Managers
 
                                     break;
 
-                                case MacroSubType.Chat:
-                                    Log.Warn( $"Macro '{macro.SubCode}' not implemented");
-
-                                    break;
-
                                 case MacroSubType.Overview:
 
                                     if (macro.Code == MacroType.Close)
@@ -643,7 +795,7 @@ namespace ClassicUO.Game.Managers
                                 case MacroSubType.PartyManifest:
 
                                     if (macro.Code == MacroType.Close)
-                                        UIManager.GetGump<PartyGumpAdvanced>()?.Dispose();
+                                        UIManager.GetGump<PartyGump>()?.Dispose();
 
                                     break;
 
@@ -731,7 +883,7 @@ namespace ClassicUO.Game.Managers
                     break;
 
                 case MacroType.QuitGame:
-                    CUOEnviroment.Client.GetScene<GameScene>()?.RequestQuitGame();
+                    Client.Game.GetScene<GameScene>()?.RequestQuitGame();
 
                     break;
 
@@ -802,7 +954,7 @@ namespace ClassicUO.Game.Managers
 
                 case MacroType.ArmDisarm:
                     int handIndex = 1 - (macro.SubCode - MacroSubType.LeftHand);
-                    GameScene gs = CUOEnviroment.Client.GetScene<GameScene>();
+                    GameScene gs = Client.Game.GetScene<GameScene>();
 
                     if (handIndex < 0 || handIndex > 1 || gs.IsHoldingItem)
                         break;
@@ -853,7 +1005,7 @@ namespace ClassicUO.Game.Managers
 
                 case MacroType.TargetNext:
 
-                    if (TargetManager.LastTarget.IsMobile)
+                    if (SerialHelper.IsMobile(TargetManager.LastTarget))
                     {
                         Mobile mob = World.Mobiles.Get(TargetManager.LastTarget);
 
@@ -924,7 +1076,7 @@ namespace ClassicUO.Game.Managers
 
                 case MacroType.AttackSelectedTarget:
 
-                    if (TargetManager.SelectedTarget.IsMobile)
+                    if (SerialHelper.IsMobile(TargetManager.SelectedTarget))
                         GameActions.Attack(TargetManager.SelectedTarget);
                     break;
 
@@ -967,7 +1119,7 @@ namespace ClassicUO.Game.Managers
                 case MacroType.BandageSelf:
                 case MacroType.BandageTarget:
 
-                    if (FileManager.ClientVersion < ClientVersions.CV_5020 || ProfileManager.Current.BandageSelfOld)
+                    if (Client.Version < ClientVersion.CV_5020 || ProfileManager.Current.BandageSelfOld)
                     {
                         if (WaitingBandageTarget)
                         {
@@ -1002,10 +1154,9 @@ namespace ClassicUO.Game.Managers
                         {
                             if (macro.Code == MacroType.BandageSelf)
                             {
-                                TargetManager.Target(World.Player.Serial);
                                 NetClient.Socket.Send(new PTargetSelectedObject(bandage.Serial, World.Player.Serial));
                             }
-                            else if (TargetManager.SelectedTarget.IsMobile)
+                            else if (SerialHelper.IsMobile(TargetManager.SelectedTarget))
                             {
                                 NetClient.Socket.Send(new PTargetSelectedObject(bandage.Serial, TargetManager.SelectedTarget));
                             }
@@ -1100,7 +1251,7 @@ namespace ClassicUO.Game.Managers
                     break;
 
                 case MacroType.InvokeVirtue:
-                    byte id = (byte) (macro.SubCode - MacroSubType.Honor + 31);
+                    byte id = (byte) (macro.SubCode - MacroSubType.Honor + 1);
                     NetClient.Socket.Send(new PInvokeVirtueRequest(id));
 
                     break;
@@ -1133,7 +1284,7 @@ namespace ClassicUO.Game.Managers
                     break;
 
                 case MacroType.DefaultScale:
-                    CUOEnviroment.Client.GetScene<GameScene>().Scale = 1;
+                    Client.Game.GetScene<GameScene>().Scale = 1;
 
                     break;
 
@@ -1171,13 +1322,13 @@ namespace ClassicUO.Game.Managers
 
                 case MacroType.Grab:
                     GameActions.Print("Target an Item to grab it.");
-                    TargetManager.SetTargeting(CursorTarget.Grab, Serial.INVALID, TargetType.Neutral);
+                    TargetManager.SetTargeting(CursorTarget.Grab, 0, TargetType.Neutral);
 
                     break;
 
                 case MacroType.SetGrabBag:
                     GameActions.Print("Target the container to Grab items into.");
-                    TargetManager.SetTargeting(CursorTarget.SetGrabBag, Serial.INVALID, TargetType.Neutral);
+                    TargetManager.SetTargeting(CursorTarget.SetGrabBag, 0, TargetType.Neutral);
 
                     break;
 
@@ -1216,13 +1367,13 @@ namespace ClassicUO.Game.Managers
             return result;
         }
 
-        private static void SetLastTarget(Serial serial)
+        private static void SetLastTarget(uint serial)
         {
-            if (serial.IsValid)
+            if (SerialHelper.IsValid(serial))
             {
                 Entity ent = World.Get(serial);
 
-                if (serial.IsMobile)
+                if (SerialHelper.IsMobile(serial))
                 {
                     if (ent != null)
                     {
@@ -1235,7 +1386,7 @@ namespace ClassicUO.Game.Managers
                         return;
                     }
                 }
-                else if (serial.IsItem)
+                else
                 {
                     if (ent != null)
                     {
@@ -1258,24 +1409,28 @@ namespace ClassicUO.Game.Managers
     [JsonObject]
     internal class Macro : IEquatable<Macro>, INode<Macro>
     {
-        public Macro(string name, SDL.SDL_Keycode key, bool alt, bool ctrl, bool shift)
+        [JsonConstructor]
+        public Macro(string name, SDL.SDL_Keycode key, bool alt, bool ctrl, bool shift) : this(name)
         {
-            Name = name;
-
             Key = key;
             Alt = alt;
             Ctrl = ctrl;
             Shift = shift;
         }
 
-        public string Name { get; }
+        public Macro(string name)
+        {
+            Name = name;
+        }
 
-        public SDL.SDL_Keycode Key { get; set; }
-        public bool Alt { get; set; }
-        public bool Ctrl { get; set; }
-        public bool Shift { get; set; }
+        [JsonProperty] public string Name { get; }
 
-        public MacroObject FirstNode { get; set; }
+        [JsonProperty] public SDL.SDL_Keycode Key { get; set; }
+        [JsonProperty] public bool Alt { get; set; }
+        [JsonProperty] public bool Ctrl { get; set; }
+        [JsonProperty] public bool Shift { get; set; }
+
+        [JsonProperty] public MacroObject FirstNode { get; set; }
 
         public bool Equals(Macro other)
         {
@@ -1287,6 +1442,86 @@ namespace ClassicUO.Game.Managers
 
         [JsonIgnore] public Macro Left { get; set; }
         [JsonIgnore] public Macro Right { get; set; }
+
+        private void AppendMacro(MacroObject item)
+        {
+            if (FirstNode == null)
+                FirstNode = item;
+            else
+            {
+                MacroObject o = FirstNode;
+
+                while (o.Right != null)
+                    o = o.Right;
+
+                o.Right = item;
+                item.Left = o;
+            }
+        }
+
+      
+        public void Save(XmlTextWriter writer)
+        {
+            writer.WriteStartElement("macro");
+            writer.WriteAttributeString("name", Name);
+            writer.WriteAttributeString("key", ((int) Key).ToString());
+            writer.WriteAttributeString("alt", Alt.ToString());
+            writer.WriteAttributeString("ctrl", Ctrl.ToString());
+            writer.WriteAttributeString("shift", Shift.ToString());
+
+            writer.WriteStartElement("actions");
+            for (MacroObject action = FirstNode; action != null; action = action.Right)
+            {
+                writer.WriteStartElement("action");
+                writer.WriteAttributeString("code", ((int) action.Code).ToString());
+                writer.WriteAttributeString("subcode", ((int) action.SubCode).ToString());
+                writer.WriteAttributeString("submenutype", action.SubMenuType.ToString());
+
+                if (action.HasString())
+                    writer.WriteAttributeString("text", ((MacroObjectString) action).Text);
+                writer.WriteEndElement();
+            }
+            writer.WriteEndElement();
+
+            writer.WriteEndElement();
+        }
+
+        public void Load(XmlElement xml)
+        {
+            if (xml == null)
+                return;
+
+            Key = (SDL.SDL_Keycode) int.Parse(xml.GetAttribute("key"));
+            Alt = bool.Parse(xml.GetAttribute("alt"));
+            Ctrl = bool.Parse(xml.GetAttribute("ctrl"));
+            Shift = bool.Parse(xml.GetAttribute("shift"));
+
+            var actions = xml["actions"];
+
+            if (actions != null)
+            {
+                foreach (XmlElement xmlAction in actions.GetElementsByTagName("action"))
+                {
+                    MacroType code = (MacroType) int.Parse(xmlAction.GetAttribute("code"));
+                    MacroSubType sub = (MacroSubType) int.Parse(xmlAction.GetAttribute("subcode"));
+                    sbyte subMenuType = sbyte.Parse(xmlAction.GetAttribute("submenutype"));
+
+                    MacroObject m;
+                    if (xmlAction.HasAttribute("text"))
+                    {
+                        m = new MacroObjectString(code, sub, xmlAction.GetAttribute("text"));
+                    }
+                    else
+                    {
+                        m = new MacroObject(code, sub);
+                    }
+
+                    m.SubMenuType = subMenuType;
+                    AppendMacro(m);
+                }
+            }
+        }
+
 
         public static MacroObject Create(MacroType code)
         {
@@ -1320,19 +1555,7 @@ namespace ClassicUO.Game.Managers
             Macro macro = new Macro(name, 0, false, false, false);
             MacroObject item = new MacroObject(MacroType.None, MacroSubType.MSC_NONE);
 
-
-            if (macro.FirstNode == null)
-                macro.FirstNode = item;
-            else
-            {
-                MacroObject o = macro.FirstNode;
-
-                while (o.Right != null)
-                    o = o.Right;
-
-                o.Right = item;
-                item.Left = o;
-            }
+            macro.AppendMacro(item);
 
             return macro;
         }
@@ -1402,6 +1625,7 @@ namespace ClassicUO.Game.Managers
         }
     }
 
+
     [JsonObject]
     internal class MacroObject : INode<MacroObject>
     {
@@ -1436,7 +1660,7 @@ namespace ClassicUO.Game.Managers
                         SubCode = (MacroSubType) offset;
                     }
 
-                    HasSubMenu = 1;
+                    SubMenuType = 1;
 
                     break;
 
@@ -1448,12 +1672,12 @@ namespace ClassicUO.Game.Managers
                 case MacroType.SetUpdateRange:
                 case MacroType.ModifyUpdateRange:
                 case MacroType.RazorMacro:
-                    HasSubMenu = 2;
+                    SubMenuType = 2;
 
                     break;
 
                 default:
-                    HasSubMenu = 0;
+                    SubMenuType = 0;
 
                     break;
             }
@@ -1461,17 +1685,17 @@ namespace ClassicUO.Game.Managers
 
         [JsonProperty] public MacroType Code { get; set; }
         [JsonProperty] public MacroSubType SubCode { get; set; }
-        [JsonProperty] public sbyte HasSubMenu { get; set; }
+        [JsonProperty] public sbyte SubMenuType { get; set; }
 
         [JsonIgnore] public MacroObject Left { get; set; }
-        [JsonProperty] public MacroObject Right { get; set; }
+        [JsonIgnore] public MacroObject Right { get; set; }
 
         public virtual bool HasString()
         {
             return false;
         }
     }
-
+    
     [JsonObject]
     internal class MacroObjectString : MacroObject
     {
