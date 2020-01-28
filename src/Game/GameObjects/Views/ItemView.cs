@@ -1,24 +1,22 @@
 #region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System;
@@ -38,7 +36,7 @@ namespace ClassicUO.Game.GameObjects
     internal partial class Item
     {
         private bool _force;
-        private Graphic _originalGraphic;
+        private ushort _originalGraphic;
 
 
         public override bool Draw(UltimaBatcher2D batcher, int posX, int posY)
@@ -56,11 +54,11 @@ namespace ClassicUO.Game.GameObjects
 
             ushort hue = Hue;
 
-            if (ProfileManager.Current.FieldsType == 1 && StaticsHelper.IsField(Graphic)) // static
+            if (ProfileManager.Current.FieldsType == 1 && StaticFilters.IsField(Graphic)) // static
             {
                 unsafe
                 {
-                    IntPtr ptr = UOFileManager.AnimData.GetAddressToAnim(Graphic);
+                    IntPtr ptr = AnimDataLoader.Instance.GetAddressToAnim(Graphic);
 
                     if (ptr != IntPtr.Zero)
                     {
@@ -68,7 +66,7 @@ namespace ClassicUO.Game.GameObjects
 
                         if (animData->FrameCount != 0)
                         {
-                            _originalGraphic = (Graphic) (Graphic + animData->FrameData[animData->FrameCount >> 1]);
+                            _originalGraphic = (ushort) (Graphic + animData->FrameData[animData->FrameCount >> 1]);
                         }
                     }
                 }
@@ -77,27 +75,27 @@ namespace ClassicUO.Game.GameObjects
             }
             else if (ProfileManager.Current.FieldsType == 2)
             {
-                if (StaticsHelper.IsFireField(Graphic))
+                if (StaticFilters.IsFireField(Graphic))
                 {
                     _originalGraphic = Constants.FIELD_REPLACE_GRAPHIC;
                     hue = 0x0020;
                 }
-                else if (StaticsHelper.IsParalyzeField(Graphic))
+                else if (StaticFilters.IsParalyzeField(Graphic))
                 {
                     _originalGraphic = Constants.FIELD_REPLACE_GRAPHIC;
                     hue = 0x0058;
                 }
-                else if (StaticsHelper.IsEnergyField(Graphic))
+                else if (StaticFilters.IsEnergyField(Graphic))
                 {
                     _originalGraphic = Constants.FIELD_REPLACE_GRAPHIC;
                     hue = 0x0070;
                 }
-                else if (StaticsHelper.IsPoisonField(Graphic))
+                else if (StaticFilters.IsPoisonField(Graphic))
                 {
                     _originalGraphic = Constants.FIELD_REPLACE_GRAPHIC;
                     hue = 0x0044;
                 }
-                else if (StaticsHelper.IsWallOfStone(Graphic))
+                else if (StaticFilters.IsWallOfStone(Graphic))
                 {
                     _originalGraphic = Constants.FIELD_REPLACE_GRAPHIC;
                     hue = 0x038A;
@@ -109,7 +107,7 @@ namespace ClassicUO.Game.GameObjects
                 if (_originalGraphic == 0)
                     _originalGraphic = DisplayedGraphic;
 
-                Texture = UOFileManager.Art.GetTexture(_originalGraphic);
+                Texture = ArtLoader.Instance.GetTexture(_originalGraphic);
                 Bounds.X = (Texture.Width >> 1) - 22;
                 Bounds.Y = Texture.Height - 44;
                 Bounds.Width = Texture.Width;
@@ -148,18 +146,18 @@ namespace ClassicUO.Game.GameObjects
                 ShaderHuesTraslator.GetHueVector(ref HueVector, hue, isPartial, ItemData.IsTranslucent ? .5f : 0);
             }
 
-            if (!IsCorpse && !IsMulti && Amount > 1 && ItemData.IsStackable && DisplayedGraphic == Graphic && _originalGraphic == Graphic)
+            if (!IsMulti && !IsCoin && Amount > 1 && ItemData.IsStackable)
             {
                 base.Draw(batcher, posX - 5, posY - 5);
             }
 
             if (ItemData.IsLight)
             {
-                CUOEnviroment.Client.GetScene<GameScene>()
+                Client.Game.GetScene<GameScene>()
                       .AddLight(this, this, posX + 22, posY + 22);
             }
 
-            if (!Serial.IsValid && IsMulti && TargetManager.TargetingState == CursorTarget.MultiPlacement)
+            if (!SerialHelper.IsValid(Serial) && IsMulti && TargetManager.TargetingState == CursorTarget.MultiPlacement)
                 HueVector.Z = 0.5f;
 
             return base.Draw(batcher, posX, posY);
@@ -175,9 +173,9 @@ namespace ClassicUO.Game.GameObjects
 
             byte dir = (byte) ((byte) Layer & 0x7F & 7);
             bool mirror = false;
-            UOFileManager.Animations.GetAnimDirection(ref dir, ref mirror);
+            AnimationsLoader.Instance.GetAnimDirection(ref dir, ref mirror);
             IsFlipped = mirror;
-            UOFileManager.Animations.Direction = dir;
+            AnimationsLoader.Instance.Direction = dir;
             byte animIndex = (byte) AnimIndex;
 
             bool ishuman = MathHelper.InRange(Amount, 0x0190, 0x0193) ||
@@ -209,7 +207,7 @@ namespace ClassicUO.Game.GameObjects
             if (layer == Layer.Invalid)
             {
                 graphic = GetGraphicForAnimation();
-                UOFileManager.Animations.AnimGroup = UOFileManager.Animations.GetDieGroupIndex(graphic, UsedLayer);
+                AnimationsLoader.Instance.AnimGroup = AnimationsLoader.Instance.GetDieGroupIndex(graphic, UsedLayer);
 
                 if (color == 0)
                     color = Hue;
@@ -224,9 +222,9 @@ namespace ClassicUO.Game.GameObjects
                 ispartialhue = itemEquip.ItemData.IsPartialHue;
 
                 ushort mobGraphic = Amount;
-                UOFileManager.Animations.ConvertBodyIfNeeded(ref mobGraphic);
+                AnimationsLoader.Instance.ConvertBodyIfNeeded(ref mobGraphic);
 
-                if (UOFileManager.Animations.EquipConversions.TryGetValue(mobGraphic, out Dictionary<ushort, EquipConvData> map))
+                if (AnimationsLoader.Instance.EquipConversions.TryGetValue(mobGraphic, out Dictionary<ushort, EquipConvData> map))
                 {
                     if (map.TryGetValue(graphic, out EquipConvData data))
                     {
@@ -242,24 +240,24 @@ namespace ClassicUO.Game.GameObjects
 
 
 
-            byte animGroup = UOFileManager.Animations.AnimGroup;
+            byte animGroup = AnimationsLoader.Instance.AnimGroup;
             ushort newHue = 0;
 
-            var gr = layer == Layer.Invalid
-                         ? UOFileManager.Animations.GetCorpseAnimationGroup(ref graphic, ref animGroup, ref newHue)
-                         : UOFileManager.Animations.GetBodyAnimationGroup(ref graphic, ref animGroup, ref newHue);
+            AnimationGroup gr = layer == Layer.Invalid
+                                    ? AnimationsLoader.Instance.GetCorpseAnimationGroup(ref graphic, ref animGroup, ref newHue)
+                                    : AnimationsLoader.Instance.GetBodyAnimationGroup(ref graphic, ref animGroup, ref newHue);
 
-            UOFileManager.Animations.AnimID = graphic;
+            AnimationsLoader.Instance.AnimID = graphic;
 
             if (color == 0)
                 color = newHue;
 
-            ref var direction = ref gr.Direction[UOFileManager.Animations.Direction];
+            var direction = gr.Direction[AnimationsLoader.Instance.Direction];
 
             if (direction == null)
                 return;
 
-            if ((direction.FrameCount == 0 || direction.Frames == null) && !UOFileManager.Animations.LoadDirectionGroup(ref direction))
+            if ((direction.FrameCount == 0 || direction.Frames == null) && !AnimationsLoader.Instance.LoadDirectionGroup(ref direction))
                 return;
 
             direction.LastAccessTime = Time.Ticks;
@@ -334,7 +332,7 @@ namespace ClassicUO.Game.GameObjects
 
         public override void Select(int x, int y)
         {
-            if (!Serial.IsValid /*&& IsMulti*/ && TargetManager.TargetingState == CursorTarget.MultiPlacement)
+            if (! SerialHelper.IsValid(Serial) /*&& IsMulti*/ && TargetManager.TargetingState == CursorTarget.MultiPlacement)
                 return;
 
             if (SelectedObject.Object == this)

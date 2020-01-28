@@ -1,24 +1,22 @@
 ﻿#region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System.Collections.Generic;
@@ -55,7 +53,7 @@ namespace ClassicUO.Game.GameObjects
 
         }
 
-        public Multi(Graphic graphic)
+        public Multi(ushort graphic)
         {
             Graphic = _originalGraphic = graphic;
             UpdateGraphicBySeason();
@@ -71,7 +69,7 @@ namespace ClassicUO.Game.GameObjects
                 _canBeTransparent = 0;
         }
 
-        public static Multi Create(Graphic graphic)
+        public static Multi Create(ushort graphic)
         {
             if (_pool.Count != 0)
             {
@@ -111,12 +109,14 @@ namespace ClassicUO.Game.GameObjects
         public int MultiOffsetZ;
         public CUSTOM_HOUSE_MULTI_OBJECT_FLAGS State = 0;
         public bool IsCustom;
+        public bool IsVegetation;
 
-        public ref readonly StaticTiles ItemData => ref UOFileManager.TileData.StaticData[Graphic];
+        public ref readonly StaticTiles ItemData => ref TileDataLoader.Instance.StaticData[Graphic];
 
         public override void UpdateGraphicBySeason()
         {
-            Graphic = Season.GetSeasonGraphic(World.Season, _originalGraphic);
+            Graphic = SeasonManager.GetSeasonGraphic(World.Season, _originalGraphic);
+            IsVegetation = StaticFilters.IsVegetation(Graphic);
         }
 
         public override void UpdateTextCoordsV()
@@ -136,7 +136,7 @@ namespace ClassicUO.Game.GameObjects
 
             int startX = ProfileManager.Current.GameWindowPosition.X + 6;
             int startY = ProfileManager.Current.GameWindowPosition.Y + 6;
-            var scene = CUOEnviroment.Client.GetScene<GameScene>();
+            var scene = Client.Game.GetScene<GameScene>();
             float scale = scene?.Scale ?? 1;
             int x = RealScreenPosition.X;
             int y = RealScreenPosition.Y;

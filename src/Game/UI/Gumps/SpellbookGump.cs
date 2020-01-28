@@ -1,28 +1,28 @@
 ﻿#region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Xml;
 
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
@@ -32,6 +32,7 @@ using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using ClassicUO.IO;
+using ClassicUO.IO.Resources;
 using ClassicUO.Renderer;
 
 namespace ClassicUO.Game.UI.Gumps
@@ -48,7 +49,7 @@ namespace ClassicUO.Game.UI.Gumps
         private SpellBookType _spellBookType;
         private DataBox _dataBox;
 
-        public SpellbookGump(Serial item) : this()
+        public SpellbookGump(uint item) : this()
         {
             LocalSerial = item;
           
@@ -66,15 +67,13 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     _isMinimized = value;
 
-                    GetBookInfo(_spellBookType, out Graphic bookGraphic, out Graphic minimizedGraphic, out Graphic iconStartGraphic, out int maxSpellsCount, out int spellsOnPage, out int dictionaryPagesCount);
+                    GetBookInfo(_spellBookType, out ushort bookGraphic, out ushort minimizedGraphic, out ushort iconStartGraphic, out int maxSpellsCount, out int spellsOnPage, out int dictionaryPagesCount);
 
 
                     _picBase.Graphic = value ? minimizedGraphic : bookGraphic;
 
                     foreach (var c in Children)
                     {
-                        if (!c.IsInitialized)
-                            c.Initialize();
                         c.IsVisible = !value;
                     }
 
@@ -88,8 +87,10 @@ namespace ClassicUO.Game.UI.Gumps
         {
             CanMove = true;
             AcceptMouseInput = false;
-            CanBeSaved = true;
+            CanCloseWithRightClick = true;
         }
+
+        public override GUMP_TYPE GumpType => GUMP_TYPE.GT_SPELLBOOK;
 
         public override void Save(BinaryWriter writer)
         {
@@ -108,13 +109,26 @@ namespace ClassicUO.Game.UI.Gumps
                 IsMinimized = reader.ReadBoolean();
             }
 
-            CUOEnviroment.Client.GetScene<GameScene>().DoubleClickDelayed(reader.ReadUInt32());
+            Client.Game.GetScene<GameScene>().DoubleClickDelayed(reader.ReadUInt32());
 
             if (Profile.GumpsVersion >= 3)
             {
                 reader.ReadBoolean();
             }
 
+            Dispose();
+        }
+
+        public override void Save(XmlTextWriter writer)
+        {
+            base.Save(writer);
+            writer.WriteAttributeString("isminimized", IsMinimized.ToString());
+        }
+
+        public override void Restore(XmlElement xml)
+        {
+            base.Restore(xml);
+            Client.Game.GetScene<GameScene>().DoubleClickDelayed(LocalSerial);
             Dispose();
         }
 
@@ -133,7 +147,7 @@ namespace ClassicUO.Game.UI.Gumps
             item.Items.Removed += ItemsOnRemoved;
 
             AssignGraphic(item);
-            GetBookInfo(_spellBookType, out Graphic bookGraphic, out Graphic minimizedGraphic, out Graphic iconStartGraphic, out int maxSpellsCount, out int spellsOnPage, out int dictionaryPagesCount);
+            GetBookInfo(_spellBookType, out ushort bookGraphic, out ushort minimizedGraphic, out ushort iconStartGraphic, out int maxSpellsCount, out int spellsOnPage, out int dictionaryPagesCount);
             Add(_picBase = new GumpPic(0, 0, bookGraphic, 0));
             _picBase.MouseDoubleClick += _picBase_MouseDoubleClick;
 
@@ -166,14 +180,14 @@ namespace ClassicUO.Game.UI.Gumps
 
             Update();
 
-            CUOEnviroment.Client.Scene.Audio.PlaySound(0x0055);
+            Client.Game.Scene.Audio.PlaySound(0x0055);
         }
 
 
 
         private void _picBase_MouseDoubleClick(object sender, MouseDoubleClickEventArgs e)
         {
-            if (e.Button == MouseButton.Left && IsMinimized)
+            if (e.Button == MouseButtonType.Left && IsMinimized)
             {
                 IsMinimized = false;
             }
@@ -181,7 +195,7 @@ namespace ClassicUO.Game.UI.Gumps
 
         private void _hitBox_MouseUp(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButton.Left && !IsMinimized)
+            if (e.Button == MouseButtonType.Left && !IsMinimized)
             {
                 IsMinimized = true;
             }
@@ -197,17 +211,17 @@ namespace ClassicUO.Game.UI.Gumps
                 item.Items.Removed -= ItemsOnRemoved;
             }
 
-            CUOEnviroment.Client.Scene.Audio.PlaySound(0x0055);
+            Client.Game.Scene.Audio.PlaySound(0x0055);
             UIManager.SavePosition(LocalSerial, Location);
             base.Dispose();
         }
 
-        private void ItemsOnRemoved(object sender, CollectionChangedEventArgs<Serial> e)
+        private void ItemsOnRemoved(object sender, CollectionChangedEventArgs<uint> e)
         {
             Update();
         }
 
-        private void ItemsOnAdded(object sender, CollectionChangedEventArgs<Serial> e)
+        private void ItemsOnAdded(object sender, CollectionChangedEventArgs<uint> e)
         {
             Update();
         }
@@ -217,7 +231,7 @@ namespace ClassicUO.Game.UI.Gumps
             _dataBox.Clear();
             _dataBox.WantUpdateSize = true;
 
-            GetBookInfo(_spellBookType, out Graphic bookGraphic, out Graphic minimizedGraphic, out Graphic iconStartGraphic, out int maxSpellsCount, out int spellsOnPage, out int dictionaryPagesCount);
+            GetBookInfo(_spellBookType, out ushort bookGraphic, out ushort minimizedGraphic, out ushort iconStartGraphic, out int maxSpellsCount, out int spellsOnPage, out int dictionaryPagesCount);
 
             int totalSpells = 0;
 
@@ -230,24 +244,14 @@ namespace ClassicUO.Game.UI.Gumps
             }
 
 
-            //if (_spellBookType == SpellBookType.Mastery)
-            //{
-            //    for (;totalSpells < SpellsMastery.MaxSpellCount; totalSpells++)
-            //    {
-            //        _spells[totalSpells] = true;
-            //    }
-            //}
-            //else
+            foreach (Item spell in item.Items)
             {
-                foreach (Item spell in item.Items)
-                {
-                    int currentCount = spell.Amount;
+                int currentCount = spell.Amount;
 
-                    if (currentCount > 0 && currentCount <= maxSpellsCount)
-                    {
-                        _spells[currentCount - 1] = true;
-                        totalSpells++;
-                    }
+                if (currentCount > 0 && currentCount <= maxSpellsCount)
+                {
+                    _spells[currentCount - 1] = true;
+                    totalSpells++;
                 }
             }
 
@@ -340,6 +344,71 @@ namespace ClassicUO.Game.UI.Gumps
                             Y = 30
                         };
                         _dataBox.Add(text, page);
+
+                        if (World.OPL.TryGetNameAndData(LocalSerial, out string name, out string data))
+                        {
+                            data = data.ToLower();
+                            string[] buff = data.Split(new[] {'\n'}, StringSplitOptions.RemoveEmptyEntries);
+
+                            for (int i = 0; i < buff.Length; i++)
+                            {
+                                if (buff[i] != null)
+                                {
+                                    int index = buff[i].IndexOf("mastery", StringComparison.InvariantCulture);
+
+                                    if (--index < 0)
+                                        continue;
+
+                                    string skillName = buff[i].Substring(0, index);
+
+                                    if (!string.IsNullOrEmpty(skillName))
+                                    {
+                                        List<int> activedSpells = SpellsMastery.GetSpellListByGroupName(skillName);
+
+                                        for (int k = 0; k < activedSpells.Count; k++)
+                                        {
+                                            int id = activedSpells[k];
+
+                                            var spell = SpellsMastery.GetSpell(id);
+
+                                            if (spell != null)
+                                            {
+                                                ushort iconGraphic = (ushort) spell.GumpIconID;
+                                                int toolTipCliloc = id >= 0 && id < 6 ? 1115689 : 1155938 - 6;
+
+                                                int iconMY = 55 + 44 * k;
+
+                                                GumpPic icon = new GumpPic(225, iconMY, iconGraphic, 0)
+                                                {
+                                                    LocalSerial = (uint) (id - 1)
+                                                };
+
+                                                _dataBox.Add(icon, page);
+                                                icon.MouseDoubleClick += OnIconDoubleClick;
+                                                icon.DragBegin += OnIconDragBegin;
+
+                                                text = new Label(spell.Name, false, 0x0288, 80, 6)
+                                                {
+                                                    X = 225 + 44 + 4,
+                                                    Y = iconMY + 2,
+                                                };
+                                                _dataBox.Add(text, page);
+
+                                                if (toolTipCliloc > 0)
+                                                {
+                                                    string tooltip = ClilocLoader.Instance.GetString(toolTipCliloc + id);
+                                                    icon.SetTooltip(tooltip, 250);
+                                                }
+                                            }
+                                        }
+
+                                    }
+
+                                    break;
+                                }
+                            }
+                        }
+
                         break;
                     }
 
@@ -379,7 +448,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                                 spellDone++;
 
-                                text = new HoveredLabel(name, false, 0x0288, 0x33, font: 9, maxwidth: 130, style: FontStyle.Cropped)
+                                text = new HoveredLabel(name, false, 0x0288, 0x33, 0x0288, font: 9, maxwidth: 130, style: FontStyle.Cropped)
                                 {
                                     X = dataX,
                                     Y = 52 + y,
@@ -408,7 +477,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                                 spellDone++;
 
-                                text = new HoveredLabel(name, false, 0x0288, 0x33, font: 9, maxwidth: 130, style: FontStyle.Cropped)
+                                text = new HoveredLabel(name, false, 0x0288, 0x33, 0x0288, font: 9, maxwidth: 130, style: FontStyle.Cropped)
                                 {
                                     X = dataX,
                                     Y = 52 + y,
@@ -562,11 +631,11 @@ namespace ClassicUO.Game.UI.Gumps
                 }
                 else
                 {
-                    iconGraphic = (Graphic) (iconStartGraphic + i);
+                    iconGraphic = (ushort) (iconStartGraphic + i);
                     GetSpellToolTip(out toolTipCliloc);
                 }
 
-                GumpPic icon = new GumpPic(iconX, 40, iconGraphic, 0)
+                HueGumpPic icon = new HueGumpPic(iconX, 40, iconGraphic, 0,  (ushort) GetSpellDefinition(iconSerial).ID)
                 {
                     X = iconX, Y = 40, LocalSerial = iconSerial
                 };
@@ -574,45 +643,19 @@ namespace ClassicUO.Game.UI.Gumps
 
                 if (toolTipCliloc > 0)
                 {
-                    string tooltip = UOFileManager.Cliloc.GetString(toolTipCliloc + i);
+                    string tooltip = ClilocLoader.Instance.GetString(toolTipCliloc + i);
                     icon.SetTooltip(tooltip, 250);
                 }
 
-                icon.MouseDoubleClick += (sender, e) =>
-                {
-                    if (e.Button == MouseButton.Left)
-                    {
-                        SpellDefinition def = GetSpellDefinition(sender as Control);
-
-                        if (def != null)
-                            GameActions.CastSpell(def.ID);
-                    }
-                };
-
-                icon.DragBegin += (sender, e) =>
-                {
-                    if (UIManager.IsDragging)
-                        return;
-
-                    SpellDefinition def = GetSpellDefinition(sender as Control);
-
-                    if (def == null)
-                        return;
-
-                    UseSpellButtonGump gump = new UseSpellButtonGump(def)
-                    {
-                        X = Mouse.Position.X - 22, Y = Mouse.Position.Y - 22
-                    };
-
-                    UIManager.Add(gump);
-                    UIManager.AttemptDragControl(gump, Mouse.Position, true);
-                };
-
+                icon.MouseDoubleClick += OnIconDoubleClick;
+                icon.DragBegin += OnIconDragBegin;
+                
                 _dataBox.Add(icon, page1);
 
                 if (!string.IsNullOrEmpty(reagents))
                 {
-                    _dataBox.Add(new GumpPicTiled(iconX, 88, 120, 5, 0x0835), page1);
+                    if (_spellBookType != SpellBookType.Mastery)
+                        _dataBox.Add(new GumpPicTiled(iconX, 88, 120, 5, 0x0835), page1);
 
                     Label text = new Label("Reagents:", false, 0x0288, font: 6)
                     {
@@ -644,9 +687,41 @@ namespace ClassicUO.Game.UI.Gumps
         }
 
 
-        private SpellDefinition GetSpellDefinition(Control ctrl)
+        private void OnIconDoubleClick(object sender, MouseDoubleClickEventArgs e)
         {
-            int idx = (int) (ctrl.LocalSerial > 1000 ? ctrl.LocalSerial - 1000 : ctrl.LocalSerial >= 100 ? ctrl.LocalSerial - 100 : ctrl.LocalSerial.Value) + 1;
+            if (e.Button == MouseButtonType.Left)
+            {
+                SpellDefinition def = GetSpellDefinition((sender as Control).LocalSerial);
+
+                if (def != null)
+                    GameActions.CastSpell(def.ID);
+            }
+        }
+
+        private void OnIconDragBegin(object sender, EventArgs e)
+        {
+            if (UIManager.IsDragging)
+                return;
+
+            SpellDefinition def = GetSpellDefinition((sender as Control).LocalSerial);
+
+            if (def == null)
+                return;
+
+            UseSpellButtonGump gump = new UseSpellButtonGump(def)
+            {
+                X = Mouse.Position.X - 22,
+                Y = Mouse.Position.Y - 22
+            };
+
+            UIManager.Add(gump);
+            UIManager.AttemptDragControl(gump, Mouse.Position, true);
+        }
+
+
+        private SpellDefinition GetSpellDefinition(uint serial)
+        {
+            int idx = (int) (serial > 1000 ? serial - 1000 : serial >= 100 ? serial - 100 : serial) + 1;
 
             return GetSpellDefinition(idx);
         }
@@ -701,7 +776,7 @@ namespace ClassicUO.Game.UI.Gumps
             return def;
         }
 
-        private void GetBookInfo(SpellBookType type, out Graphic bookGraphic, out Graphic minimizedGraphic, out Graphic iconStartGraphic, out int maxSpellsCount, out int spellsOnPage, out int dictionaryPagesCount)
+        private static void GetBookInfo(SpellBookType type, out ushort bookGraphic, out ushort minimizedGraphic, out ushort iconStartGraphic, out int maxSpellsCount, out int spellsOnPage, out int dictionaryPagesCount)
         {
             switch (type)
             {
@@ -967,14 +1042,14 @@ namespace ClassicUO.Game.UI.Gumps
             _pageCornerLeft.Page = _dataBox.ActivePage != 1 ? 0 : int.MaxValue;
             _pageCornerRight.Page = _dataBox.ActivePage != _maxPage ? 0 : int.MaxValue;
 
-            CUOEnviroment.Client.Scene.Audio.PlaySound(0x0055);
+            Client.Game.Scene.Audio.PlaySound(0x0055);
         }
 
 
 
         private void OnClicked(object sender, MouseEventArgs e)
         {
-            if (sender is HoveredLabel l && e.Button == MouseButton.Left)
+            if (sender is HoveredLabel l && e.Button == MouseButtonType.Left)
             {
                 _clickTiming += Mouse.MOUSE_DELAY_DOUBLE_CLICK;
 
@@ -985,7 +1060,7 @@ namespace ClassicUO.Game.UI.Gumps
 
         private void OnDoubleClicked(object sender, MouseDoubleClickEventArgs e)
         {
-            if (_lastPressed != null && e.Button == MouseButton.Left)
+            if (_lastPressed != null && e.Button == MouseButtonType.Left)
             {
                 _clickTiming = -Mouse.MOUSE_DELAY_DOUBLE_CLICK;
                 var def = GetSpellDefinition((int) _lastPressed.Tag);
@@ -1019,7 +1094,7 @@ namespace ClassicUO.Game.UI.Gumps
                 if (_clickTiming <= 0)
                 {
                     _clickTiming = 0;
-                    SetActivePage((int) _lastPressed.LocalSerial.Value);
+                    SetActivePage((int) _lastPressed.LocalSerial);
                     _lastPressed = null;
                 }
             }
@@ -1061,12 +1136,20 @@ namespace ClassicUO.Game.UI.Gumps
                     break;
 
                 case 0x238C:
-                    _spellBookType = SpellBookType.Bushido;
+
+                    if ((World.ClientFeatures.Flags & CharacterListFlags.CLF_SAMURAI_NINJA) != 0)
+                    {
+                        _spellBookType = SpellBookType.Bushido;
+                    }
 
                     break;
 
                 case 0x23A0:
-                    _spellBookType = SpellBookType.Ninjitsu;
+
+                    if ((World.ClientFeatures.Flags & CharacterListFlags.CLF_SAMURAI_NINJA) != 0)
+                    {
+                        _spellBookType = SpellBookType.Ninjitsu;
+                    }
 
                     break;
 
@@ -1090,12 +1173,12 @@ namespace ClassicUO.Game.UI.Gumps
 
         private void PageCornerOnMouseClick(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButton.Left && sender is Control ctrl) SetActivePage(ctrl.LocalSerial == 0 ? _dataBox.ActivePage - 1 : _dataBox.ActivePage + 1);
+            if (e.Button == MouseButtonType.Left && sender is Control ctrl) SetActivePage(ctrl.LocalSerial == 0 ? _dataBox.ActivePage - 1 : _dataBox.ActivePage + 1);
         }
 
         private void PageCornerOnMouseDoubleClick(object sender, MouseDoubleClickEventArgs e)
         {
-            if (e.Button == MouseButton.Left && sender is Control ctrl) SetActivePage(ctrl.LocalSerial == 0 ? 1 : _maxPage);
+            if (e.Button == MouseButtonType.Left && sender is Control ctrl) SetActivePage(ctrl.LocalSerial == 0 ? 1 : _maxPage);
         }
 
         public override void OnButtonClick(int buttonID)
@@ -1130,6 +1213,30 @@ namespace ClassicUO.Game.UI.Gumps
             Circle_3_4,
             Circle_5_6,
             Circle_7_8
+        }
+
+        private class HueGumpPic : GumpPic
+        {
+            private readonly ushort _spellID;
+
+            public HueGumpPic(int x, int y, ushort graphic, ushort hue, ushort spellID) : base(x, y, graphic, hue)
+            {
+                _spellID = spellID;
+            }
+
+            public override void Update(double totalMS, double frameMS)
+            {
+                base.Update(totalMS, frameMS);
+
+                if (World.ActiveSpellIcons.IsActive(_spellID))
+                {
+                    Hue = 38;
+                }
+                else if (Hue != 0)
+                {
+                    Hue = 0;
+                }
+            }
         }
     }
 }

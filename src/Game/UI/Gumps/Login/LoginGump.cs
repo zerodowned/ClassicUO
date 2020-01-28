@@ -1,27 +1,26 @@
 ﻿#region license
-
-//  Copyright (C) 2019 ClassicUO Development Community on Github
-//
-//	This project is an alternative client for the game Ultima Online.
-//	The goal of this is to develop a lightweight client considering 
-//	new technologies.  
-//      
+// Copyright (C) 2020 ClassicUO Development Community on Github
+// 
+// This project is an alternative client for the game Ultima Online.
+// The goal of this is to develop a lightweight client considering
+// new technologies.
+// 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using ClassicUO.Configuration;
+using ClassicUO.Data;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.IO;
@@ -51,13 +50,13 @@ namespace ClassicUO.Game.UI.Gumps.Login
 
             int offsetX, offsetY, offtextY;
 
-            if (UOFileManager.ClientVersion < ClientVersions.CV_706400)
+            if (Client.Version < ClientVersion.CV_706400)
             {
                 _buttonNormal = 0x15A4;
                 _buttonOver = 0x15A5;
                 const ushort HUE = 0x0386;
 
-                if (UOFileManager.ClientVersion >= ClientVersions.CV_500A)
+                if (Client.Version >= ClientVersion.CV_500A)
                     Add(new GumpPic(0, 0, 0x2329, 0));
 
                 // UO Flag
@@ -79,7 +78,7 @@ namespace ClassicUO.Game.UI.Gumps.Login
                     Height = 157
                 });
 
-                if (UOFileManager.ClientVersion < ClientVersions.CV_500A)
+                if (Client.Version < ClientVersion.CV_500A)
                     Add(new GumpPic(286, 45, 0x058A, 0));
 
                 Add(new Label("Log in to Ultima Online", false, HUE, font: 2)
@@ -247,13 +246,24 @@ namespace ClassicUO.Game.UI.Gumps.Login
             Add(new HtmlControl(htmlX, htmlY, 300, 100,
                                 false, false,
                                 false,
-                                text: "<body link=\"#ad9413\" vlink=\"#00FF00\" ><a href=\"https://www.paypal.me/muskara\">> Instant donation",
+                                text: "<body link=\"#ad9413\" vlink=\"#00FF00\" ><a href=\"https://www.paypal.me/muskara\">> Support ClassicUO",
                                 0x32, true, isunicode: true, style: FontStyle.BlackBorder));
             Add(new HtmlControl(htmlX, htmlY + 20, 300, 100,
                                 false, false,
                                 false,
                                 text: "<body link=\"#ad9413\" vlink=\"#00FF00\" ><a href=\"https://www.patreon.com/user?u=21694183\">> Become a Patreon!",
                                 0x32, true, isunicode: true, style: FontStyle.BlackBorder));
+
+
+            Add(new HtmlControl(505, htmlY + 19, 300, 100,
+                                           false, false,
+                                           false,
+                                           text: "<body link=\"#6a6a62\" vlink=\"#00FF00\" ><a href=\"https://discord.gg/VdyCpjQ\">CUO Discord",
+                                           0x32, true, isunicode: true, style: FontStyle.Cropped));
+
+
+            if (!string.IsNullOrEmpty(_textboxAccount.Text))
+                _textboxPassword.SetKeyboardFocus();
         }
 
 
@@ -262,9 +272,9 @@ namespace ClassicUO.Game.UI.Gumps.Login
         public override void OnKeyboardReturn(int textID, string text)
         {
             SaveCheckboxStatus();
-            LoginScene ls = CUOEnviroment.Client.GetScene<LoginScene>();
+            LoginScene ls = Client.Game.GetScene<LoginScene>();
 
-            if (ls.CurrentLoginStep == LoginScene.LoginStep.Main)
+            if (ls.CurrentLoginStep == LoginSteps.Main)
                 ls.Connect(_textboxAccount.Text, _textboxPassword.Text);
         }
 
@@ -311,25 +321,17 @@ namespace ClassicUO.Game.UI.Gumps.Login
                 case Buttons.NextArrow:
                     SaveCheckboxStatus();
                     if (!_textboxAccount.IsDisposed)
-                        CUOEnviroment.Client.GetScene<LoginScene>().Connect(_textboxAccount.Text, _textboxPassword.Text);
+                        Client.Game.GetScene<LoginScene>().Connect(_textboxAccount.Text, _textboxPassword.Text);
 
                     break;
 
                 case Buttons.Quit:
-                    CUOEnviroment.Client.Exit();
+                    Client.Game.Exit();
 
                     break;
             }
         }
-
-        protected override void OnInitialize()
-        {
-            base.OnInitialize();
-
-            if (!string.IsNullOrEmpty(_textboxAccount.Text))
-                _textboxPassword.SetKeyboardFocus();
-        }
-
+        
         private enum Buttons
         {
             NextArrow,
