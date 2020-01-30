@@ -56,7 +56,7 @@ namespace ClassicUO.Game.Scenes
         private int _maxZ;
         private bool _noDrawRoofs;
         private int _objectHandlesCount;
-        private Point _offset, _maxTile, _minTile;
+        private Point _offset, _maxTile, _minTile, _maxPixel, _minPixel;
         private int _oldPlayerX, _oldPlayerY, _oldPlayerZ;
         private int _renderIndex = 1;
         private GameObject[] _renderList = new GameObject[10000];
