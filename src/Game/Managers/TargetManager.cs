@@ -29,6 +29,7 @@ using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Input;
 using ClassicUO.IO;
+using ClassicUO.IO.Resources;
 using ClassicUO.Network;
 
 namespace ClassicUO.Game.Managers
@@ -75,6 +76,9 @@ namespace ClassicUO.Game.Managers
     internal static class TargetManager
     {
         private static uint _targetCursorId;
+
+        private static byte[] _lastDataBuffer = new byte[19];
+
 
         public static MultiTargetInfo MultiTargetInfo { get; private set; }
 
@@ -202,7 +206,14 @@ namespace ClassicUO.Game.Managers
                             }
                         }
 
-                        NetClient.Socket.Send(new PTargetObject(entity, entity.Graphic, entity.X, entity.Y, entity.Z, _targetCursorId, (byte) TargeringType));
+                        var packet = new PTargetObject(entity, entity.Graphic, entity.X, entity.Y, entity.Z, _targetCursorId, (byte) TargeringType);
+                       
+                        for (int i = 0; i < _lastDataBuffer.Length; i++)
+                        {
+                            _lastDataBuffer[i] = packet[i];
+                        }
+
+                        NetClient.Socket.Send(packet);
                         ClearTargetingWithoutTargetCancelPacket();
 
                         Mouse.CancelDoubleClick = true;
@@ -234,36 +245,67 @@ namespace ClassicUO.Game.Managers
 
         public static void Target(ushort graphic, ushort x, ushort y, short z)
         {
-            if (!IsTargeting || TargeringType != TargetType.Neutral || graphic >= UOFileManager.TileData.StaticData.Length)
+            if (!IsTargeting)
                 return;
 
-            ref readonly var itemData = ref UOFileManager.TileData.StaticData[graphic];
-
-            if (Client.Version >= ClientVersion.CV_7090 && itemData.IsSurface)
+            if (graphic == 0)
             {
-                z += itemData.Height;
+                if (TargeringType != TargetType.Neutral)
+                    return;
+            }
+            else
+            {
+                if (graphic >= TileDataLoader.Instance.StaticData.Length)
+                    return;
+
+                ref readonly var itemData = ref TileDataLoader.Instance.StaticData[graphic];
+
+                if (Client.Version >= ClientVersion.CV_7090 && itemData.IsSurface)
+                {
+                    z += itemData.Height;
+                }
             }
 
-            NetClient.Socket.Send(new PTargetXYZ(x, y, z, graphic, _targetCursorId, (byte) TargeringType));
-            Mouse.CancelDoubleClick = true;
-            ClearTargetingWithoutTargetCancelPacket();
-        }
-
-        public static void Target(ushort x, ushort y, short z)
-        {
-            if (!IsTargeting || TargeringType != TargetType.Neutral)
-                return;
-
-            NetClient.Socket.Send(new PTargetXYZ(x, y, z, 0, _targetCursorId, (byte) TargeringType));
-            Mouse.CancelDoubleClick = true;
-            ClearTargetingWithoutTargetCancelPacket();
+            TargetPacket(graphic, x, y, (sbyte) z);
         }
 
         public static void SendMultiTarget(ushort x, ushort y, sbyte z)
         {
-            NetClient.Socket.Send(new PTargetXYZ(x, y, z, 0, _targetCursorId, (byte)TargeringType));
-            Mouse.CancelDoubleClick = true;
+            TargetPacket(0, x, y, z);
             MultiTargetInfo = null;
+        }
+
+        public static void TargetLast()
+        {
+            if (!IsTargeting)
+                return;
+
+            _lastDataBuffer[0] = 0x6C;
+            _lastDataBuffer[1] = (byte) TargetingState;
+            _lastDataBuffer[2] = (byte) (_targetCursorId >> 24);
+            _lastDataBuffer[3] = (byte) (_targetCursorId >> 16);
+            _lastDataBuffer[4] = (byte) (_targetCursorId >> 8);
+            _lastDataBuffer[5] = (byte) _targetCursorId;
+            _lastDataBuffer[6] = (byte) TargeringType;
+
+            NetClient.Socket.Send(_lastDataBuffer);
+            Mouse.CancelDoubleClick = true;
+            ClearTargetingWithoutTargetCancelPacket();
+        }
+
+        private static void TargetPacket(ushort graphic, ushort x, ushort y, sbyte z)
+        {
+            if (!IsTargeting)
+                return;
+
+            var packet = new PTargetXYZ(x, y, z, graphic, _targetCursorId, (byte) TargeringType);       
+            NetClient.Socket.Send(packet);
+            for (int i = 0; i < _lastDataBuffer.Length; i++)
+            {
+                _lastDataBuffer[i] = packet[i];
+            }
+
+            Mouse.CancelDoubleClick = true;
             ClearTargetingWithoutTargetCancelPacket();
         }
     }

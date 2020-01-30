@@ -31,6 +31,7 @@ using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;
 using ClassicUO.IO;
+using ClassicUO.IO.Resources;
 using ClassicUO.Utility.Logging;
 using ClassicUO.Utility.Platforms;
 
@@ -260,7 +261,7 @@ namespace ClassicUO.Network
 
         private static void GetStaticImage(ushort g, ref ArtInfo info)
         {
-            UOFileManager.Art.TryGetEntryInfo(g, out long address, out long size, out long compressedsize);
+            ArtLoader.Instance.TryGetEntryInfo(g, out long address, out long size, out long compressedsize);
             info.Address = address;
             info.Size = size;
             info.CompressedSize = compressedsize;
@@ -360,8 +361,15 @@ namespace ClassicUO.Network
         {
             bool result = true;
 
-            if (!UIManager.IsKeyboardFocusAllowHotkeys)
-                return true;
+
+            if (!World.InGame || 
+                (ProfileManager.Current != null && 
+                ProfileManager.Current.ActivateChatAfterEnter && 
+                UIManager.SystemChat?.IsActive == true) ||
+                UIManager.KeyboardFocusControl != UIManager.SystemChat.TextBoxControl)
+            {
+                return result;
+            }
 
             foreach (Plugin plugin in _plugins)
             {
@@ -405,9 +413,9 @@ namespace ClassicUO.Network
         private static bool OnPluginSend(ref byte[] data, ref int length)
         {
             if (NetClient.LoginSocket.IsDisposed && NetClient.Socket.IsConnected)
-                NetClient.Socket.Send(data);
+                NetClient.Socket.Send(data, true);
             else if (NetClient.Socket.IsDisposed && NetClient.LoginSocket.IsConnected)
-                NetClient.LoginSocket.Send(data);
+                NetClient.LoginSocket.Send(data, true);
 
             return true;
         }

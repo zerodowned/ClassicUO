@@ -19,6 +19,8 @@
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
+using System;
+
 using ClassicUO.Configuration;
 using ClassicUO.Data;
 using ClassicUO.Game.Managers;
@@ -26,6 +28,7 @@ using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using ClassicUO.IO;
+using ClassicUO.IO.Resources;
 using ClassicUO.Network;
 using ClassicUO.Renderer;
 
@@ -148,8 +151,10 @@ namespace ClassicUO.Game.UI.Gumps
             base.Update(totalMS, frameMS);
         }
 
-        protected override void OnMove()
+        protected override void OnDragEnd(int x, int y)
         {
+            base.OnDragEnd(x, y);
+
             Point position = Location;
 
             if (position.X + Width - BORDER_WIDTH > Client.Game.Window.ClientBounds.Width)
@@ -167,6 +172,17 @@ namespace ClassicUO.Game.UI.Gumps
             Location = position;
 
             ProfileManager.Current.GameWindowPosition = position;
+
+            var scene = Client.Game.GetScene<GameScene>();
+            if (scene != null)
+                scene.UpdateDrawPosition = true;
+        }
+
+        protected override void OnMove(int x, int y)
+        {
+            base.OnMove(x, y);
+
+            ProfileManager.Current.GameWindowPosition = new Point(ScreenCoordinateX, ScreenCoordinateY);
 
             var scene = Client.Game.GetScene<GameScene>();
             if (scene != null)
@@ -234,8 +250,8 @@ namespace ClassicUO.Game.UI.Gumps
             Y = y;
             Width = w;
             Height = h;
-            _borders[0] = UOFileManager.Gumps.GetTexture(0x0A8C);
-            _borders[1] = UOFileManager.Gumps.GetTexture(0x0A8D);
+            _borders[0] = GumpsLoader.Instance.GetTexture(0x0A8C);
+            _borders[1] = GumpsLoader.Instance.GetTexture(0x0A8D);
             _borderSize = borderSize;
             CanMove = true;
             AcceptMouseInput = true;

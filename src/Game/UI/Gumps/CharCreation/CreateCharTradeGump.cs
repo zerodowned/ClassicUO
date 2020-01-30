@@ -27,6 +27,7 @@ using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.IO;
+using ClassicUO.IO.Resources;
 
 namespace ClassicUO.Game.UI.Gumps.CharCreation
 {
@@ -43,7 +44,10 @@ namespace ClassicUO.Game.UI.Gumps.CharCreation
 
             foreach (var skill in _character.Skills)
             {
-                _character.UpdateSkill(skill.Index, 0, 0, Lock.Locked, 0);
+                skill.ValueFixed = 0;
+                skill.BaseFixed = 0;
+                skill.CapFixed = 0;
+                skill.Lock = Lock.Locked;
             }
 
             Add(new ResizePic(2600)
@@ -59,23 +63,23 @@ namespace ClassicUO.Game.UI.Gumps.CharCreation
 
             // title text
             //TextLabelAscii(AControl parent, int x, int y, int font, int hue, string text, int width = 400)
-            Add(new Label(UOFileManager.Cliloc.GetString(3000326), false, 0x0386, font: 2)
+            Add(new Label(ClilocLoader.Instance.GetString(3000326), false, 0x0386, font: 2)
             {
                 X = 148, Y = 132
             });
 
             // strength, dexterity, intelligence
-            Add(new Label(UOFileManager.Cliloc.GetString(3000111), false, 1, font: 1)
+            Add(new Label(ClilocLoader.Instance.GetString(3000111), false, 1, font: 1)
             {
                 X = 158, Y = 170
             });
 
-            Add(new Label(UOFileManager.Cliloc.GetString(3000112), false, 1, font: 1)
+            Add(new Label(ClilocLoader.Instance.GetString(3000112), false, 1, font: 1)
             {
                 X = 158, Y = 250
             });
 
-            Add(new Label(UOFileManager.Cliloc.GetString(3000113), false, 1, font: 1)
+            Add(new Label(ClilocLoader.Instance.GetString(3000113), false, 1, font: 1)
             {
                 X = 158, Y = 330
             });
@@ -86,7 +90,10 @@ namespace ClassicUO.Game.UI.Gumps.CharCreation
             Add(_attributeSliders[1] = new HSliderBar(164, 276, 93, 10, 60, ProfessionInfo._VoidStats[1], HSliderBarStyle.MetalWidgetRecessedBar, true));
             Add(_attributeSliders[2] = new HSliderBar(164, 356, 93, 10, 60, ProfessionInfo._VoidStats[2], HSliderBarStyle.MetalWidgetRecessedBar, true));
 
-            string[] skillList = UOFileManager.Skills.SortedSkills.Select(s => (s.Index == 53 || s.Index == 54 && (World.ClientFeatures.Flags & CharacterListFlags.CLF_SAMURAI_NINJA) == 0) ? "" : s.Name).ToArray();
+            string[] skillList = SkillsLoader.Instance.SortedSkills.Select(s => ( 
+                                                                                    (s.Index == 52 || 
+                                                                                     s.Index == 53 && (World.ClientFeatures.Flags & CharacterListFlags.CLF_SAMURAI_NINJA) == 0)) ||
+                                                                                s.Index == 54 ? "" : s.Name).ToArray();
 
             int y = 172;
             _skillSliders = new HSliderBar[CharCreationGump._skillsCount];
@@ -146,7 +153,13 @@ namespace ClassicUO.Game.UI.Gumps.CharCreation
                         for (int i = 0; i < _skills.Length; i++)
                         {
                             if (_skills[i].SelectedIndex != -1)
-                                _character.UpdateSkill(UOFileManager.Skills.SortedSkills[_skills[i].SelectedIndex].Index, (ushort) _skillSliders[i].Value, 0, Lock.Locked, 0);
+                            {
+                                var skill = _character.Skills[SkillsLoader.Instance.SortedSkills[_skills[i].SelectedIndex].Index];
+                                skill.ValueFixed = (ushort) _skillSliders[i].Value;
+                                skill.BaseFixed = 0;
+                                skill.CapFixed = 0;
+                                skill.Lock = Lock.Locked;
+                            }
                         }
 
                         _character.Strength = (ushort) _attributeSliders[0].Value;
@@ -170,14 +183,14 @@ namespace ClassicUO.Game.UI.Gumps.CharCreation
 
                 if (duplicated > 0)
                 {
-                    UIManager.GetGump<CharCreationGump>()?.ShowMessage(UOFileManager.Cliloc.GetString(1080032));
+                    UIManager.GetGump<CharCreationGump>()?.ShowMessage(ClilocLoader.Instance.GetString(1080032));
 
                     return false;
                 }
             }
             else
             {
-                UIManager.GetGump<CharCreationGump>()?.ShowMessage(UOFileManager.Cliloc.GetString(1080032));
+                UIManager.GetGump<CharCreationGump>()?.ShowMessage(ClilocLoader.Instance.GetString(1080032));
 
                 return false;
             }

@@ -123,6 +123,8 @@ namespace ClassicUO.Game.UI.Controls
 
         public bool IsEditable { get; set; }
 
+        public bool IsFocused { get; set; }
+
         public float Alpha { get; set; }
 
         public List<Control> Children { get; }
@@ -163,33 +165,9 @@ namespace ClassicUO.Game.UI.Controls
             }
         }
 
-        public int X
-        {
-            get => _bounds.X;
-            set
-            {
-                if (_bounds.X != value)
-                {
-                    _bounds.X = value;
+        public ref int X => ref _bounds.X;
 
-                    OnMove();
-                }
-            }
-        }
-
-        public int Y
-        {
-            get => _bounds.Y;
-            set
-            {
-                if (_bounds.Y != value)
-                {
-                    _bounds.Y = value;
-
-                    OnMove();
-                }
-            }
-        }
+        public ref int Y => ref _bounds.Y;
 
         public int ParentX => Parent != null ? Parent.X + Parent.ParentX : 0;
 
@@ -209,7 +187,10 @@ namespace ClassicUO.Game.UI.Controls
                 if (value == null)
                     _parent?.Children.Remove(this);
                 else
+                {
+                    _parent?.Children.Remove(this);
                     value.Children.Add(this);
+                }
                 _parent = value;
             }
         }
@@ -265,29 +246,31 @@ namespace ClassicUO.Game.UI.Controls
 
                 OnPageChanged();
 
-                if (UIManager.KeyboardFocusControl != null)
-                {
-                    if (Children.Contains(UIManager.KeyboardFocusControl))
-                    {
-                        if (UIManager.KeyboardFocusControl.Page != 0)
-                            UIManager.KeyboardFocusControl = null;
-                    }
-                }
+                //if (UIManager.KeyboardFocusControl != null)
+                //{
+                //    if (Children.Contains(UIManager.KeyboardFocusControl))
+                //    {
+                //        if (UIManager.KeyboardFocusControl.Page != 0)
+                //            UIManager.KeyboardFocusControl = null;
+                //    }
+                //}
 
                 // When ActivePage changes, check to see if there are new text input boxes
                 // that we should redirect text input to.
-                if (UIManager.KeyboardFocusControl == null)
-                {
-                    foreach (Control c in Children)
-                    {
-                        if (c.HandlesKeyboardFocus && c.Page == _activePage)
-                        {
-                            UIManager.KeyboardFocusControl = c;
+                
+                //if (UIManager.KeyboardFocusControl == null)
+                //{
+                //    foreach (Control c in Children)
+                //    {
+                //        if (c.HandlesKeyboardFocus && c.Page == _activePage)
+                //        {
+                //            UIManager.KeyboardFocusControl = c;
 
-                            break;
-                        }
-                    }
-                }
+                //            break;
+                //        }
+                //    }
+                //}
+
             }
         }
 
@@ -402,12 +385,10 @@ namespace ClassicUO.Game.UI.Controls
             }
         }
 
-        public void SetTooltip(Entity entity)
+        public void SetTooltip(uint entity)
         {
             ClearTooltip();
-
-            if (entity != null && !entity.IsDestroyed)
-                Tooltip = entity;
+            Tooltip = entity;
         }
 
         public void ClearTooltip()
@@ -417,7 +398,8 @@ namespace ClassicUO.Game.UI.Controls
 
         public void SetKeyboardFocus()
         {
-            if (AcceptKeyboardInput && !HasKeyboardFocus) UIManager.KeyboardFocusControl = this;
+            if (AcceptKeyboardInput && !HasKeyboardFocus) 
+                UIManager.KeyboardFocusControl = this;
         }
 
         internal event EventHandler<MouseEventArgs> MouseDown, MouseUp, MouseOver, MouseEnter, MouseExit, DragBegin, DragEnd;
@@ -426,35 +408,8 @@ namespace ClassicUO.Game.UI.Controls
 
         internal event EventHandler<MouseDoubleClickEventArgs> MouseDoubleClick;
 
-        //public void Initialize()
-        //{
-        //    if (IsDisposed) return;
+        internal event EventHandler FocusEnter, FocusLost;
 
-        //    IsDisposed = false;
-        //    IsEnabled = true;
-        //    IsInitialized = true;
-        //    //InitializeControls();
-        //    //OnInitialize();
-        //}
-
-        //private void InitializeControls()
-        //{
-        //    //bool initializedKeyboardFocusedControl = false;
-
-        //    foreach (Control c in Children)
-        //    {
-        //        if (!c.IsInitialized && !IsDisposed)
-        //        {
-        //            c.Initialize();
-
-        //            //if (!initializedKeyboardFocusedControl && c.AcceptKeyboardInput)
-        //            //{
-        //            //    UIManager.KeyboardFocusControl = c;
-        //            //    initializedKeyboardFocusedControl = true;
-        //            //}
-        //        }
-        //    }
-        //}
 
         public void HitTest(int x, int y, ref Control res)
         {
@@ -507,9 +462,6 @@ namespace ClassicUO.Game.UI.Controls
                     return a;
             }
 
-            if (World.InGame && UIManager.SystemChat != null)
-                return UIManager.SystemChat.textBox;
-
             return null;
         }
 
@@ -517,6 +469,19 @@ namespace ClassicUO.Game.UI.Controls
         {
             c.Page = page;
             c.Parent = this;
+            OnChildAdded();
+        }
+
+        public void Insert(int index, Control c, int page = 0)
+        {
+            c.Page = 0;
+
+            c._parent?.Children.Remove(c);
+
+            c._parent = this;
+
+            Children.Insert(index, c);
+            
             OnChildAdded();
         }
 
@@ -642,6 +607,13 @@ namespace ClassicUO.Game.UI.Controls
             DragEnd.Raise(new MouseEventArgs(x, y, MouseButtonType.Left), this);
         }
 
+        public void InvokeMove(int x, int y)
+        {
+            x = x - X - ParentX;
+            y = y - Y - ParentY;
+            OnMove(x, y);
+        }
+
         protected virtual void OnMouseDown(int x, int y, MouseButtonType button)
         {
             _mouseIsDown = true;
@@ -731,13 +703,9 @@ namespace ClassicUO.Game.UI.Controls
             return !IsDisposed;
         }
 
-        protected virtual void OnMove()
+        protected virtual void OnMove(int x, int y)
         {
         }
-
-        //protected virtual void OnInitialize()
-        //{
-        //}
 
         protected virtual void OnClosing()
         {
@@ -745,12 +713,16 @@ namespace ClassicUO.Game.UI.Controls
 
         internal virtual void OnFocusEnter()
         {
-            Parent?.OnFocusEnter();
+            IsFocused = true;
+            FocusEnter.Raise(this);
+            //Parent?.OnFocusEnter();
         }
 
         internal virtual void OnFocusLeft()
         {
-            Parent?.OnFocusLeft();
+            IsFocused = false;
+            FocusLost.Raise(this);
+            //Parent?.OnFocusLeft();
         }
 
         protected virtual void OnChildAdded()

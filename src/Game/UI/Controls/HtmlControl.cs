@@ -36,7 +36,7 @@ namespace ClassicUO.Game.UI.Controls
     internal class HtmlControl : Control
     {
         private RenderedText _gameText;
-        private IScrollBar _scrollBar;
+        private ScrollBarBase _scrollBar;
 
         public HtmlControl(List<string> parts, string[] lines) : this()
         {
@@ -72,7 +72,7 @@ namespace ClassicUO.Game.UI.Controls
                 _gameText.Align = align;
                 _gameText.Font = font;
                 _gameText.IsUnicode = isunicode;
-                _gameText.MaxWidth = w - (HasScrollbar ? 15 : 0) - (HasBackground ? 8 : 0);
+                _gameText.MaxWidth = w - (HasScrollbar ? 16 : 0) - (HasBackground ? 8 : 0);
             }
 
             InternalBuild(text, hue);
@@ -167,7 +167,7 @@ namespace ClassicUO.Game.UI.Controls
                 _scrollBar.MaxValue = /* _gameText.Height*/ /* Children.Sum(s => s.Height) - Height +*/ _gameText.Height - Height + (HasBackground ? 8 : 0);
                 ScrollY = _scrollBar.Value;
 
-                Add((Control) _scrollBar);
+                Add(_scrollBar);
             }
 
             //if (Width != _gameText.Width)
@@ -225,9 +225,9 @@ namespace ClassicUO.Game.UI.Controls
             {
                 batcher.EnableScissorTest(true);
                 base.Draw(batcher, x, y);
-               
+
                 _gameText.Draw(batcher,
-                    _gameText.MaxWidth + ScrollX, Height + ScrollY,
+                    Width + ScrollX, Height + ScrollY,
                     x + (HasBackground ? 4 : 0),
                     y + (HasBackground ? 4 : 0),
                     Width - (HasBackground ? 8 : 0),
@@ -253,7 +253,7 @@ namespace ClassicUO.Game.UI.Controls
                         Rectangle rect = new Rectangle(link.StartX, link.StartY, link.EndX, link.EndY);
                         bool inbounds = rect.Contains(x, (_scrollBar == null ? 0 : _scrollBar.Value) + y);
 
-                        if (inbounds && UOFileManager.Fonts.GetWebLink(link.LinkID, out WebLink result))
+                        if (inbounds && FontsLoader.Instance.GetWebLink(link.LinkID, out WebLink result))
                         {
                             Log.Info("LINK CLICKED: " + result.Link);
                             Process.Start(result.Link);

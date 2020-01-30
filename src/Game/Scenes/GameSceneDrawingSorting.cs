@@ -40,23 +40,49 @@ namespace ClassicUO.Game.Scenes
 {
     internal partial class GameScene
     {
+        private readonly struct TreeUnion
+        {
+            public TreeUnion(ushort start, ushort end)
+            {
+                Start = start;
+                End = end;
+            }
+
+            public readonly ushort Start, End;
+        }
+
+
         private sbyte _maxGroundZ;
         private int _maxZ;
         private bool _noDrawRoofs;
         private int _objectHandlesCount;
-        //private WeakReference<GameObject>[] _renderList = new WeakReference<GameObject>[2000];
-
-
-        private Point _offset, _maxTile, _minTile, _minPixel, _maxPixel;
+        private Point _offset, _maxTile, _minTile;
         private int _oldPlayerX, _oldPlayerY, _oldPlayerZ;
-
         private int _renderIndex = 1;
-
         private GameObject[] _renderList = new GameObject[10000];
         private GameObject[] _foliages = new GameObject[100];
+        private readonly GameObject[] _objectHandles = new GameObject[Constants.MAX_OBJECT_HANDLES];
         private int _renderListCount, _foliageCount;
+        private readonly StaticTiles _empty;
+        private sbyte _foliageIndex;
+        private static readonly TreeUnion[] _treeInfos =
+        {
+            new TreeUnion(0x0D45, 0x0D4C),
+            new TreeUnion(0x0D5C, 0x0D62),
+            new TreeUnion(0x0D73, 0x0D79),
+            new TreeUnion(0x0D87, 0x0D8B),
+            new TreeUnion(0x12BE, 0x12C7),
+            new TreeUnion(0x0D4D, 0x0D53),
+            new TreeUnion(0x0D63, 0x0D69),
+            new TreeUnion(0x0D7A, 0x0D7F),
+            new TreeUnion(0x0D8C, 0x0D90)
+        };
+
 
         public Point ScreenOffset => _offset;
+        public sbyte FoliageIndex => _foliageIndex;
+
+
 
         public void UpdateMaxDrawZ(bool force = false)
         {
@@ -116,7 +142,7 @@ namespace ClassicUO.Game.Scenes
 
                     if (tileZ > pz14 && _maxZ > tileZ)
                     {
-                        ref readonly var itemdata = ref UOFileManager.TileData.StaticData[obj.Graphic];
+                        ref readonly var itemdata = ref TileDataLoader.Instance.StaticData[obj.Graphic];
 
                         //if (GameObjectHelper.TryGetStaticData(obj, out var itemdata) && ((ulong) itemdata.Flags & 0x20004) == 0 && (!itemdata.IsRoof || itemdata.IsSurface))
                         if (((ulong) itemdata.Flags & 0x20004) == 0 && (!itemdata.IsRoof || itemdata.IsSurface))
@@ -156,7 +182,7 @@ namespace ClassicUO.Game.Scenes
                         {
                             if (!(obj2 is Land))
                             {
-                                ref readonly var itemdata = ref UOFileManager.TileData.StaticData[obj2.Graphic];
+                                ref readonly var itemdata = ref TileDataLoader.Instance.StaticData[obj2.Graphic];
 
                                 if (((ulong) itemdata.Flags & 0x204) == 0 && itemdata.IsRoof)
                                 {
@@ -191,35 +217,6 @@ namespace ClassicUO.Game.Scenes
                 _maxGroundZ = maxGroundZ;
             }
         }
-
-
-        private readonly StaticTiles _empty;
-        private sbyte _foliageIndex;
-
-
-        private readonly struct TreeUnion
-        {
-            public TreeUnion(ushort start, ushort end)
-            {
-                Start = start;
-                End = end;
-            }
-
-            public readonly ushort Start, End;
-        }
-
-        private static readonly TreeUnion[] _treeInfos =
-        {
-            new TreeUnion(0x0D45, 0x0D4C),
-            new TreeUnion(0x0D5C, 0x0D62),
-            new TreeUnion(0x0D73, 0x0D79),
-            new TreeUnion(0x0D87, 0x0D8B),
-            new TreeUnion(0x12BE, 0x12C7),
-            new TreeUnion(0x0D4D, 0x0D53),
-            new TreeUnion(0x0D63, 0x0D69),
-            new TreeUnion(0x0D7A, 0x0D7F),
-            new TreeUnion(0x0D8C, 0x0D90)
-        };
 
         private void IsFoliageUnion(ushort graphic, int x, int y, int z)
         {
@@ -334,7 +331,7 @@ namespace ClassicUO.Game.Scenes
 
                     default:
 
-                        itemData = ref UOFileManager.TileData.StaticData[obj.Graphic];
+                        itemData = ref TileDataLoader.Instance.StaticData[obj.Graphic];
 
                         //if (GameObjectHelper.TryGetStaticData(obj, out itemData))
                         {
@@ -401,12 +398,22 @@ namespace ClassicUO.Game.Scenes
 
                 if (useObjectHandles && NameOverHeadManager.IsAllowed(obj as Entity))
                 {
-                    obj.UseObjectHandles = (ismobile ||
-                                            iscorpse ||
-                                            obj is Item it && (!it.IsLocked || it.IsLocked && itemData.IsContainer) && !it.IsMulti) &&
-                                           !obj.ClosedObjectHandles && _objectHandlesCount <= 400;
-                    if (obj.UseObjectHandles)
+                    if ((ismobile ||
+                         iscorpse ||
+                         obj is Item it && (!it.IsLocked || it.IsLocked && itemData.IsContainer) && !it.IsMulti) &&
+                        !obj.ClosedObjectHandles)
+                    {
+                        int index = _objectHandlesCount % Constants.MAX_OBJECT_HANDLES;
+
+                        if (_objectHandles[index] != null && !_objectHandles[index].ObjectHandlesOpened)
+                        {
+                            _objectHandles[index].UseObjectHandles = false;
+                            //_objectHandles[index].ObjectHandlesOpened = false;
+                        }
+                        _objectHandles[index] = obj;
+                        obj.UseObjectHandles = true;
                         _objectHandlesCount++;
+                    }
                 }
                 else if (obj.ClosedObjectHandles)
                 {
@@ -838,20 +845,21 @@ namespace ClassicUO.Game.Scenes
             if (minBlockY < 0)
                 minBlockY = 0;
 
-            if (maxBlockX >= UOFileManager.Map.MapsDefaultSize[World.Map.Index, 0])
-                maxBlockX = UOFileManager.Map.MapsDefaultSize[World.Map.Index, 0] - 1;
+            if (maxBlockX >= MapLoader.Instance.MapsDefaultSize[World.Map.Index, 0])
+                maxBlockX = MapLoader.Instance.MapsDefaultSize[World.Map.Index, 0] - 1;
 
-            if (maxBlockY >= UOFileManager.Map.MapsDefaultSize[World.Map.Index, 1])
-                maxBlockY = UOFileManager.Map.MapsDefaultSize[World.Map.Index, 1] - 1;
+            if (maxBlockY >= MapLoader.Instance.MapsDefaultSize[World.Map.Index, 1])
+                maxBlockY = MapLoader.Instance.MapsDefaultSize[World.Map.Index, 1] - 1;
 
             int drawOffset = (int) (Scale * 40.0);
-            float maxX = winGamePosX + winGameWidth + drawOffset;
-            float maxY = winGamePosY + winGameHeight + drawOffset;
-            float newMaxX = maxX * Scale;
-            float newMaxY = maxY * Scale;
-            int minPixelsX = (int) ((winGamePosX - drawOffset) * Scale - MAX /*- (newMaxX + maxX)*/);
+            float maxX = winGamePosX + winGameWidth ;
+            float maxY = winGamePosY + winGameHeight;
+            float newMaxX = maxX * Scale + drawOffset;
+            float newMaxY = maxY * Scale + drawOffset;
+            
+            int minPixelsX = (int) ((winGamePosX) * Scale /*- (newMaxX - maxX)*/ ) - drawOffset * 2;
             int maxPixelsX = (int) newMaxX;
-            int minPixelsY = (int) ((winGamePosY - drawOffset) * Scale - MAX /*- (newMaxY + maxY)*/);
+            int minPixelsY = (int) ((winGamePosY) * Scale /*- (newMaxY - maxY)*/) - drawOffset * 2;
             int maxPixlesY = (int) newMaxY;
 
             if (UpdateDrawPosition || oldDrawOffsetX != winDrawOffsetX || oldDrawOffsetY != winDrawOffsetY)

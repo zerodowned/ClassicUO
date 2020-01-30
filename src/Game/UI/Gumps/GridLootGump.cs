@@ -28,6 +28,7 @@ using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using ClassicUO.IO;
+using ClassicUO.IO.Resources;
 using ClassicUO.Network;
 using ClassicUO.Renderer;
 
@@ -93,7 +94,6 @@ namespace ClassicUO.Game.UI.Gumps
             _buttonPrev = new NiceButton(Width - 80, Height - 20, 40, 20, ButtonAction.Activate, "<<") {ButtonParameter = 0, IsSelectable = false};
             _buttonNext = new NiceButton(Width - 40, Height - 20, 40, 20, ButtonAction.Activate, ">>") {ButtonParameter = 1, IsSelectable = false};
 
-            _buttonNext.IsEnabled = _buttonPrev.IsEnabled = false;
             _buttonNext.IsVisible = _buttonPrev.IsVisible = false;
 
 
@@ -323,7 +323,7 @@ namespace ClassicUO.Game.UI.Gumps
                 _texture.IsPartial = item.ItemData.IsPartialHue;
                 _texture.ScaleTexture = true;
                 _texture.Hue = item.Hue;
-                _texture.Texture = UOFileManager.Art.GetTexture(item.DisplayedGraphic);
+                _texture.Texture = ArtLoader.Instance.GetTexture(item.DisplayedGraphic);
                 _texture.Y = 15;
                 _texture.Width = SIZE;
                 _texture.Height = SIZE;

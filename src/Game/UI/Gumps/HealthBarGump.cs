@@ -411,7 +411,7 @@ namespace ClassicUO.Game.UI.Gumps
                         if (_textBox != null && _textBox.Hue != textColor)
                             _textBox.Hue = textColor;
 
-                        if (_bars[1] != null)
+                        if (_bars.Length >= 2 && _bars[1] != null)
                         {
                             _bars[1].IsVisible = false;
                             _bars[2].IsVisible = false;
@@ -502,7 +502,7 @@ namespace ClassicUO.Game.UI.Gumps
                             _textBox.MouseUp += TextBoxOnMouseUp;
                     }
 
-                    if (inparty && _bars[1] != null)
+                    if (inparty && _bars.Length >= 2 && _bars[1] != null)
                     {
                         _bars[1].IsVisible = true;
                         _bars[2].IsVisible = true;
@@ -590,12 +590,12 @@ namespace ClassicUO.Game.UI.Gumps
                     int mana = CalculatePercents(mobile.ManaMax, mobile.Mana, HPB_BAR_WIDTH);
                     int stam = CalculatePercents(mobile.StaminaMax, mobile.Stamina, HPB_BAR_WIDTH);
 
-                    if (mana != _bars[1].LineWidth)
+                    if (_bars.Length >= 2 && _bars[1] != null && mana != _bars[1].LineWidth)
                     {
                         _bars[1].LineWidth = mana;
                     }
 
-                    if (stam != _bars[2].LineWidth)
+                    if (_bars.Length >= 2 && _bars[2] != null && stam != _bars[2].LineWidth)
                     {
                         _bars[2].LineWidth = stam;
                     }
@@ -615,7 +615,24 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     _oldWarMode = !_oldWarMode;
 
-                    _border[0].LineColor = _border[1].LineColor = _border[2].LineColor = _border[3].LineColor = World.Player.InWarMode ? HPB_COLOR_RED : HPB_COLOR_BLACK;
+                    if (World.Player.InWarMode)
+                    {
+                        _border[0].LineColor = HPB_COLOR_RED;
+
+                        if (_border.Length >= 3)
+                        {
+                            _border[1].LineColor = _border[2].LineColor = _border[3].LineColor = HPB_COLOR_RED;
+                        }
+                    }
+                    else
+                    {
+                        _border[0].LineColor = HPB_COLOR_BLACK;
+
+                        if (_border.Length >= 3)
+                        {
+                            _border[1].LineColor = _border[2].LineColor = _border[3].LineColor = HPB_COLOR_BLACK;
+                        }
+                    }
                 }
             }
         }
@@ -888,6 +905,7 @@ namespace ClassicUO.Game.UI.Gumps
             {
                 Add(_background = new GumpPic(0, 0, BACKGROUND_NORMAL, 0)
                 {
+                    ContainsByBounds = true,
                     Alpha = 1
                 });
                 Width = 115;
@@ -932,7 +950,7 @@ namespace ClassicUO.Game.UI.Gumps
                 if (LocalSerial == World.Player)
                 {
                     _oldWarMode = World.Player.InWarMode;
-                    Add(_background = new GumpPic(0, 0, _oldWarMode ? BACKGROUND_WAR : BACKGROUND_NORMAL, 0));
+                    Add(_background = new GumpPic(0, 0, _oldWarMode ? BACKGROUND_WAR : BACKGROUND_NORMAL, 0) { ContainsByBounds = true });
 
                     Width = _background.Texture.Width;
                     Height = _background.Texture.Height;
@@ -965,7 +983,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                     ushort barColor = entity == null || entity == World.Player || mobile == null || mobile.NotorietyFlag == NotorietyFlag.Criminal || mobile.NotorietyFlag == NotorietyFlag.Gray ? (ushort) 0 : Notoriety.GetHue(mobile.NotorietyFlag);
 
-                    Add(_background = new GumpPic(0, 0, 0x0804, barColor));
+                    Add(_background = new GumpPic(0, 0, 0x0804, barColor) { ContainsByBounds = true });
                     Add(_hpLineRed = new GumpPic(34, 38, LINE_RED, hitsColor));
                     Add(_bars[0] = new GumpPicWithWidth(34, 38, LINE_BLUE, 0, 0));
 
@@ -1037,7 +1055,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                         _buttonHeal1.IsVisible = _buttonHeal2.IsVisible = false;
 
-                        if (_bars[1] != null)
+                        if (_bars.Length >= 2 && _bars[1] != null)
                         {
                             _bars[1].IsVisible = false;
                             _bars[2].IsVisible = false;
@@ -1132,7 +1150,7 @@ namespace ClassicUO.Game.UI.Gumps
                     {
                         _buttonHeal1.IsVisible = _buttonHeal2.IsVisible = true;
 
-                        if (_bars[1] != null)
+                        if (_bars.Length >= 2 && _bars[1] != null)
                         {
                             _bars[1].IsVisible = true;
                             _bars[2].IsVisible = true;
@@ -1216,13 +1234,13 @@ namespace ClassicUO.Game.UI.Gumps
                     int mana = CalculatePercents(mobile.ManaMax, mobile.Mana, barW);
                     int stam = CalculatePercents(mobile.StaminaMax, mobile.Stamina, barW);
 
-                    if (mana != _oldMana)
+                    if (mana != _oldMana && _bars.Length >= 2 && _bars[1] != null)
                     {
                         _bars[1].Percent = mana;
                         _oldMana = mana;
                     }
 
-                    if (stam != _oldStam)
+                    if (stam != _oldStam && _bars.Length >= 2 && _bars[2] != null)
                     {
                         _bars[2].Percent = stam;
                         _oldStam = stam;
@@ -1246,6 +1264,7 @@ namespace ClassicUO.Game.UI.Gumps
                     _oldWarMode = !_oldWarMode;
 
                     _background.Graphic = World.Player.InWarMode ? BACKGROUND_WAR : BACKGROUND_NORMAL;
+
                 }
             }
         }

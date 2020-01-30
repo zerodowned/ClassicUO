@@ -214,8 +214,21 @@ namespace ClassicUO.Network
             if (Plugin.ProcessSendPacket(ref data, ref length))
             {
                 PacketSent.Raise(p);
-                Send(data);
+                Send(data, length);
             }
+        }
+
+        public void Send(byte[] data, bool ignorePlugin = false)
+        {
+            int length = data.Length;
+
+            if (!ignorePlugin && !Plugin.ProcessSendPacket(ref data, ref length))
+            {
+               return;
+            }
+            
+            PacketSent.Raise(new PacketWriter(data));
+            Send(data, length);
         }
 
         public void Update()
@@ -389,39 +402,33 @@ namespace ClassicUO.Network
         }
 #endif
 
-        public void Send(byte[] data)
+        private void Send(byte[] data, int length)
         {
             if (_socket == null)
                 return;
 
-            if (data != null)
+            if (data != null || data.Length == 0 || length <= 0)
             {
-                if (data.Length <= 0)
-                    return;
-
                 try
                 {
 #if !DEBUG
                     //LogPacket(data, true);
 #endif
 
-                    int sent = _socket.Send(data, 0, data.Length, SocketFlags.None);
+                    int sent = _socket.Send(data, 0, length, SocketFlags.None);
 
                     if (sent > 0)
                     {
                         Statistics.TotalBytesSent += (uint) sent;
                         Statistics.TotalPacketsSent++;
                     }
-                    else
-                        Disconnect(SocketError.SocketError);
                 }
                 catch (SocketException ex)
                 {
+                    Log.Error("SOCKET ERROR: " + ex);
                     Disconnect(ex.SocketErrorCode);
                 }
             }
-            else
-                Disconnect(SocketError.SocketError);
         }
 
         private void IO_Socket(object sender, SocketAsyncEventArgs e)
@@ -459,9 +466,10 @@ namespace ClassicUO.Network
                         ProcessRecv(_recvEventArgs);
                 } while (ok);
             }
-            catch (SocketException socketEx)
+            catch (SocketException ex)
             {
-                Disconnect(socketEx.SocketErrorCode);
+                Log.Error("SOCKET ERROR: " + ex);
+                Disconnect(ex.SocketErrorCode);
             }
             catch (Exception e)
             {
@@ -474,24 +482,36 @@ namespace ClassicUO.Network
         {
             int bytesLen = e.BytesTransferred;
 
-            if (bytesLen > 0 && e.SocketError == SocketError.Success && _circularBuffer != null)
+            if (_circularBuffer != null)
             {
-                Statistics.TotalBytesReceived += (uint)bytesLen;
-
-                byte[] buffer = _recvBuffer;
-
-                if (_isCompressionEnabled)
+                if (bytesLen > 0)
                 {
-                    DecompressBuffer(ref buffer, ref bytesLen);
+                    if (e.SocketError == SocketError.Success)
+                    {
+                        Statistics.TotalBytesReceived += (uint) bytesLen;
+
+                        byte[] buffer = _recvBuffer;
+
+                        if (_isCompressionEnabled)
+                        {
+                            DecompressBuffer(ref buffer, ref bytesLen);
+                        }
+
+                        lock (_circularBuffer)
+                            _circularBuffer.Enqueue(buffer, 0, bytesLen);
+
+                        ExtractPackets();
+                    }
+                    else
+                    {
+                        Disconnect(e.SocketError);
+                    }
                 }
-
-                lock (_circularBuffer) 
-                    _circularBuffer.Enqueue(buffer, 0, bytesLen);
-
-                ExtractPackets();
+                else
+                {
+                    Disconnect(SocketError.ConnectionAborted);
+                }
             }
-            else
-                Disconnect(SocketError.SocketError);
         }
 
         private void DecompressBuffer(ref byte[] buffer, ref int length)

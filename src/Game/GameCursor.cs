@@ -32,6 +32,7 @@ using ClassicUO.Game.UI.Controls;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Input;
 using ClassicUO.IO;
+using ClassicUO.IO.Resources;
 using ClassicUO.Renderer;
 using ClassicUO.Utility.Collections;
 
@@ -63,7 +64,6 @@ namespace ClassicUO.Game
         private IntPtr _cursor, _surface;
         private UOTexture _draggedItemTexture;
         private ushort _graphic = 0x2073;
-        private ItemHold _itemHold;
         private bool _needGraphicUpdate = true;
         private Point _offset;
         private static Vector3 _vec = Vector3.Zero;
@@ -102,7 +102,7 @@ namespace ClassicUO.Game
                 {
                     ushort id = _cursorData[i, j];
 
-                    ushort[] pixels = UOFileManager.Art.ReadStaticArt(id, out short w, out short h, out _);
+                    ushort[] pixels = ArtLoader.Instance.ReadStaticArt(id, out short w, out short h, out _);
 
                     if (i == 0)
                     {
@@ -247,10 +247,9 @@ namespace ClassicUO.Game
         public bool IsDraggingCursorForced { get; set; }
 
 
-        public void SetDraggedItem(ItemHold hold, Point? offset)
+        public void SetDraggedItem(Point? offset)
         {
-            _itemHold = hold;
-            _draggedItemTexture = UOFileManager.Art.GetTexture(_itemHold.DisplayedGraphic);
+            _draggedItemTexture = ArtLoader.Instance.GetTexture(ItemHold.DisplayedGraphic);
             if (_draggedItemTexture == null)
                 return;
 
@@ -305,7 +304,7 @@ namespace ClassicUO.Game
                 }
             }
 
-            if (_itemHold != null && _itemHold.Enabled)
+            if (ItemHold.Enabled)
                 _draggedItemTexture.Ticks = (long) totalMS;
         }
 
@@ -439,7 +438,7 @@ namespace ClassicUO.Game
                 _temp.Clear();
             }
 
-            if (_itemHold != null && _itemHold.Enabled && !_itemHold.Dropped)
+            if (ItemHold.Enabled && !ItemHold.Dropped)
             {
                 float scale = 1;
 
@@ -450,11 +449,11 @@ namespace ClassicUO.Game
                 int y = Mouse.Position.Y - _offset.Y;
 
                 Vector3 hue = Vector3.Zero;
-                ShaderHuesTraslator.GetHueVector(ref hue, _itemHold.Hue, _itemHold.IsPartialHue, _itemHold.HasAlpha ? .5f : 0);
+                ShaderHuesTraslator.GetHueVector(ref hue, ItemHold.Hue, ItemHold.IsPartialHue, ItemHold.HasAlpha ? .5f : 0);
 
                 sb.Draw2D(_draggedItemTexture, x, y, _draggedItemTexture.Width * scale, _draggedItemTexture.Height * scale, ref hue);
 
-                if (_itemHold.Amount > 1 && _itemHold.DisplayedGraphic == _itemHold.Graphic && _itemHold.IsStackable)
+                if (ItemHold.Amount > 1 && ItemHold.DisplayedGraphic == ItemHold.Graphic && ItemHold.IsStackable)
                 {
                     x += 5;
                     y += 5;
@@ -476,7 +475,7 @@ namespace ClassicUO.Game
                 int offX = _cursorOffset[0, graphic];
                 int offY = _cursorOffset[1, graphic];
 
-                sb.Draw2D(UOFileManager.Art.GetTexture(Graphic), Mouse.Position.X + offX, Mouse.Position.Y + offY, ref _vec);
+                sb.Draw2D(ArtLoader.Instance.GetTexture(Graphic), Mouse.Position.X + offX, Mouse.Position.Y + offY, ref _vec);
             }
 
         }
@@ -485,52 +484,33 @@ namespace ClassicUO.Game
         {
             if (Client.Game.Scene is GameScene gs)
             {
-                if (!World.ClientFeatures.TooltipsEnabled || (SelectedObject.Object is Item selectedItem && selectedItem.IsLocked && selectedItem.ItemData.Weight == 255 && !selectedItem.ItemData.IsContainer) || gs.IsHoldingItem)
+                if (!World.ClientFeatures.TooltipsEnabled || 
+                    (SelectedObject.Object is Item selectedItem && 
+                     selectedItem.IsLocked && 
+                     selectedItem.ItemData.Weight == 255
+                     && !selectedItem.ItemData.IsContainer) || 
+                    ItemHold.Enabled)
                 {
-                    if (!_tooltip.IsEmpty)
+                    if (!_tooltip.IsEmpty && (!UIManager.IsMouseOverAControl || UIManager.IsMouseOverWorld))
                         _tooltip.Clear();
                 }
                 else
                 {
                     if (gs.IsMouseOverViewport && SelectedObject.Object is Entity item && World.OPL.Contains(item))
                     {
-                        if (_tooltip.IsEmpty || item != _tooltip.Object)
+                        if (_tooltip.IsEmpty || item != _tooltip.Serial)
                             _tooltip.SetGameObject(item);
                         _tooltip.Draw(batcher, position.X, position.Y + 24);
 
                         return;
                     }
 
-                    if (UIManager.IsMouseOverAControl)
+                    if (UIManager.IsMouseOverAControl && UIManager.MouseOverControl.Tooltip is uint serial)
                     {
-                        Entity it = null;
-
-                        switch (UIManager.MouseOverControl)
+                        if (SerialHelper.IsValid(serial) && World.OPL.Contains(serial))
                         {
-                            //case EquipmentSlot equipmentSlot:
-                            //    it = equipmentSlot.Item;
-
-                            //    break;
-
-                            case ItemGump gumpling:
-                                it = World.Items.Get(gumpling.LocalSerial);
-
-                                break;
-
-                            case Control control when control.Tooltip is Item i:
-                                it = i;
-
-                                break;
-
-                            case NameOverheadGump overhead:
-                                it = overhead.Entity;
-                                break;
-                        }
-
-                        if (it != null && World.OPL.Contains(it))
-                        {
-                            if (_tooltip.IsEmpty || it != _tooltip.Object)
-                                _tooltip.SetGameObject(it);
+                            if (_tooltip.IsEmpty || serial != _tooltip.Serial)
+                                _tooltip.SetGameObject(serial);
                             _tooltip.Draw(batcher, position.X, position.Y + 24);
 
                             return;
@@ -543,16 +523,14 @@ namespace ClassicUO.Game
             {
                 if (UIManager.MouseOverControl.Tooltip is string text)
                 {
-                    if (_tooltip.Text != text)
-                        _tooltip.Clear();
-
-                    if (_tooltip.IsEmpty)
+                    if (_tooltip.IsEmpty || _tooltip.Text != text)
                         _tooltip.SetText(text, UIManager.MouseOverControl.TooltipMaxLength);
 
                     _tooltip.Draw(batcher, position.X, position.Y + 24);
                 }
             }
-            else if (!_tooltip.IsEmpty) _tooltip.Clear();
+            else if (!_tooltip.IsEmpty) 
+                _tooltip.Clear();
         }
 
         private ushort AssignGraphicByState()
@@ -561,9 +539,7 @@ namespace ClassicUO.Game
 
             if (TargetManager.IsTargeting)
             {
-                GameScene gs = Client.Game.GetScene<GameScene>();
-
-                if (gs != null && !gs.IsHoldingItem)
+                if (!ItemHold.Enabled)
                     return _cursorData[war, 12];
             }
 

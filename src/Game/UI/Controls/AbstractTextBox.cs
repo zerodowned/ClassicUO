@@ -31,6 +31,7 @@ namespace ClassicUO.Game.UI.Controls
         public int MaxCharCount { get; set; }
         public bool Unicode { get; protected set; }
         public byte Font { get; protected set; }
+        public virtual string Text { get => EntryValue?.Text; set { } }
         public override bool AcceptKeyboardInput => base.AcceptKeyboardInput && IsEditable;
 
         protected override void OnMouseDown(int x, int y, MouseButtonType button)
@@ -40,11 +41,16 @@ namespace ClassicUO.Game.UI.Controls
                 SetKeyboardFocus();
                 EntryValue?.OnMouseClick(x, y);
             }
+
+            base.OnMouseDown(x, y, button);
         }
 
         protected override void OnMouseUp(int x, int y, MouseButtonType button)
         {
-            if (button == MouseButtonType.Left) EntryValue?.OnSelectionEnd(x, y);
+            if (button == MouseButtonType.Left) 
+                EntryValue?.OnSelectionEnd(x, y);
+
+            base.OnMouseUp(x, y, button);
         }
 
         public override bool Draw(UltimaBatcher2D batcher, int x, int y)

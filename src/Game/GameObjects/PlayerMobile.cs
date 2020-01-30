@@ -45,11 +45,11 @@ namespace ClassicUO.Game.GameObjects
 
         public PlayerMobile(uint serial) : base(serial)
         {
-            Skills = new Skill[UOFileManager.Skills.SkillsCount];
+            Skills = new Skill[SkillsLoader.Instance.SkillsCount];
 
             for (int i = 0; i < Skills.Length; i++)
             {
-                SkillEntry skill = UOFileManager.Skills.Skills[i];
+                SkillEntry skill = SkillsLoader.Instance.Skills[i];
                 Skills[i] = new Skill(skill.Name, skill.Index, skill.HasAction);
             }
         }
@@ -90,68 +90,68 @@ namespace ClassicUO.Game.GameObjects
 
         public uint TithingPoints;
 
-        public ushort DamageMin;
+        public short DamageMin;
 
-        public ushort DamageMax;
+        public short DamageMax;
 
-        public ushort StatsCap;
+        public short StatsCap;
 
-        public ushort HitChanceIncrease;
+        public short HitChanceIncrease;
 
-        public ushort SwingSpeedIncrease;
+        public short SwingSpeedIncrease;
 
-        public ushort DamageIncrease;
+        public short DamageIncrease;
 
-        public ushort LowerReagentCost;
+        public short LowerReagentCost;
 
-        public ushort HitPointsRegeneration;
+        public short HitPointsRegeneration;
 
-        public ushort StaminaRegeneration;
+        public short StaminaRegeneration;
 
-        public ushort ManaRegeneration;
+        public short ManaRegeneration;
 
-        public ushort MaxPhysicResistence;
+        public short MaxPhysicResistence;
 
-        public ushort MaxFireResistence;
+        public short MaxFireResistence;
 
-        public ushort MaxColdResistence;
+        public short MaxColdResistence;
 
-        public ushort MaxPoisonResistence;
+        public short MaxPoisonResistence;
 
-        public ushort MaxEnergyResistence;
+        public short MaxEnergyResistence;
 
-        public ushort MaxDefenseChanceIncrease;
+        public short MaxDefenseChanceIncrease;
 
-        public ushort ReflectPhysicalDamage;
+        public short ReflectPhysicalDamage;
 
-        public ushort EnhancePotions;
+        public short EnhancePotions;
 
-        public ushort DefenseChanceIncrease;
-        public ushort SpellDamageIncrease;
+        public short DefenseChanceIncrease;
+        public short SpellDamageIncrease;
 
-        public ushort FasterCastRecovery;
+        public short FasterCastRecovery;
 
-        public ushort FasterCasting;
+        public short FasterCasting;
 
-        public ushort LowerManaCost;
+        public short LowerManaCost;
 
-        public ushort StrengthIncrease;
+        public short StrengthIncrease;
 
-        public ushort DexterityIncrease;
+        public short DexterityIncrease;
 
-        public ushort IntelligenceIncrease;
+        public short IntelligenceIncrease;
 
-        public ushort HitPointsIncrease;
+        public short HitPointsIncrease;
 
-        public ushort StaminaIncrease;
+        public short StaminaIncrease;
 
-        public ushort ManaIncrease;
+        public short ManaIncrease;
 
-        public ushort MaxHitPointsIncrease;
+        public short MaxHitPointsIncrease;
 
-        public ushort MaxStaminaIncrease;
+        public short MaxStaminaIncrease;
 
-        public ushort MaxManaIncrease;
+        public short MaxManaIncrease;
 
         public Ability PrimaryAbility
         {
@@ -240,36 +240,6 @@ namespace ClassicUO.Game.GameObjects
             _buffIcons.Remove(graphic);
         }
 
-        public void UpdateSkill(int id, ushort realValue, ushort baseValue, Lock @lock, ushort cap, bool displayMessage = false)
-        {
-            if (id < Skills.Length)
-            {
-                Skill skill = Skills[id];
-
-                if (displayMessage && skill.ValueFixed != realValue)
-                {
-                    var delta = realValue - skill.ValueFixed;
-                    var direction = delta < 0 ? "decreased" : "increased";
-
-                    GameActions.Print($"Your skill in {skill.Name} has {direction} by {delta / 10.0:#0.0}%.  It is now {realValue / 10.0:#0.0}%.", 0x58, MessageType.System, 3, false);
-                }
-
-                skill.ValueFixed = realValue;
-                skill.BaseFixed = baseValue;
-                skill.Lock = @lock;
-                skill.CapFixed = cap;
-
-                // check needed to avoid crash when you create a char
-                if (ProfileManager.Current != null)
-                {
-                    if (ProfileManager.Current.StandardSkillsGump)
-                        UIManager.GetGump<StandardSkillsGump>()?.ForceUpdate(id);
-                    else
-                        UIManager.GetGump<SkillGumpAdvanced>()?.ForceUpdate();
-                }
-            }
-        }
-
         public void UpdateAbilities()
         {
             ushort equippedGraphic = 0;
@@ -301,7 +271,7 @@ namespace ClassicUO.Game.GameObjects
 
                     ushort testGraphic = (ushort) (equippedGraphic - 1);
 
-                    if (UOFileManager.TileData.StaticData[testGraphic].AnimID == imageID)
+                    if (TileDataLoader.Instance.StaticData[testGraphic].AnimID == imageID)
                     {
                         graphics[1] = testGraphic;
                         count = 2;
@@ -310,7 +280,7 @@ namespace ClassicUO.Game.GameObjects
                     {
                         testGraphic = (ushort) (equippedGraphic + 1);
 
-                        if (UOFileManager.TileData.StaticData[testGraphic].AnimID == imageID)
+                        if (TileDataLoader.Instance.StaticData[testGraphic].AnimID == imageID)
                         {
                             graphics[1] = testGraphic;
                             count = 2;
@@ -336,7 +306,7 @@ namespace ClassicUO.Game.GameObjects
                                 goto done;
 
                             case 0x0905: // Glass Staff
-                                Abilities[0] = Ability.DoubleShot;
+                                Abilities[0] = Ability.DoubleStrike;
                                 Abilities[1] = Ability.MortalStrike;
 
                                 goto done;
@@ -378,7 +348,7 @@ namespace ClassicUO.Game.GameObjects
 
                             case 0x0E85:
                             case 0x0E86: // Pickaxes
-                                Abilities[0] = Ability.DoubleShot;
+                                Abilities[0] = Ability.DoubleStrike;
                                 Abilities[1] = Ability.Disarm;
 
                                 goto done;
@@ -392,7 +362,7 @@ namespace ClassicUO.Game.GameObjects
 
                             case 0x0E89:
                             case 0x0E8A: // Quarter Staves
-                                Abilities[0] = Ability.DoubleShot;
+                                Abilities[0] = Ability.DoubleStrike;
                                 Abilities[1] = Ability.ConcussionBlow;
 
                                 goto done;
@@ -524,7 +494,7 @@ namespace ClassicUO.Game.GameObjects
 
                             case 0x13B7:
                             case 0x13B8: // Scimitars
-                                Abilities[0] = Ability.DoubleShot;
+                                Abilities[0] = Ability.DoubleStrike;
                                 Abilities[1] = Ability.ParalyzingBlow;
 
                                 goto done;
@@ -636,7 +606,7 @@ namespace ClassicUO.Game.GameObjects
 
                             case 0x1442:
                             case 0x1443: // Two Handed Axes
-                                Abilities[0] = Ability.DoubleShot;
+                                Abilities[0] = Ability.DoubleStrike;
                                 Abilities[1] = Ability.ShadowStrike;
 
                                 goto done;
@@ -672,7 +642,7 @@ namespace ClassicUO.Game.GameObjects
                                 goto done;
 
                             case 0x26BF: // Double Bladed Staff
-                                Abilities[0] = Ability.DoubleShot;
+                                Abilities[0] = Ability.DoubleStrike;
                                 Abilities[1] = Ability.InfectiousStrike;
 
                                 goto done;
@@ -684,7 +654,7 @@ namespace ClassicUO.Game.GameObjects
                                 goto done;
 
                             case 0x26C1: // Crescent Blades
-                                Abilities[0] = Ability.DoubleShot;
+                                Abilities[0] = Ability.DoubleStrike;
                                 Abilities[1] = Ability.MortalStrike;
 
                                 goto done;
@@ -696,7 +666,7 @@ namespace ClassicUO.Game.GameObjects
                                 goto done;
 
                             case 0x26C3: // Repeating Crossbows
-                                Abilities[0] = Ability.DoubleShot;
+                                Abilities[0] = Ability.DoubleStrike;
                                 Abilities[1] = Ability.MovingShot;
 
                                 goto done;
@@ -732,7 +702,7 @@ namespace ClassicUO.Game.GameObjects
                                 goto done;
 
                             case 0x26C9: // also Double Bladed Staff
-                                Abilities[0] = Ability.DoubleShot;
+                                Abilities[0] = Ability.DoubleStrike;
                                 Abilities[1] = Ability.InfectiousStrike;
 
                                 goto done;
@@ -744,7 +714,7 @@ namespace ClassicUO.Game.GameObjects
                                 goto done;
 
                             case 0x26CB: // also Crescent Blades
-                                Abilities[0] = Ability.DoubleShot;
+                                Abilities[0] = Ability.DoubleStrike;
                                 Abilities[1] = Ability.MortalStrike;
 
                                 goto done;
@@ -756,7 +726,7 @@ namespace ClassicUO.Game.GameObjects
                                 goto done;
 
                             case 0x26CD: // also Repeating Crossbows
-                                Abilities[0] = Ability.DoubleShot;
+                                Abilities[0] = Ability.DoubleStrike;
                                 Abilities[1] = Ability.MovingShot;
 
                                 goto done;
@@ -775,7 +745,7 @@ namespace ClassicUO.Game.GameObjects
 
                             case 0x27A4: // Wakizashi
                                 Abilities[0] = Ability.FrenziedWhirlwind;
-                                Abilities[1] = Ability.DoubleShot;
+                                Abilities[1] = Ability.DoubleStrike;
 
                                 goto done;
 
@@ -805,7 +775,7 @@ namespace ClassicUO.Game.GameObjects
 
                             case 0x27A9: // Daisho
                                 Abilities[0] = Ability.Feint;
-                                Abilities[1] = Ability.DoubleShot;
+                                Abilities[1] = Ability.DoubleStrike;
 
                                 goto done;
 
@@ -853,7 +823,7 @@ namespace ClassicUO.Game.GameObjects
 
                             case 0x27EF: // also Wakizashi
                                 Abilities[0] = Ability.FrenziedWhirlwind;
-                                Abilities[1] = Ability.DoubleShot;
+                                Abilities[1] = Ability.DoubleStrike;
 
                                 goto done;
 
@@ -883,7 +853,7 @@ namespace ClassicUO.Game.GameObjects
 
                             case 0x27F4: // also Daisho
                                 Abilities[0] = Ability.Feint;
-                                Abilities[1] = Ability.DoubleShot;
+                                Abilities[1] = Ability.DoubleStrike;
 
                                 goto done;
 
@@ -1068,7 +1038,7 @@ namespace ClassicUO.Game.GameObjects
                                 goto done;
 
                             case 0x4068: // Dual Short Axes
-                                Abilities[0] = Ability.DoubleShot;
+                                Abilities[0] = Ability.DoubleStrike;
                                 Abilities[1] = Ability.InfectiousStrike;
 
                                 goto done;
@@ -1086,7 +1056,7 @@ namespace ClassicUO.Game.GameObjects
                                 goto done;
 
                             case 0x406D: // Dual Pointed Spear
-                                Abilities[0] = Ability.DoubleShot;
+                                Abilities[0] = Ability.DoubleStrike;
                                 Abilities[1] = Ability.Disarm;
 
                                 goto done;
@@ -1158,7 +1128,7 @@ namespace ClassicUO.Game.GameObjects
                                 goto done;
 
                             case 0x48BA: // Gargish Katana
-                                Abilities[0] = Ability.DoubleShot;
+                                Abilities[0] = Ability.DoubleStrike;
                                 Abilities[1] = Ability.ArmorIgnore;
 
                                 goto done;
@@ -1225,7 +1195,7 @@ namespace ClassicUO.Game.GameObjects
 
                             case 0x48D0: // Gargish Daisho
                                 Abilities[0] = Ability.Feint;
-                                Abilities[1] = Ability.DoubleShot;
+                                Abilities[1] = Ability.DoubleStrike;
 
                                 goto done;
                         }

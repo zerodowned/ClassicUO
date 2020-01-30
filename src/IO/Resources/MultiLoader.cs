@@ -36,6 +36,27 @@ namespace ClassicUO.IO.Resources
         private int _itemOffset;
         private DataReader _reader;
 
+        private MultiLoader()
+        {
+
+        }
+
+        private static MultiLoader _instance;
+        public static MultiLoader Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = new MultiLoader();
+                }
+
+                return _instance;
+            }
+        }
+
+
+
         public int Count { get; private set; }
 
         public override Task Load()
@@ -115,6 +136,7 @@ namespace ClassicUO.IO.Resources
         {
             int count;
             ref readonly var entry = ref GetValidRefEntry(graphic);
+            _file.SetData(entry.Address, entry.FileSize);
 
             if (_file is UOFileUop uop)
             {

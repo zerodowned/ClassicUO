@@ -37,6 +37,7 @@ using ClassicUO.Game.UI.Controls;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Input;
 using ClassicUO.IO;
+using ClassicUO.IO.Resources;
 using ClassicUO.Renderer;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Collections;
@@ -416,7 +417,7 @@ namespace ClassicUO.Network
 
                     if (type >= 3) //Renaissance
                     {
-                        World.Player.StatsCap = p.ReadUShort();
+                        World.Player.StatsCap = (short) p.ReadUShort();
                         World.Player.Followers = p.ReadByte();
                         World.Player.FollowersMax = p.ReadByte();
                     }
@@ -428,28 +429,28 @@ namespace ClassicUO.Network
                         World.Player.PoisonResistance = (short) p.ReadUShort();
                         World.Player.EnergyResistance = (short) p.ReadUShort();
                         World.Player.Luck = p.ReadUShort();
-                        World.Player.DamageMin = p.ReadUShort();
-                        World.Player.DamageMax = p.ReadUShort();
+                        World.Player.DamageMin = (short) p.ReadUShort();
+                        World.Player.DamageMax = (short) p.ReadUShort();
                         World.Player.TithingPoints = p.ReadUInt();
                     }
 
                     if (type >= 6)
                     {
-                        World.Player.MaxPhysicResistence = p.Position + 2 > p.Length ? (ushort) 0 : p.ReadUShort();
-                        World.Player.MaxFireResistence = p.Position + 2 > p.Length ? (ushort) 0 : p.ReadUShort();
-                        World.Player.MaxColdResistence = p.Position + 2 > p.Length ? (ushort) 0 : p.ReadUShort();
-                        World.Player.MaxPoisonResistence = p.Position + 2 > p.Length ? (ushort) 0 : p.ReadUShort();
-                        World.Player.MaxEnergyResistence = p.Position + 2 > p.Length ? (ushort) 0 : p.ReadUShort();
-                        World.Player.DefenseChanceIncrease = p.Position + 2 > p.Length ? (ushort) 0 : p.ReadUShort();
-                        World.Player.MaxDefenseChanceIncrease = p.Position + 2 > p.Length ? (ushort) 0 : p.ReadUShort();
-                        World.Player.HitChanceIncrease = p.Position + 2 > p.Length ? (ushort) 0 : p.ReadUShort();
-                        World.Player.SwingSpeedIncrease = p.Position + 2 > p.Length ? (ushort) 0 : p.ReadUShort();
-                        World.Player.DamageIncrease = p.Position + 2 > p.Length ? (ushort) 0 : p.ReadUShort();
-                        World.Player.LowerReagentCost = p.Position + 2 > p.Length ? (ushort) 0 : p.ReadUShort();
-                        World.Player.SpellDamageIncrease = p.Position + 2 > p.Length ? (ushort) 0 : p.ReadUShort();
-                        World.Player.FasterCastRecovery = p.Position + 2 > p.Length ? (ushort) 0 : p.ReadUShort();
-                        World.Player.FasterCasting = p.Position + 2 > p.Length ? (ushort) 0 : p.ReadUShort();
-                        World.Player.LowerManaCost = p.Position + 2 > p.Length ? (ushort) 0 : p.ReadUShort();
+                        World.Player.MaxPhysicResistence = p.Position + 2 > p.Length ? (short) 0 : (short) p.ReadUShort();
+                        World.Player.MaxFireResistence = p.Position + 2 > p.Length ? (short) 0 : (short) p.ReadUShort();
+                        World.Player.MaxColdResistence = p.Position + 2 > p.Length ? (short) 0 : (short) p.ReadUShort();
+                        World.Player.MaxPoisonResistence = p.Position + 2 > p.Length ? (short) 0 : (short) p.ReadUShort();
+                        World.Player.MaxEnergyResistence = p.Position + 2 > p.Length ? (short) 0 : (short) p.ReadUShort();
+                        World.Player.DefenseChanceIncrease = p.Position + 2 > p.Length ? (short) 0 : (short) p.ReadUShort();
+                        World.Player.MaxDefenseChanceIncrease = p.Position + 2 > p.Length ? (short) 0 : (short) p.ReadUShort();
+                        World.Player.HitChanceIncrease = p.Position + 2 > p.Length ? (short) 0 : (short) p.ReadUShort();
+                        World.Player.SwingSpeedIncrease = p.Position + 2 > p.Length ? (short) 0 : (short) p.ReadUShort();
+                        World.Player.DamageIncrease = p.Position + 2 > p.Length ? (short) 0 : (short) p.ReadUShort();
+                        World.Player.LowerReagentCost = p.Position + 2 > p.Length ? (short) 0 : (short) p.ReadUShort();
+                        World.Player.SpellDamageIncrease = p.Position + 2 > p.Length ? (short) 0 : (short) p.ReadUShort();
+                        World.Player.FasterCastRecovery = p.Position + 2 > p.Length ? (short) 0 : (short) p.ReadUShort();
+                        World.Player.FasterCasting = p.Position + 2 > p.Length ? (short) 0 : (short) p.ReadUShort();
+                        World.Player.LowerManaCost = p.Position + 2 > p.Length ? (short) 0 : (short) p.ReadUShort();
                     }
                 }
             }
@@ -697,11 +698,14 @@ namespace ClassicUO.Network
                 return;
             }
 
-            if (entity != null)
+            if (!(type == MessageType.System || serial == 0xFFFF_FFFF || serial == 0 || (name.ToLower() == "system" && entity == null)))
             {
-                if (string.IsNullOrEmpty(entity.Name))
-                    entity.Name = name;
-                entity.ProcessDelta();
+                if (entity != null)
+                {
+                    if (string.IsNullOrEmpty(entity.Name))
+                        entity.Name = name;
+                    entity.ProcessDelta();
+                }
             }
 
             Chat.HandleMessage(entity, text, name, hue, type, (byte) font);
@@ -746,7 +750,7 @@ namespace ClassicUO.Network
                     GameScene scene = Client.Game.GetScene<GameScene>();
 
                     if (cont == World.Player && it.Layer == Layer.Invalid)
-                        scene.HeldItem.Enabled = false;
+                        ItemHold.Enabled = false;
 
 
                     if (it.Layer != Layer.Invalid)
@@ -1023,7 +1027,7 @@ namespace ClassicUO.Network
                         list = list.Reverse().ToArray();
 
                     foreach (var i in list) 
-                        gump.AddItem(i, false);
+                        gump.AddItem(i.Serial, i.Graphic, i.Hue, i.Amount, (ushort) i.Price, i.Name, false);
                 }
             }
             else
@@ -1099,28 +1103,26 @@ namespace ClassicUO.Network
 
             GameScene scene = Client.Game.GetScene<GameScene>();
 
-            ItemHold hold = scene.HeldItem;
+            Item item = World.Items.Get(ItemHold.Serial);
 
-            Item item = World.Items.Get(hold.Serial);
-
-            if (hold.Enabled || hold.Dropped && item == null)
+            if (ItemHold.Enabled || ItemHold.Dropped && item == null)
             {
-                if (hold.Layer == Layer.Invalid && SerialHelper.IsValid(hold.Container))
+                if (ItemHold.Layer == Layer.Invalid && SerialHelper.IsValid(ItemHold.Container))
                 {
-                    Entity container = World.Get(hold.Container);
+                    Entity container = World.Get(ItemHold.Container);
 
                     if (container != null)
                     {
-                        item = World.GetOrCreateItem(hold.Serial);
-                        item.Graphic = hold.Graphic;
-                        item.FixHue(hold.Hue);
-                        item.Amount = hold.Amount;
-                        item.Flags = hold.Flags;
-                        item.Layer = hold.Layer;
-                        item.Container = hold.Container;
-                        item.X = hold.X;
-                        item.Y = hold.Y;
-                        item.Z = hold.Z;
+                        item = World.GetOrCreateItem(ItemHold.Serial);
+                        item.Graphic = ItemHold.Graphic;
+                        item.FixHue(ItemHold.Hue);
+                        item.Amount = ItemHold.Amount;
+                        item.Flags = ItemHold.Flags;
+                        item.Layer = ItemHold.Layer;
+                        item.Container = ItemHold.Container;
+                        item.X = ItemHold.X;
+                        item.Y = ItemHold.Y;
+                        item.Z = ItemHold.Z;
                         item.UpdateScreenPosition();
 
                         container.Items.Add(item);
@@ -1133,24 +1135,24 @@ namespace ClassicUO.Network
                 }
                 else
                 {
-                    item = World.GetOrCreateItem(hold.Serial);
+                    item = World.GetOrCreateItem(ItemHold.Serial);
 
                     //if (item != null)
                     {
-                        item.Graphic = hold.Graphic;
-                        item.FixHue(hold.Hue);
-                        item.Amount = hold.Amount;
-                        item.Flags = hold.Flags;
-                        item.Layer = hold.Layer;
-                        item.Container = hold.Container;
-                        item.X = hold.X;
-                        item.Y = hold.Y;
-                        item.Z = hold.Z;
+                        item.Graphic = ItemHold.Graphic;
+                        item.FixHue(ItemHold.Hue);
+                        item.Amount = ItemHold.Amount;
+                        item.Flags = ItemHold.Flags;
+                        item.Layer = ItemHold.Layer;
+                        item.Container = ItemHold.Container;
+                        item.X = ItemHold.X;
+                        item.Y = ItemHold.Y;
+                        item.Z = ItemHold.Z;
                         item.UpdateScreenPosition();
 
 
                         Entity container = null;
-                        if (!hold.OnGround)
+                        if (!ItemHold.OnGround)
                         {
                             container = World.Get(item.Container);
 
@@ -1162,7 +1164,7 @@ namespace ClassicUO.Network
 
                                     mob.Items.Add(item);
 
-                                    mob.Equipment[(int) hold.Layer] = item;
+                                    mob.Equipment[(int) ItemHold.Layer] = item;
                                 }
                                 else
                                     Log.Warn( "SOMETHING WRONG WITH CONTAINER (should be a mobile)");
@@ -1184,7 +1186,7 @@ namespace ClassicUO.Network
                     }
                 }
 
-                hold.Clear();
+                ItemHold.Clear();
             }
             else
                 Log.Warn( "There was a problem with ItemHold object. It was cleared before :|");
@@ -1199,10 +1201,8 @@ namespace ClassicUO.Network
             if (!World.InGame)
                 return;
 
-            GameScene scene = Client.Game.GetScene<GameScene>();
-
-            scene.HeldItem.Enabled = false;
-            scene.HeldItem.Dropped = false;
+            ItemHold.Enabled = false;
+            ItemHold.Dropped = false;
         }
 
         private static void DropItemAccepted(Packet p)
@@ -1210,10 +1210,8 @@ namespace ClassicUO.Network
             if (!World.InGame)
                 return;
 
-            GameScene scene = Client.Game.GetScene<GameScene>();
-
-            scene.HeldItem.Enabled = false;
-            scene.HeldItem.Dropped = false;
+            ItemHold.Enabled = false;
+            ItemHold.Dropped = false;
         }
 
         private static void DeathScreen(Packet p)
@@ -1224,7 +1222,7 @@ namespace ClassicUO.Network
             if (action != 1)
             {
                 Client.Game.GetScene<GameScene>()?.Weather?.Reset();
-                Client.Game.Scene.Audio.PlayMusic(42);
+                Client.Game.Scene.Audio.PlayMusic(42, true);
 
                 if (ProfileManager.Current.EnableDeathScreen)
                     World.Player.DeathScreenTimer = Time.Ticks + Constants.DEATH_SCREEN_TIMER;
@@ -1319,8 +1317,8 @@ namespace ClassicUO.Network
 
             GameScene gs = Client.Game.GetScene<GameScene>();
 
-            if (gs.HeldItem.Serial == item.Serial)
-                gs.HeldItem.Clear();      
+            if (ItemHold.Serial == item.Serial)
+                ItemHold.Clear();      
         }
 
         private static void UpdateSkills(Packet p)
@@ -1328,68 +1326,135 @@ namespace ClassicUO.Network
             if (!World.InGame)
                 return;
 
-            if (World.SkillsRequested)
-            {
-                World.SkillsRequested = false;
+           
 
-                // TODO: make a base class for this gump
+
+            byte type = p.ReadByte();
+            bool haveCap = (((type != 0u) && type <= 0x03) || type == 0xDF);
+            bool isSingleUpdate = (type == 0xFF || type == 0xDF);
+
+            if (type == 0xFE)
+            {
+                int count = p.ReadUShort();
+
+                SkillsLoader.Instance.Skills.Clear();
+                SkillsLoader.Instance.SortedSkills.Clear();
+
+                for (int i = 0; i < count; i++)
+                {
+                    bool haveButton = p.ReadBool();
+                    int nameLength = p.ReadByte();
+
+                    SkillsLoader.Instance.Skills.Add(new SkillEntry(i,p.ReadASCII(nameLength), haveButton));
+                }
+
+
+                SkillsLoader.Instance.SortedSkills.AddRange(SkillsLoader.Instance.Skills);
+                SkillsLoader.Instance.SortedSkills.Sort((a, b) => a.Name.CompareTo(b.Name));
+            }
+            else
+            {
+                StandardSkillsGump standard = null;
+                SkillGumpAdvanced advanced = null;
+
                 if (ProfileManager.Current.StandardSkillsGump)
                 {
-                    var gumpSkills = UIManager.GetGump<StandardSkillsGump>();
-
-                    if (gumpSkills == null)
-                    {
-                        UIManager.Add(new StandardSkillsGump
-                        {
-                            X = 100,
-                            Y = 100
-                        });
-                    }
+                    standard = UIManager.GetGump<StandardSkillsGump>();
                 }
                 else
                 {
-                    var gumpSkills = UIManager.GetGump<SkillGumpAdvanced>();
+                    advanced = UIManager.GetGump<SkillGumpAdvanced>();
+                }
 
-                    if (gumpSkills == null)
+                if (!isSingleUpdate && (type == 1 || type == 3 || World.SkillsRequested))
+                {
+                    World.SkillsRequested = false;
+
+                    // TODO: make a base class for this gump
+                    if (ProfileManager.Current.StandardSkillsGump)
                     {
-                        UIManager.Add(new SkillGumpAdvanced
+                        if (standard == null)
                         {
-                            X = 100,
-                            Y = 100
-                        });
+                            UIManager.Add(standard = new StandardSkillsGump
+                            {
+                                X = 100,
+                                Y = 100
+                            });
+                        }
+                    }
+                    else
+                    {
+                        if (advanced == null)
+                        {
+                            UIManager.Add(advanced = new SkillGumpAdvanced
+                            {
+                                X = 100,
+                                Y = 100
+                            });
+                        }
                     }
                 }
-            }
 
-            ushort id;
 
-            switch (p.ReadByte())
-            {
-                case 0:
 
-                    while (p.Position + 2 <= p.Length && (id = p.ReadUShort()) > 0)
-                        World.Player.UpdateSkill(id - 1, p.ReadUShort(), p.ReadUShort(), (Lock) p.ReadByte(), 100);
+                while (p.Position < p.Length)
+                {
+                    ushort id = p.ReadUShort();
 
-                    break;
+                    if (p.Position >= p.Length)
+                        break;
 
-                case 2:
+                    if (id == 0 && type == 0)
+                        break;
 
-                    while (p.Position + 2 <= p.Length && (id = p.ReadUShort()) > 0)
-                        World.Player.UpdateSkill(id - 1, p.ReadUShort(), p.ReadUShort(), (Lock) p.ReadByte(), p.ReadUShort());
+                    if (type == 0 || type == 0x02)
+                        id--;
 
-                    break;
+                    ushort baseVal = p.ReadUShort();
+                    ushort realVal = p.ReadUShort();
+                    Lock locked = (Lock) p.ReadByte();
+                    ushort cap = 1000;
 
-                case 0xDF:
-                    id = p.ReadUShort();
-                    World.Player.UpdateSkill(id, p.ReadUShort(), p.ReadUShort(), (Lock) p.ReadByte(), p.ReadUShort(), true);
+                    if (haveCap)
+                    {
+                        cap = p.ReadUShort();
+                    }
 
-                    break;
+                    if (id < World.Player.Skills.Length)
+                    {
+                        Skill skill = World.Player.Skills[id];
 
-                case 0xFF:
-                    id = p.ReadUShort();
-                    World.Player.UpdateSkill(id, p.ReadUShort(), p.ReadUShort(), (Lock) p.ReadByte(), 100);
+                        if (skill != null)
+                        {
+                            if (isSingleUpdate)
+                            {
+                                float change = (baseVal / 10.0f) - skill.Base;
 
-                    break;
+                                if (change != 0.0f)
+                                {
+                                    GameActions.Print($"Your skill in {skill.Name} has {(change < 0 ? "decreased" : "increased")} by {Math.Abs(change):F1}.  It is now {(skill.Base + change):F1}.",
+                                                      0x58,
+                                                      MessageType.System,
+                                                      3, 
+                                                      false);
+                                }
+                            }
+
+
+                            skill.BaseFixed = baseVal;
+                            skill.ValueFixed = realVal;
+                            skill.CapFixed = cap;
+                            skill.Lock = locked;
+
+                            standard?.Update(id);
+                            advanced?.ForceUpdate();
+                        }
+
+                    }
+
+                    if (isSingleUpdate)
+                        break;
+                }
             }
 
             World.Player.ProcessDelta();
@@ -1983,7 +2048,7 @@ namespace ClassicUO.Network
 
                     if (int.TryParse(name, out int cliloc))
                     {
-                        it.Name = UOFileManager.Cliloc.GetString(cliloc);
+                        it.Name = ClilocLoader.Instance.GetString(cliloc);
                         fromcliloc = true;
                     }
                     else if (string.IsNullOrEmpty(it.Name))
@@ -2205,7 +2270,7 @@ namespace ClassicUO.Network
                     ushort hue = p.ReadUShort();
                     name = p.ReadASCII(p.ReadByte());
 
-                    Rectangle rect = UOFileManager.Art.GetTexture(graphic).Bounds;
+                    Rectangle rect = ArtLoader.Instance.GetTexture(graphic).Bounds;
 
                     if (rect.Width != 0 && rect.Height != 0)
                     {
@@ -2348,13 +2413,13 @@ namespace ClassicUO.Network
                 if (p.ID == 0xF5)
                     facet = p.ReadUShort();
 
-                if (UOFileManager.Multimap.HasFacet(facet))
-                    gump.SetMapTexture(UOFileManager.Multimap.LoadFacet(facet, width, height, startX, startY, endX, endY));
+                if (MultiMapLoader.Instance.HasFacet(facet))
+                    gump.SetMapTexture(MultiMapLoader.Instance.LoadFacet(facet, width, height, startX, startY, endX, endY));
                 else
-                    gump.SetMapTexture(UOFileManager.Multimap.LoadMap(width, height, startX, startY, endX, endY));
+                    gump.SetMapTexture(MultiMapLoader.Instance.LoadMap(width, height, startX, startY, endX, endY));
             }
             else
-                gump.SetMapTexture(UOFileManager.Multimap.LoadMap(width, height, startX, startY, endX, endY));
+                gump.SetMapTexture(MultiMapLoader.Instance.LoadMap(width, height, startX, startY, endX, endY));
 
             UIManager.Add(gump);
         }
@@ -2420,7 +2485,7 @@ namespace ClassicUO.Network
             p.Skip(2);
             ushort graphic = p.ReadUShort();
 
-            Rectangle rect = UOFileManager.Gumps.GetTexture(0x0906).Bounds;
+            Rectangle rect = GumpsLoader.Instance.GetTexture(0x0906).Bounds;
 
             int x = (Client.Game.Window.ClientBounds.Width >> 1) - (rect.Width >> 1);
             int y = (Client.Game.Window.ClientBounds.Height >> 1) - (rect.Height >> 1);
@@ -2489,25 +2554,24 @@ namespace ClassicUO.Network
 
             for (int i = 0; i < countItems; i++)
             {
-                Item item = World.GetOrCreateItem(p.ReadUInt());
-                item.Graphic = p.ReadUShort();
-                item.FixHue(p.ReadUShort());
-                item.Amount = p.ReadUShort();
-                item.Price = p.ReadUShort();
-
+                uint serial = p.ReadUInt();
+                ushort graphic = p.ReadUShort();
+                ushort hue = p.ReadUShort();
+                ushort amount = p.ReadUShort();
+                ushort price = p.ReadUShort();
                 string name = p.ReadASCII(p.ReadUShort());
                 bool fromcliloc = false;
 
                 if (int.TryParse(name, out int clilocnum))
                 {
-                    name = UOFileManager.Cliloc.GetString(clilocnum);
+                    name = ClilocLoader.Instance.GetString(clilocnum);
                     fromcliloc = true;
                 }
 
-                if (!fromcliloc && string.IsNullOrEmpty(item.Name))
-                    item.Name = name;
+                //if (string.IsNullOrEmpty(item.Name))
+                //    item.Name = name;
 
-                gump.AddItem(item, fromcliloc);
+                gump.AddItem(serial, graphic, hue, amount, price, name, fromcliloc);
             }
 
             UIManager.Add(gump);
@@ -2700,11 +2764,14 @@ namespace ClassicUO.Network
                 text = p.ReadUnicode();
             }
 
-            if (entity != null)
+            if (!(type == MessageType.System || serial == 0xFFFF_FFFF || serial == 0 || (name.ToLower() == "system" && entity == null)))
             {
-                if (string.IsNullOrEmpty(entity.Name))
-                    entity.Name = name;
-                entity.ProcessDelta();
+                if (entity != null)
+                {
+                    if (string.IsNullOrEmpty(entity.Name))
+                        entity.Name = name;
+                    entity.ProcessDelta();
+                }           
             }
 
             Chat.HandleMessage(entity, text, name, hue, type, ProfileManager.Current.ChatFont, true, lang);
@@ -2732,7 +2799,7 @@ namespace ClassicUO.Network
                 World.CorpseManager.Add(corpseSerial, serial, owner.Direction, running != 0);
 
 
-            byte group = UOFileManager.Animations.GetDieGroupIndex(owner.Graphic, running != 0, true);
+            byte group = AnimationsLoader.Instance.GetDieGroupIndex(owner.Graphic, running != 0, true);
             owner.SetAnimation(group, 0, 5, 1);
 
             if (ProfileManager.Current.AutoOpenCorpses)
@@ -2839,8 +2906,8 @@ namespace ClassicUO.Network
                     {
                         int idx = msgSent.IndexOf('{');
                         int idxLast = msgSent.IndexOf('}') + 1;
-
-                        msgSent = msgSent.Remove(idx, idxLast - idx);
+                        if (idxLast > idx)
+                            msgSent = msgSent.Remove(idx, idxLast - idx);
                     }
 
                     //Color c = new Color(49, 82, 156, 0);
@@ -2919,7 +2986,7 @@ namespace ClassicUO.Network
 
             UOChatManager.ChatIsEnabled = World.ClientLockedFeatures.T2A;
 
-            UOFileManager.Animations.UpdateAnimationTable(flags);
+            AnimationsLoader.Instance.UpdateAnimationTable(flags);
         }
 
         private static void DisplayQuestArrow(Packet p)
@@ -2996,7 +3063,9 @@ namespace ClassicUO.Network
 
         private static void ExtendedCommand(Packet p)
         {
-            switch (p.ReadUShort())
+            ushort cmd = p.ReadUShort();
+
+            switch (cmd)
             {
                 case 0:
 
@@ -3069,7 +3138,7 @@ namespace ClassicUO.Network
 
                     if (cliloc > 0)
                     {
-                        str = UOFileManager.Cliloc.Translate(UOFileManager.Cliloc.GetString((int) cliloc), capitalize: true);
+                        str = ClilocLoader.Instance.Translate(ClilocLoader.Instance.GetString((int) cliloc), capitalize: true);
 
                         if (!string.IsNullOrEmpty(str))
                             item.Name = str;
@@ -3101,7 +3170,7 @@ namespace ClassicUO.Network
                     {
                         if (count != 0 || next == 0xFFFFFFFD || next == 0xFFFFFFFC) next = p.ReadUInt();
                         short charges = (short) p.ReadUShort();
-                        string attr = UOFileManager.Cliloc.GetString((int) next);
+                        string attr = ClilocLoader.Instance.GetString((int) next);
 
                         if (charges == -1)
                         {
@@ -3188,7 +3257,7 @@ namespace ClassicUO.Network
                 //===========================================================================================
                 case 0x18: // enable map patches
 
-                    if (UOFileManager.Map.ApplyPatches(p))
+                    if (MapLoader.Instance.ApplyPatches(p))
                     {
                         Log.Trace("Map Patches applied.");
                     }
@@ -3390,8 +3459,32 @@ namespace ClassicUO.Network
                     World.Player.SpeedMode = (CharacterSpeedType) val;
 
                     break;
+                case 0x2B:
+                    serial = p.ReadUShort();
+                    byte animID = p.ReadByte();
+                    byte frameCount = p.ReadByte();
+
+                    //foreach (Mobile m in World.Mobiles)
+                    //{
+                    //    if ((m.Serial & 0xFFFF) == serial)
+                    //    {
+                    //       // byte group = Mobile.GetObjectNewAnimation(m, animID, action, mode);
+                    //        m.SetAnimation(animID);
+                    //        //m.AnimationRepeatMode = 1;
+                    //        //m.AnimationDirection = true;
+                    //        //if ((type == 1 || type == 2) && mobile.Graphic == 0x0015)
+                    //        //    mobile.AnimationRepeat = true;
+                    //        //mobile.AnimationFromServer = true;
+
+                    //        //m.SetAnimation(Mobile.GetReplacedObjectAnimation(m.Graphic, animID), 0, frameCount);
+                    //       // m.AnimationFromServer = true;
+                    //        break;
+                    //    }
+                    //}
+                    
+                    break;
                 default:
-                    Log.Warn($"Unhandled 0xDF - sub: {p.ID.ToHex()}");
+                    Log.Warn($"Unhandled 0xBF - sub: {cmd.ToHex()}");
                     break;
             }
         }
@@ -3425,7 +3518,7 @@ namespace ClassicUO.Network
             if (p.Position < p.Length)
                 arguments = p.ReadUnicodeReversed(p.Length - p.Position);
 
-            string text = UOFileManager.Cliloc.Translate((int) cliloc, arguments);
+            string text = ClilocLoader.Instance.Translate((int) cliloc, arguments);
 
             if (text == null)
                 return;
@@ -3441,7 +3534,7 @@ namespace ClassicUO.Network
             if ((flags & AffixType.System) != 0)
                 type = MessageType.System;
 
-            if (!UOFileManager.Fonts.UnicodeFontExists((byte) font))
+            if (!FontsLoader.Instance.UnicodeFontExists((byte) font))
                 font = 0;
 
             if (entity != null)
@@ -3520,7 +3613,7 @@ namespace ClassicUO.Network
                 entity = World.Items.Get(serial);
             }
 
-            if (entity != null)
+            //if (entity != null)
             {
                 int cliloc;
 
@@ -3530,7 +3623,7 @@ namespace ClassicUO.Network
                 {
                     string argument = p.ReadUnicodeReversed(p.ReadUShort());
 
-                    string str = UOFileManager.Cliloc.Translate(cliloc, argument, true);
+                    string str = ClilocLoader.Instance.Translate(cliloc, argument, true);
 
 
                     for (int i = 0; i < list.Count; i++)
@@ -3577,7 +3670,7 @@ namespace ClassicUO.Network
                         {
                             name = str;
 
-                            if (entity != null && !SerialHelper.IsMobile(entity.Serial))
+                            if (entity != null && !SerialHelper.IsMobile(serial))
                             {
                                 entity.Name = str;
                             }
@@ -3596,7 +3689,7 @@ namespace ClassicUO.Network
 
                 World.OPL.Add(serial, revision, name, data);
 
-                if (inBuyList && SerialHelper.IsValid(container.Serial))
+                if (inBuyList && container != null && SerialHelper.IsValid(container.Serial))
                 {
                     UIManager.GetGump<ShopGump>(container.RootContainer)?.SetNameTo((Item)entity, name);
                 }
@@ -3876,14 +3969,14 @@ namespace ClassicUO.Network
                     uint descriptionCliloc = p.ReadUInt();
                     uint wtfCliloc = p.ReadUInt();
                     p.Skip(4);
-                    string title = UOFileManager.Cliloc.GetString((int) titleCliloc);
+                    string title = ClilocLoader.Instance.GetString((int) titleCliloc);
                     string description = string.Empty;
                     string wtf = string.Empty;
 
                     if (descriptionCliloc != 0)
                     {
                         string args = p.ReadUnicodeReversed();
-                        description = "\n" + UOFileManager.Cliloc.Translate((int) descriptionCliloc, args, true);
+                        description = "\n" + ClilocLoader.Instance.Translate((int) descriptionCliloc, args, true);
 
                         if (description.Length < 2)
                             description = string.Empty;
@@ -3891,7 +3984,7 @@ namespace ClassicUO.Network
 
                     if (wtfCliloc != 0)
                     {
-                        wtf = UOFileManager.Cliloc.GetString((int) wtfCliloc);
+                        wtf = ClilocLoader.Instance.GetString((int) wtfCliloc);
                         if (!string.IsNullOrWhiteSpace(wtf))
                             wtf = $"\n{wtf}";
                     }
@@ -4223,8 +4316,8 @@ namespace ClassicUO.Network
         {
             GameScene gs = Client.Game.GetScene<GameScene>();
 
-            if (gs != null && gs.HeldItem.Serial == serial && gs.HeldItem.Dropped)
-                gs.HeldItem.Clear();
+            if (gs != null && ItemHold.Serial == serial && ItemHold.Dropped)
+                ItemHold.Clear();
 
             Entity container = World.Get(containerSerial);
 

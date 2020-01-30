@@ -70,6 +70,8 @@ namespace ClassicUO.Game.Managers
         private MacroObject _lastMacro;
         private long _nextTimer;
 
+        public static readonly string[] MacroNames = Enum.GetNames(typeof(MacroType));
+
 
         public long WaitForTargetTimer { get; set; }
 
@@ -104,7 +106,7 @@ namespace ClassicUO.Game.Managers
                 return;
             }
 
-            
+
             Clear();
 
             XmlElement root = doc["macros"];
@@ -424,7 +426,7 @@ namespace ClassicUO.Game.Managers
                         string s = SDL.SDL_GetClipboardText();
 
                         if (!string.IsNullOrEmpty(s))
-                            UIManager.SystemChat.textBox.Text += s;
+                            UIManager.SystemChat.TextBoxControl.Text += s;
                     }
 
                     break;
@@ -474,7 +476,7 @@ namespace ClassicUO.Game.Managers
                                     if (journalGump == null)
                                     {
                                         UIManager.Add(new JournalGump
-                                                          {X = 64, Y = 64});
+                                        { X = 64, Y = 64 });
                                     }
                                     else
                                     {
@@ -628,7 +630,7 @@ namespace ClassicUO.Game.Managers
                                 case MacroSubType.CombatBook:
                                 case MacroSubType.RacialAbilitiesBook:
                                 case MacroSubType.BardSpellbook:
-                                    Log.Warn( $"Macro '{macro.SubCode}' not implemented");
+                                    Log.Warn($"Macro '{macro.SubCode}' not implemented");
 
                                     break;
                             }
@@ -636,7 +638,7 @@ namespace ClassicUO.Game.Managers
                             break;
 
                         case MacroType.Close:
-                        case MacroType.Minimize: // TODO: miniminze/maximize
+                        case MacroType.Minimize:
                         case MacroType.Maximize:
 
                             switch (macro.SubCode)
@@ -706,7 +708,7 @@ namespace ClassicUO.Game.Managers
                                         else
                                         {
                                             var healthbar = UIManager.GetGump<BaseHealthBarGump>(World.Player);
-                                            
+
                                             if (healthbar != null)
                                             {
                                                 StatusGumpBase.AddStatusGump(healthbar.ScreenCoordinateX, healthbar.ScreenCoordinateY);
@@ -788,7 +790,7 @@ namespace ClassicUO.Game.Managers
                                     break;
 
                                 case MacroSubType.Mail:
-                                    Log.Warn( $"Macro '{macro.SubCode}' not implemented");
+                                    Log.Warn($"Macro '{macro.SubCode}' not implemented");
 
                                     break;
 
@@ -803,7 +805,7 @@ namespace ClassicUO.Game.Managers
                                 case MacroSubType.CombatBook:
                                 case MacroSubType.RacialAbilitiesBook:
                                 case MacroSubType.BardSpellbook:
-                                    Log.Warn( $"Macro '{macro.SubCode}' not implemented");
+                                    Log.Warn($"Macro '{macro.SubCode}' not implemented");
 
                                     break;
                             }
@@ -900,12 +902,12 @@ namespace ClassicUO.Game.Managers
                     break;
 
                 case MacroType.UseItemInHand:
-                    Item itemInLeftHand = World.Player.Equipment[(int)Layer.OneHanded];
+                    Item itemInLeftHand = World.Player.Equipment[(int) Layer.OneHanded];
                     if (itemInLeftHand != null)
                         GameActions.DoubleClick(itemInLeftHand.Serial);
                     else
                     {
-                        Item itemInRightHand = World.Player.Equipment[(int)Layer.TwoHanded];
+                        Item itemInRightHand = World.Player.Equipment[(int) Layer.TwoHanded];
                         if (itemInRightHand != null)
                             GameActions.DoubleClick(itemInRightHand.Serial);
                     }
@@ -924,7 +926,15 @@ namespace ClassicUO.Game.Managers
                         //    TargetManager.TargetGameObject(TargetManager.LastGameObject);
                         //}
                         //else 
-                        TargetManager.Target(TargetManager.LastTarget);
+
+                        if (TargetManager.TargetingState != CursorTarget.Object)
+                        {
+                            TargetManager.TargetLast();
+                        }
+                        else
+                        {
+                            TargetManager.Target(TargetManager.LastTarget);
+                        }
 
                         WaitForTargetTimer = 0;
                     }
@@ -956,7 +966,7 @@ namespace ClassicUO.Game.Managers
                     int handIndex = 1 - (macro.SubCode - MacroSubType.LeftHand);
                     GameScene gs = Client.Game.GetScene<GameScene>();
 
-                    if (handIndex < 0 || handIndex > 1 || gs.IsHoldingItem)
+                    if (handIndex < 0 || handIndex > 1 || ItemHold.Enabled)
                         break;
 
                     if (_itemsInHand[handIndex] != 0)
@@ -1108,7 +1118,7 @@ namespace ClassicUO.Game.Managers
                             result = 1;
                         }
                     }
-                    
+
                     break;
 
                 case MacroType.TargetSystemOnOff:
@@ -1280,7 +1290,6 @@ namespace ClassicUO.Game.Managers
 
                 case MacroType.KillGumpOpen:
                     // TODO:
-                    
                     break;
 
                 case MacroType.DefaultScale:
@@ -1290,24 +1299,6 @@ namespace ClassicUO.Game.Managers
 
                 case MacroType.ToggleChatVisibility:
                     UIManager.SystemChat?.ToggleChatVisibility();
-
-                    break;
-
-                case MacroType.MovePlayer:
-                    switch (macro.SubCode)
-                    {
-                        case MacroSubType.Top:
-                            break;
-
-                        case MacroSubType.Right:
-                            break;
-
-                        case MacroSubType.Down:
-                            break;
-
-                        case MacroSubType.Left:
-                            break;
-                    }
 
                     break;
 
@@ -1459,7 +1450,7 @@ namespace ClassicUO.Game.Managers
             }
         }
 
-      
+
         public void Save(XmlTextWriter writer)
         {
             writer.WriteStartElement("macro");
@@ -1504,6 +1495,31 @@ namespace ClassicUO.Game.Managers
                 {
                     MacroType code = (MacroType) int.Parse(xmlAction.GetAttribute("code"));
                     MacroSubType sub = (MacroSubType) int.Parse(xmlAction.GetAttribute("subcode"));
+
+                    // ########### PATCH ###########
+                    // FIXME: path to remove the MovePlayer macro. This macro is not needed. We have Walk.
+                    if ((int) code == 61 /*MacroType.MovePlayer*/)
+                    {
+                        code = MacroType.Walk;
+
+                        switch ((int) sub)
+                        {
+                            case 211: // top
+                                sub = MacroSubType.NW;
+                                break;
+                            case 214: // left
+                                sub = MacroSubType.SW;
+                                break;
+                            case 213: // down
+                                sub = MacroSubType.SE;
+                                break;
+                            case 212: // right
+                                sub = MacroSubType.NE;
+                                break;
+                        }
+                    }
+                    // ########### END PATCH ###########
+
                     sbyte subMenuType = sbyte.Parse(xmlAction.GetAttribute("submenutype"));
 
                     MacroObject m;
@@ -1611,12 +1627,6 @@ namespace ClassicUO.Game.Managers
 
                     break;
 
-                case MacroType.MovePlayer:
-                    offset = (int) MacroSubType.Top;
-                    count = 4;
-
-                    break;
-
                 case MacroType.UsePotion:
                     offset = (int) MacroSubType.ConfusionBlastPotion;
                     count = MacroSubType.ExplosionPotion - MacroSubType.ConfusionBlastPotion;
@@ -1649,7 +1659,6 @@ namespace ClassicUO.Game.Managers
                 case MacroType.SelectNext:
                 case MacroType.SelectPrevious:
                 case MacroType.SelectNearest:
-                case MacroType.MovePlayer:
                 case MacroType.UsePotion:
 
                     if (sub == MacroSubType.MSC_NONE)
@@ -1695,7 +1704,7 @@ namespace ClassicUO.Game.Managers
             return false;
         }
     }
-    
+
     [JsonObject]
     internal class MacroObjectString : MacroObject
     {
@@ -1776,8 +1785,8 @@ namespace ClassicUO.Game.Managers
         ToggleGargoyleFly,
         DefaultScale,
         ToggleChatVisibility,
-        MovePlayer,
-        Aura,
+        INVALID,
+        Aura = 62,
         AuraOnOff,
         Grab,
         SetGrabBag,
@@ -1786,7 +1795,6 @@ namespace ClassicUO.Game.Managers
         UsePotion,
         CloseAllHealthBars,
         RazorMacro,
-
     }
 
     internal enum MacroSubType
@@ -2003,13 +2011,14 @@ namespace ClassicUO.Game.Managers
         Object,
         Mobile,
         MscTotalCount,
-        Top,
-        Right,
-        Down,
-        Left,
+
+        INVALID_0,
+        INVALID_1,
+        INVALID_2,
+        INVALID_3,
 
 
-        ConfusionBlastPotion,
+        ConfusionBlastPotion = 215,
         CurePotion,
         AgilityPotion,
         StrengthPotion,

@@ -57,22 +57,22 @@ namespace ClassicUO.Game.UI.Gumps.Login
             {
                 ushort textColor = 0xFFFF;
 
-                Add(new Label(UOFileManager.Cliloc.GetString(1044579), true, textColor, font: 1)
+                Add(new Label(ClilocLoader.Instance.GetString(1044579), true, textColor, font: 1)
                 {
                     X = 155, Y = 70
                 }); // "Select which shard to play on:"
 
-                Add(new Label(UOFileManager.Cliloc.GetString(1044577), true, textColor, font: 1)
+                Add(new Label(ClilocLoader.Instance.GetString(1044577), true, textColor, font: 1)
                 {
                     X = 400, Y = 70
                 }); // "Latency:"
 
-                Add(new Label(UOFileManager.Cliloc.GetString(1044578), true, textColor, font: 1)
+                Add(new Label(ClilocLoader.Instance.GetString(1044578), true, textColor, font: 1)
                 {
                     X = 470, Y = 70
                 }); // "Packet Loss:"
 
-                Add(new Label(UOFileManager.Cliloc.GetString(1044580), true, textColor, font: 1)
+                Add(new Label(ClilocLoader.Instance.GetString(1044580), true, textColor, font: 1)
                 {
                     X = 153, Y = 368
                 }); // "Sort by:"
@@ -81,22 +81,22 @@ namespace ClassicUO.Game.UI.Gumps.Login
             {
                 ushort textColor = 0x0481;
 
-                Add(new Label("Select which shard to play on:", true, textColor, font: 9)
+                Add(new Label("Select which shard to play on:", false, textColor, font: 9)
                 {
                     X = 155, Y = 70
                 });
 
-                Add(new Label("Latency:", true, textColor, font: 9)
+                Add(new Label("Latency:", false, textColor, font: 9)
                 {
                     X = 400, Y = 70
                 });
 
-                Add(new Label("Packet Loss:", true, textColor, font: 9)
+                Add(new Label("Packet Loss:", false, textColor, font: 9)
                 {
                     X = 470, Y = 70
                 });
 
-                Add(new Label("Sort by:", true, textColor, font: 9)
+                Add(new Label("Sort by:", false, textColor, font: 9)
                 {
                     X = 153, Y = 368
                 });
@@ -149,22 +149,35 @@ namespace ClassicUO.Game.UI.Gumps.Login
 
             Add(scrollArea);
 
-            if (loginScene.Servers.Length > 0)
+            if (loginScene.Servers.Length != 0)
             {
-                if (loginScene.Servers.Last().Index < loginScene.Servers.Count())
+                int index = Settings.GlobalSettings.LastServerNum - 1;
+
+                if (index < 0 || index >= loginScene.Servers.Length)
                 {
-                    Add(new Label(loginScene.Servers.Last().Name, false, 0x0481, font: 9)
-                    {
-                        X = 243, Y = 420
-                    });
+                    index = 0;
                 }
-                else
+
+                Add(new Label(loginScene.Servers[index].Name, false, 0x0481, font: 9)
                 {
-                    Add(new Label(loginScene.Servers.First().Name, false, 0x0481, font: 9)
-                    {
-                        X = 243, Y = 420
-                    });
-                }
+                    X = 243,
+                    Y = 420
+                });
+
+                //if (loginScene.Servers.Last().Index < loginScene.Servers.Count())
+                //{
+                //    Add(new Label(loginScene.Servers.Last().Name, false, 0x0481, font: 9)
+                //    {
+                //        X = 243, Y = 420
+                //    });
+                //}
+                //else
+                //{
+                //    Add(new Label(loginScene.Servers.First().Name, false, 0x0481, font: 9)
+                //    {
+                //        X = 243, Y = 420
+                //    });
+                //}
             }
 
             AcceptKeyboardInput = true;
@@ -187,7 +200,7 @@ namespace ClassicUO.Game.UI.Gumps.Login
                     case Buttons.Next:
                     case Buttons.Earth:
 
-                        if (loginScene.Servers.Any())
+                        if (loginScene.Servers.Length != 0)
                         {
                             int index = Settings.GlobalSettings.LastServerNum;
 

@@ -32,6 +32,7 @@ using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using ClassicUO.IO;
+using ClassicUO.IO.Resources;
 using ClassicUO.Network;
 using ClassicUO.Renderer;
 
@@ -144,14 +145,23 @@ namespace ClassicUO.Game.UI.Gumps
 
         protected override void OnMouseEnter(int x, int y)
         {
-            GameScene gs = Client.Game.GetScene<GameScene>();
-
-            if (gs.IsHoldingItem)
+            if (ItemHold.Enabled)
             {
-                Item it = new Item(gs.HeldItem.Serial) { Graphic = gs.HeldItem.Graphic, Hue = gs.HeldItem.Hue };
+                Item it = new Item(ItemHold.Serial) { Graphic = ItemHold.Graphic, Hue = ItemHold.Hue };
 
                 _paperDollInteractable.AddFakeDress(it);
             }
+        }
+
+        protected override void OnMouseOver(int x, int y)
+        {
+            base.OnMouseOver(x, y);
+
+            if (ItemHold.Enabled)
+            {
+
+            }
+
         }
 
         private void BuildGump()
@@ -318,7 +328,7 @@ namespace ClassicUO.Game.UI.Gumps
         {
             GameScene gs = Client.Game.GetScene<GameScene>();
 
-            if (!gs.IsHoldingItem || !gs.IsMouseOverUI || _paperDollInteractable.IsOverBackpack)
+            if (!ItemHold.Enabled || !gs.IsMouseOverUI || _paperDollInteractable.IsOverBackpack)
                 return;
 
             gs.WearHeldItem(Mobile);
@@ -435,8 +445,11 @@ namespace ClassicUO.Game.UI.Gumps
                 Mobile = World.Player;
                 BuildGump();
 
+                Client.Game.GetScene<GameScene>()?.DoubleClickDelayed(LocalSerial);
                 //GameActions.OpenPaperdoll(World.Player);
                 IsMinimized = bool.Parse(xml.GetAttribute("isminimized"));
+
+                Dispose();
             }
             else 
                 Dispose();
@@ -536,7 +549,7 @@ namespace ClassicUO.Game.UI.Gumps
                         }
                         else
                         {
-                            Rectangle bounds = UOFileManager.Gumps.GetTexture(0x0804).Bounds;
+                            Rectangle bounds = GumpsLoader.Instance.GetTexture(0x0804).Bounds;
 
                             UIManager.Add(new HealthBarGump(Mobile)
                             {

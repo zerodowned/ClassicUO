@@ -30,6 +30,7 @@ using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using ClassicUO.IO;
+using ClassicUO.IO.Resources;
 using ClassicUO.Renderer;
 using ClassicUO.Utility.Collections;
 using ClassicUO.Utility.Logging;
@@ -60,7 +61,7 @@ namespace ClassicUO.Game.UI.Gumps
             const ushort DARK_MODE_JOURNAL_HUE = 903;
 
             string str = "Dark mode";
-            int width = UOFileManager.Fonts.GetWidthASCII(6, str);
+            int width = FontsLoader.Instance.GetWidthASCII(6, str);
 
             Checkbox darkMode;
             Add(darkMode = new Checkbox(0x00D2, 0x00D3, str, 6, 0x0288, false)
@@ -223,9 +224,9 @@ namespace ClassicUO.Game.UI.Gumps
         private class RenderedTextList : Control
         {
             private readonly Deque<RenderedText> _entries, _hours;
-            private readonly IScrollBar _scrollBar;
+            private readonly ScrollBarBase _scrollBar;
 
-            public RenderedTextList(int x, int y, int width, int height, IScrollBar scrollBarControl)
+            public RenderedTextList(int x, int y, int width, int height, ScrollBarBase scrollBarControl)
             {
                 _scrollBar = scrollBarControl;
                 _scrollBar.IsVisible = false;

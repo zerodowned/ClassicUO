@@ -32,7 +32,17 @@ namespace ClassicUO.Network
             this[0] = id;
         }
 
-        protected override byte this[int index]
+        public PacketWriter(byte[] data)
+        {
+            Array.Resize(ref _data, data.Length);
+
+            for (int i = 0; i < data.Length; i++)
+            {
+                _data[i] = data[i];
+            }
+        }
+
+        public override byte this[int index]
         {
             get => _data[index];
             set

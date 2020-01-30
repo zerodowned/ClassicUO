@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Input;
 using ClassicUO.IO;
+using ClassicUO.IO.Resources;
 using ClassicUO.Renderer;
 using ClassicUO.Utility;
 
@@ -44,7 +45,7 @@ namespace ClassicUO.Game.UI.Controls
         private const int PRESSED = 1;
         private const int OVER = 2;
         private readonly string _caption;
-        private readonly RenderedText[] _fontTexture = new RenderedText[2];
+        private readonly RenderedText[] _fontTexture;
         private readonly ushort[] _gumpGraphics = new ushort[3];
         private readonly UOTexture[] _textures = new UOTexture[3];
 
@@ -56,9 +57,9 @@ namespace ClassicUO.Game.UI.Controls
             _gumpGraphics[NORMAL] = normal;
             _gumpGraphics[PRESSED] = pressed;
             _gumpGraphics[OVER] = over;
-            _textures[NORMAL] = UOFileManager.Gumps.GetTexture(normal);
-            _textures[PRESSED] = UOFileManager.Gumps.GetTexture(pressed);
-            if (over > 0) _textures[OVER] = UOFileManager.Gumps.GetTexture(over);
+            _textures[NORMAL] = GumpsLoader.Instance.GetTexture(normal);
+            _textures[PRESSED] = GumpsLoader.Instance.GetTexture(pressed);
+            if (over > 0) _textures[OVER] = GumpsLoader.Instance.GetTexture(over);
             UOTexture t = _textures[NORMAL];
 
             if (t == null)
@@ -75,6 +76,8 @@ namespace ClassicUO.Game.UI.Controls
 
             if (!string.IsNullOrEmpty(caption) && normalHue != ushort.MaxValue)
             {
+                _fontTexture = new RenderedText[2];
+
                 _caption = caption;
 
                 _fontTexture[0] = RenderedText.Create(caption,FontHue, font, isunicode);
@@ -123,8 +126,11 @@ namespace ClassicUO.Game.UI.Controls
             get => _gumpGraphics[NORMAL];
             set
             {
-                _textures[NORMAL] = UOFileManager.Gumps.GetTexture(value);
+                _textures[NORMAL] = GumpsLoader.Instance.GetTexture(value);
                 _gumpGraphics[NORMAL] = value;
+
+                Width = _textures[NORMAL].Width;
+                Height = _textures[NORMAL].Height;
             }
         }
 
@@ -133,8 +139,11 @@ namespace ClassicUO.Game.UI.Controls
             get => _gumpGraphics[PRESSED];
             set
             {
-                _textures[PRESSED] = UOFileManager.Gumps.GetTexture(value);
+                _textures[PRESSED] = GumpsLoader.Instance.GetTexture(value);
                 _gumpGraphics[PRESSED] = value;
+                
+                Width = _textures[PRESSED].Width;
+                Height = _textures[PRESSED].Height;
             }
         }
 
@@ -143,8 +152,11 @@ namespace ClassicUO.Game.UI.Controls
             get => _gumpGraphics[OVER];
             set
             {
-                _textures[OVER] = UOFileManager.Gumps.GetTexture(value);
+                _textures[OVER] = GumpsLoader.Instance.GetTexture(value);
                 _gumpGraphics[OVER] = value;
+
+                Width = _textures[OVER].Width;
+                Height = _textures[OVER].Height;
             }
         }
 
@@ -280,8 +292,9 @@ namespace ClassicUO.Game.UI.Controls
 
         public sealed override void Dispose()
         {
-            foreach (RenderedText t in _fontTexture)
-                t?.Destroy();
+            if (_fontTexture != null)
+                foreach (RenderedText t in _fontTexture)
+                    t?.Destroy();
 
             base.Dispose();
         }

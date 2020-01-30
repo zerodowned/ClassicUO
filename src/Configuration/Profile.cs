@@ -116,6 +116,7 @@ namespace ClassicUO.Configuration
         [JsonProperty] public bool NoColorObjectsOutOfRange { get; set; }
         [JsonProperty] public bool UseCircleOfTransparency { get; set; }
         [JsonProperty] public int CircleOfTransparencyRadius { get; set; } = Constants.MAX_CIRCLE_OF_TRANSPARENCY_RADIUS / 2;
+        [JsonProperty] public int CircleOfTransparencyType { get; set; } // 0 = normal, 1 = like original client
         [JsonProperty] public int VendorGumpHeight { get; set; } = 60; //original vendor gump size
         [JsonProperty] public float ScaleZoom { get; set; } = 1.0f;
         [JsonProperty] public float RestoreScaleValue { get; set; } = 1.0f;
@@ -341,41 +342,34 @@ namespace ClassicUO.Configuration
                 {
                     using (BinaryReader reader = new BinaryReader(File.OpenRead(skillsGroupsPath)))
                     {
-                        try
+                        int version = reader.ReadInt32();
+
+                        int groupCount = reader.ReadInt32();
+
+                        for (int i = 0; i < groupCount; i++)
                         {
-                            int version = reader.ReadInt32();
+                            int entriesCount = reader.ReadInt32();
+                            string groupName = reader.ReadUTF8String(reader.ReadInt32());
 
-                            int groupCount = reader.ReadInt32();
+                            SkillsGroup g = new SkillsGroup();
+                            g.Name = groupName;
 
-                            for (int i = 0; i < groupCount; i++)
+                            for (int j = 0; j < entriesCount; j++)
                             {
-                                int entriesCount = reader.ReadInt32();
-                                string groupName = reader.ReadUTF8String(reader.ReadInt32());
-
-                                if (!SkillsGroupManager.Groups.TryGetValue(groupName, out var list) || list == null)
-                                {
-                                    list = new List<int>();
-                                    SkillsGroupManager.Groups[groupName] = list;
-                                }
-
-                                for (int j = 0; j < entriesCount; j++)
-                                {
-                                    int skillIndex = reader.ReadInt32();
-                                    if (skillIndex < UOFileManager.Skills.SkillsCount)
-                                        list.Add(skillIndex);
-                                }
+                                byte idx = (byte) reader.ReadInt32();
+                                g.Add(idx);
                             }
-                        }
-                        catch
-                        {
 
+                            g.Sort();
+
+                            SkillsGroupManager.Add(g);
                         }
                     }
 
                 }
                 catch (Exception e)
                 {
-                    SkillsGroupManager.LoadDefault();
+                    SkillsGroupManager.MakeDefault();
                     Log.Error( e.StackTrace);
                 }
 
@@ -451,8 +445,8 @@ namespace ClassicUO.Configuration
 
 
             // load skillsgroup
+            //SkillsGroupManager.Load();
             SkillsGroupManager.Load();
-
 
             // load gumps
             string gumpsXmlPath = Path.Combine(path, "gumps.xml");
@@ -563,6 +557,9 @@ namespace ClassicUO.Configuration
                                     break;
                                 case GUMP_TYPE.GT_RACIALBUTTON:
                                     gump = new RacialAbilityButton();
+                                    break;
+                                case GUMP_TYPE.GT_WORLDMAP:
+                                    gump = new WorldMapGump();
                                     break;
                             }
 

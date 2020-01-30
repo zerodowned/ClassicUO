@@ -25,6 +25,7 @@ using ClassicUO.Configuration;
 using ClassicUO.Game.Scenes;
 using ClassicUO.IO;
 using ClassicUO.IO.Audio;
+using ClassicUO.IO.Resources;
 using ClassicUO.Utility.Logging;
 using Microsoft.Xna.Framework.Audio;
 
@@ -32,10 +33,12 @@ namespace ClassicUO.Game.Managers
 {
     internal class AudioManager
     {
-        private UOMusic _currentMusic;
+        private UOMusic[] _currentMusic = { null, null };
         private List<UOSound> _currentSounds;
-
         private bool _canReproduceAudio = true;
+
+        private int[] _currentMusicIndices = { 0, 0 };
+
 
         public void Initialize()
         {
@@ -95,7 +98,7 @@ namespace ClassicUO.Game.Managers
             if (volume < -1 || volume > 1f)
                 return;
 
-            UOSound sound = (UOSound)UOFileManager.Sounds.GetSound(index);
+            UOSound sound = (UOSound)SoundsLoader.Instance.GetSound(index);
 
             if (sound != null)
             {
@@ -117,7 +120,7 @@ namespace ClassicUO.Game.Managers
             if (volume < -1 || volume > 1f)
                 return;
 
-            UOSound sound = (UOSound)UOFileManager.Sounds.GetSound(index);
+            UOSound sound = (UOSound)SoundsLoader.Instance.GetSound(index);
 
             if (sound != null)
             {
@@ -126,7 +129,7 @@ namespace ClassicUO.Game.Managers
             }
         }
 
-        public void PlayMusic(int music)
+        public void PlayMusic(int music, bool iswarmode = false)
         {
             if (!_canReproduceAudio)
                 return;
@@ -155,15 +158,20 @@ namespace ClassicUO.Game.Managers
             if (volume < -1 || volume > 1f)
                 return;
 
-            Sound m = UOFileManager.Sounds.GetMusic(music);
+            Sound m = SoundsLoader.Instance.GetMusic(music);
 
-            if (m == null && _currentMusic != null)
-                StopMusic();
-            else if (m != null && m != _currentMusic)
+            if (m == null && _currentMusic[0] != null)
             {
                 StopMusic();
-                _currentMusic = (UOMusic) m;
-                _currentMusic.Play(false, volume: volume);
+            }
+            else if (m != null && (m != _currentMusic[0] || iswarmode))
+            {
+                StopMusic();
+
+                int idx = iswarmode ? 1 : 0;
+                _currentMusicIndices[idx] = music;
+                _currentMusic[idx] = (UOMusic) m;
+                _currentMusic[idx].Play(false, volume: volume);
             }
         }
 
@@ -172,18 +180,21 @@ namespace ClassicUO.Game.Managers
             if (!_canReproduceAudio)
                 return;
 
-            if (_currentMusic != null)
+            for (int i = 0; i < 2; i++)
             {
-                if (ProfileManager.Current == null || !ProfileManager.Current.EnableMusic)
-                    return;
+                if (_currentMusic[i] != null)
+                {
+                    if (ProfileManager.Current == null || !ProfileManager.Current.EnableMusic)
+                        return;
 
-                float volume = ProfileManager.Current.MusicVolume / Constants.SOUND_DELTA;
+                    float volume = ProfileManager.Current.MusicVolume / Constants.SOUND_DELTA;
 
-                if (volume < -1 || volume > 1f)
-                    return;
+                    if (volume < -1 || volume > 1f)
+                        return;
 
-                _currentMusic.Volume = volume;
-            }
+                    _currentMusic[i].Volume = i == 0 && _currentMusic[1] != null ? 0 : volume;
+                }
+            }      
         }
 
         public void UpdateCurrentSoundsVolume()
@@ -207,12 +218,20 @@ namespace ClassicUO.Game.Managers
 
         public void StopMusic()
         {
-            if (_currentMusic != null)
+            for (int i = 0; i < 2; i++)
             {
-                _currentMusic.Stop();
-                _currentMusic.Dispose();
-                _currentMusic = null;
+                if (_currentMusic[i] != null)
+                {
+                    _currentMusic[i].Stop();
+                    _currentMusic[i].Dispose();
+                    _currentMusic[i] = null;
+                }
             }
+        }
+
+        public void StopWarMusic()
+        {
+            PlayMusic(_currentMusicIndices[0]);
         }
 
         public void StopSounds()
@@ -231,16 +250,24 @@ namespace ClassicUO.Game.Managers
             if (!_canReproduceAudio)
                 return;
 
-            if (_currentMusic != null && ProfileManager.Current != null)
-            {
-                if (Client.Game.IsActive)
-                {
-                    if (!ProfileManager.Current.ReproduceSoundsInBackground) _currentMusic.Volume = ProfileManager.Current.MusicVolume / Constants.SOUND_DELTA;
-                }
-                else if (!ProfileManager.Current.ReproduceSoundsInBackground && _currentMusic.Volume != 0.0f) _currentMusic.Volume = 0;
-            }
+            bool runninWarMusic = _currentMusic[1] != null;
 
-            _currentMusic?.Update();
+            for (int i = 0; i < 2; i++)
+            {
+                if (_currentMusic[i] != null && ProfileManager.Current != null)
+                {
+                    if (Client.Game.IsActive)
+                    {
+                        if (!ProfileManager.Current.ReproduceSoundsInBackground)
+                            _currentMusic[i].Volume = i == 0 && runninWarMusic ? 0 : ProfileManager.Current.MusicVolume / Constants.SOUND_DELTA;
+                    }
+                    else if (!ProfileManager.Current.ReproduceSoundsInBackground && _currentMusic[i].Volume != 0.0f)
+                        _currentMusic[i].Volume = 0;
+                }
+
+                _currentMusic[i]?.Update();
+            }
+            
 
             for (int i = 0; i < _currentSounds.Count; i++)
             {

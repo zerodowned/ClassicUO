@@ -32,6 +32,7 @@ using ClassicUO.Renderer;
 using ClassicUO.Game.Data;
 
 using Microsoft.Xna.Framework;
+using ClassicUO.IO.Resources;
 
 namespace ClassicUO.Game.UI.Controls
 {
@@ -57,7 +58,7 @@ namespace ClassicUO.Game.UI.Controls
             Y = item.Y;
             HighlightOnMouseOver = true;
             CanPickUp = true;
-            ArtTexture texture = UOFileManager.Art.GetTexture(item.DisplayedGraphic);
+            ArtTexture texture = ArtLoader.Instance.GetTexture(item.DisplayedGraphic);
             Texture = texture;
 
             Width = texture.Width;
@@ -65,6 +66,8 @@ namespace ClassicUO.Game.UI.Controls
             LocalSerial = item;
 
             WantUpdateSize = false;
+
+            SetTooltip(item);
         }
 
 
@@ -193,14 +196,14 @@ namespace ClassicUO.Game.UI.Controls
 
                     if (Mouse.IsDragging && CanPickup())
                     {
-                        if (!gs.IsHoldingItem || !gs.IsMouseOverUI) 
+                        if (!ItemHold.Enabled || !gs.IsMouseOverUI) 
                             return;
 
                         SelectedObject.Object = Item;
 
                         if (Item.ItemData.IsContainer)
                             gs.DropHeldItemToContainer(Item);
-                        else if (gs.HeldItem.Graphic == Item.Graphic && gs.HeldItem.IsStackable)
+                        else if (ItemHold.Graphic == Item.Graphic && ItemHold.IsStackable)
                             gs.MergeHeldItem(Item);
                         else
                         {
@@ -254,7 +257,7 @@ namespace ClassicUO.Game.UI.Controls
                 }
                 else
                 {
-                    if (!gs.IsHoldingItem || !gs.IsMouseOverUI)
+                    if (!ItemHold.Enabled || !gs.IsMouseOverUI)
                     {
                         //if (_clickedCanDrag)
                         //{
@@ -273,7 +276,7 @@ namespace ClassicUO.Game.UI.Controls
 
                         if (Item.ItemData.IsContainer)
                             gs.DropHeldItemToContainer(Item);
-                        else if (gs.HeldItem.Graphic == Item.Graphic && gs.HeldItem.IsStackable)
+                        else if (ItemHold.Graphic == Item.Graphic && ItemHold.IsStackable)
                             gs.MergeHeldItem(Item);
                         else
                         {
@@ -340,7 +343,7 @@ namespace ClassicUO.Game.UI.Controls
         {
             if (CanPickUp)
             {
-                Rectangle bounds = UOFileManager.Art.GetTexture(Item.DisplayedGraphic).Bounds;
+                Rectangle bounds = ArtLoader.Instance.GetTexture(Item.DisplayedGraphic).Bounds;
                 int centerX = bounds.Width >> 1;
                 int centerY = bounds.Height >> 1;
 

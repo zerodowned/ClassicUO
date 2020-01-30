@@ -28,6 +28,7 @@ using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using ClassicUO.IO;
+using ClassicUO.IO.Resources;
 using ClassicUO.Renderer;
 
 using Microsoft.Xna.Framework;
@@ -136,7 +137,7 @@ namespace ClassicUO.Game.UI.Gumps
                 var g = (ushort) (_sortAsc ? 0x985 : 0x983);
 
                 _sortOrderIndicator.Graphic = g;
-                _sortOrderIndicator.Texture = UOFileManager.Gumps.GetTexture(g);
+                _sortOrderIndicator.Texture = GumpsLoader.Instance.GetTexture(g);
                 _sortOrderIndicator.X = btn.X + btn.Width - 15;
                 _sortOrderIndicator.Y = btn.Y + 5;
             }
@@ -181,8 +182,8 @@ namespace ClassicUO.Game.UI.Gumps
                 _scrollArea.Add(t);
 
             Add(new Label("Total: ", true, 1153) { X = 40, Y = 320 });
-            Add(new Label(_totalReal.ToString(), true, 1153) { X = 220, Y = 320 });
-            Add(new Label(_totalValue.ToString(), true, 1153) { X = 300, Y = 320 });
+            Add(new Label(_totalReal.ToString("F1"), true, 1153) { X = 220, Y = 320 });
+            Add(new Label(_totalValue.ToString("F1"), true, 1153) { X = 300, Y = 320 });
         }
 
 
@@ -269,7 +270,7 @@ namespace ClassicUO.Game.UI.Gumps
                         _skill.Lock = Lock.Down;
                         GameActions.ChangeSkillLockStatus((ushort) _skill.Index, (byte) Lock.Down);
                         loc.Graphic = 0x985;
-                        loc.Texture = UOFileManager.Gumps.GetTexture(0x985);
+                        loc.Texture = GumpsLoader.Instance.GetTexture(0x985);
 
                         break;
 
@@ -277,7 +278,7 @@ namespace ClassicUO.Game.UI.Gumps
                         _skill.Lock = Lock.Locked;
                         GameActions.ChangeSkillLockStatus((ushort) _skill.Index, (byte) Lock.Locked);
                         loc.Graphic = 0x82C;
-                        loc.Texture = UOFileManager.Gumps.GetTexture(0x82C);
+                        loc.Texture = GumpsLoader.Instance.GetTexture(0x82C);
 
                         break;
 
@@ -285,7 +286,7 @@ namespace ClassicUO.Game.UI.Gumps
                         _skill.Lock = Lock.Up;
                         GameActions.ChangeSkillLockStatus((ushort) _skill.Index, (byte) Lock.Up);
                         loc.Graphic = 0x983;
-                        loc.Texture = UOFileManager.Gumps.GetTexture(0x983);
+                        loc.Texture = GumpsLoader.Instance.GetTexture(0x983);
 
                         break;
                 }
@@ -302,7 +303,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                 SkillButtonGump skillButtonGump = new SkillButtonGump(_skill, Mouse.Position.X, Mouse.Position.Y);
                 UIManager.Add(skillButtonGump);
-                Rectangle rect = UOFileManager.Gumps.GetTexture(0x24B8).Bounds;
+                Rectangle rect = GumpsLoader.Instance.GetTexture(0x24B8).Bounds;
                 UIManager.AttemptDragControl(skillButtonGump, new Point(Mouse.Position.X + (rect.Width >> 1), Mouse.Position.Y + (rect.Height >> 1)), true);
             }
         }

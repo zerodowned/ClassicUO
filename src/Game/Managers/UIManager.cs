@@ -32,6 +32,7 @@ using ClassicUO.Game.UI.Controls;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Input;
 using ClassicUO.IO;
+using ClassicUO.IO.Resources;
 using ClassicUO.Renderer;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Collections;
@@ -44,8 +45,8 @@ namespace ClassicUO.Game.Managers
 {
     internal static class UIManager
     {
-        private static readonly TextFileParser _parser = new TextFileParser(string.Empty, new[] {' '}, new char[] { }, new[] {'{', '}'});
-        private static readonly TextFileParser _cmdparser = new TextFileParser(string.Empty, new[] {' '}, new char[] { }, new char[] { });
+        private static readonly TextFileParser _parser = new TextFileParser(string.Empty, new[] { ' ' }, new char[] { }, new[] { '{', '}' });
+        private static readonly TextFileParser _cmdparser = new TextFileParser(string.Empty, new[] { ' ' }, new char[] { }, new char[] { });
         private static readonly Dictionary<uint, Point> _gumpPositionCache = new Dictionary<uint, Point>();
         private static readonly Control[] _mouseDownControls = new Control[5];
 
@@ -53,11 +54,11 @@ namespace ClassicUO.Game.Managers
         private static readonly Dictionary<uint, TargetLineGump> _targetLineGumps = new Dictionary<uint, TargetLineGump>();
         private static int _dragOriginX, _dragOriginY;
         private static bool _isDraggingControl;
-        private static Control _keyboardFocusControl,  _validForDClick;
+        private static Control _keyboardFocusControl, _validForDClick, _lastFocus;
         private static bool _needSort;
 
 
-      
+
         public static float ContainerScale { get; set; } = 1f;
 
         public static AnchorManager AnchorManager { get; } = new AnchorManager();
@@ -80,64 +81,42 @@ namespace ClassicUO.Game.Managers
         {
             get
             {
-                if (_keyboardFocusControl == null || _keyboardFocusControl.IsDisposed || !_keyboardFocusControl.IsVisible || !_keyboardFocusControl.IsEnabled)
-                {
-                    _keyboardFocusControl = null;
+                //if (_keyboardFocusControl == null || _keyboardFocusControl.IsDisposed || !_keyboardFocusControl.IsVisible || !_keyboardFocusControl.IsEnabled)
+                //{
+                //    _keyboardFocusControl = null;
 
-                    foreach (Control c in Gumps)
-                    {
-                        if (!c.IsDisposed && c.IsVisible && c.IsEnabled)
-                        {
-                            _keyboardFocusControl = c.GetFirstControlAcceptKeyboardInput();
+                //    foreach (Control c in Gumps)
+                //    {
+                //        if (!c.IsDisposed && c.IsVisible && c.IsEnabled)
+                //        {
+                //            _keyboardFocusControl = c.GetFirstControlAcceptKeyboardInput();
 
-                            if (_keyboardFocusControl != null)
-                            {
-                                _keyboardFocusControl.OnFocusEnter();
-                                break;
-                            }
-                        }
-                    }
-                }
+                //            if (_keyboardFocusControl != null)
+                //            {
+                //                _keyboardFocusControl.OnFocusEnter();
+                //                break;
+                //            }
+                //        }
+                //    }
+                //}
 
                 return _keyboardFocusControl;
             }
             set
             {
-                _keyboardFocusControl?.OnFocusLeft();
-                _keyboardFocusControl = value;
-
-                if (value != null && value.AcceptKeyboardInput)
+                if (_keyboardFocusControl != value)
                 {
-                    value.OnFocusEnter();
+                    _keyboardFocusControl?.OnFocusLeft();
+                    _keyboardFocusControl = value;
+
+                    if (value != null && value.AcceptKeyboardInput)
+                    {
+                        value.OnFocusEnter();
+                    }
                 }
             }
         }
 
-        public static bool IsKeyboardFocusAllowHotkeys
-        {
-            get
-            {
-                // We are not at the game scene or no player character present
-                if (World.Player == null || !(Client.Game.Scene is GameScene gs))
-                    return false;
-
-                // System Chat is NOT focused (items stack amount field or macros text fields is probably focused),
-                // it means that some other text input is focused and we're going to enter some text there
-                // thus we don't expect to execute any game macro or trigger any plugin hotkeys
-                if (SystemChat?.IsFocused == false)
-                    return false;
-
-                // "Press 'Enter' to activate chat" is enabled and System Chat is active,
-                // it means that we want to enter some text into the chat,
-                // thus we don't expect to execute any game macro or trigger any plugin hotkeys
-                if (ProfileManager.Current.ActivateChatAfterEnter &&
-                    SystemChat?.IsActive == true)
-                    return false;
-
-                // In all other cases hotkeys for macros and plugins are allowed
-                return true;
-            }
-        }
 
         public static bool IsModalControlOpen()
         {
@@ -188,6 +167,17 @@ namespace ClassicUO.Game.Managers
 
                 if (MouseOverControl.AcceptKeyboardInput)
                     _keyboardFocusControl = MouseOverControl;
+
+                if (MouseOverControl.IsEnabled && MouseOverControl.IsVisible)
+                {
+                    if (_lastFocus != MouseOverControl)
+                    {
+                        _lastFocus?.OnFocusLeft();
+                        MouseOverControl.OnFocusEnter();
+                        _lastFocus = MouseOverControl;
+                    }
+                }
+
                 _mouseDownControls[(int) MouseButtonType.Left] = MouseOverControl;
             }
             else
@@ -325,8 +315,13 @@ namespace ClassicUO.Game.Managers
 
         public static bool HadMouseDownOnGump(MouseButtonType button)
         {
-            var c = _mouseDownControls[(int) button];
+            var c = LastControlMouseDown(button);
             return c != null && !(c is WorldViewport) && !(c is ItemGump);
+        }
+
+        public static Control LastControlMouseDown(MouseButtonType button)
+        {
+            return _mouseDownControls[(int) button];
         }
 
 
@@ -337,7 +332,8 @@ namespace ClassicUO.Game.Managers
 
         public static void CloseIfClickOutGumps()
         {
-            foreach (Gump gump in Gumps.OfType<Gump>().Where(s => s.CloseIfClickOutside)) gump.Dispose();
+            foreach (Gump gump in Gumps.OfType<Gump>().Where(s => s.CloseIfClickOutside))
+                gump.Dispose();
         }
 
         public static void SavePosition(uint serverSerial, Point point)
@@ -380,7 +376,8 @@ namespace ClassicUO.Game.Managers
             {
                 List<string> gparams = _cmdparser.GetTokens(cmdlist[cnt], false);
 
-                if (gparams.Count == 0) continue;
+                if (gparams.Count == 0)
+                    continue;
 
                 switch (gparams[0].ToLower())
                 {
@@ -391,18 +388,7 @@ namespace ClassicUO.Game.Managers
 
                     case "buttontileart":
 
-                        gump.Add(new Button(gparams)
-                        {
-                            ContainsByBounds = true
-                        }, page);
-
-                        gump.Add(new StaticPic(UInt16Converter.Parse(gparams[8]), UInt16Converter.Parse(gparams[9]))
-                        {
-                            X = int.Parse(gparams[1]) + int.Parse(gparams[10]),
-                            Y = int.Parse(gparams[2]) + int.Parse(gparams[11]),
-
-                            AcceptMouseInput = true
-                        }, page);
+                        gump.Add(new ButtonTileArt(gparams), page);
 
                         break;
 
@@ -462,8 +448,10 @@ namespace ClassicUO.Game.Managers
                                     lvl = "Knight of ";
                                     break;
                                 case 2406:
-                                    if (pic.Graphic == 0x6F) lvl = "Seeker of ";
-                                    else lvl = "Knight of ";
+                                    if (pic.Graphic == 0x6F)
+                                        lvl = "Seeker of ";
+                                    else
+                                        lvl = "Knight of ";
                                     break;
                                 default:
                                     lvl = "";
@@ -473,30 +461,30 @@ namespace ClassicUO.Game.Managers
                             switch (pic.Graphic)
                             {
                                 case 0x69:
-                                    s = UOFileManager.Cliloc.GetString(1051000 + 2);
+                                    s = ClilocLoader.Instance.GetString(1051000 + 2);
                                     break;
                                 case 0x6A:
-                                    s = UOFileManager.Cliloc.GetString(1051000 + 7);
+                                    s = ClilocLoader.Instance.GetString(1051000 + 7);
                                     break;
                                 case 0x6B:
-                                    s = UOFileManager.Cliloc.GetString(1051000 + 5);
+                                    s = ClilocLoader.Instance.GetString(1051000 + 5);
                                     break;
                                 case 0x6D:
-                                    s = UOFileManager.Cliloc.GetString(1051000 + 6);
+                                    s = ClilocLoader.Instance.GetString(1051000 + 6);
                                     break;
                                 case 0x6E:
-                                    s = UOFileManager.Cliloc.GetString(1051000 + 1);
+                                    s = ClilocLoader.Instance.GetString(1051000 + 1);
                                     break;
                                 case 0x6F:
-                                    s = UOFileManager.Cliloc.GetString(1051000 + 3);
+                                    s = ClilocLoader.Instance.GetString(1051000 + 3);
                                     break;
                                 case 0x70:
-                                    s = UOFileManager.Cliloc.GetString(1051000 + 4);
+                                    s = ClilocLoader.Instance.GetString(1051000 + 4);
                                     break;
 
                                 case 0x6C:
                                 default:
-                                    s = UOFileManager.Cliloc.GetString(1051000);
+                                    s = ClilocLoader.Instance.GetString(1051000);
                                     break;
                             }
 
@@ -521,7 +509,7 @@ namespace ClassicUO.Game.Managers
                         break;
 
                     case "xmfhtmlgump":
-                        gump.Add(new HtmlControl(int.Parse(gparams[1]), int.Parse(gparams[2]), int.Parse(gparams[3]), int.Parse(gparams[4]), int.Parse(gparams[6]) == 1, int.Parse(gparams[7]) != 0, gparams[6] != "0" && gparams[7] == "2", UOFileManager.Cliloc.GetString(int.Parse(gparams[5])), 0, true), page);
+                        gump.Add(new HtmlControl(int.Parse(gparams[1]), int.Parse(gparams[2]), int.Parse(gparams[3]), int.Parse(gparams[4]), int.Parse(gparams[6]) == 1, int.Parse(gparams[7]) != 0, gparams[6] != "0" && gparams[7] == "2", ClilocLoader.Instance.GetString(int.Parse(gparams[5])), 0, true), page);
 
                         break;
 
@@ -530,7 +518,7 @@ namespace ClassicUO.Game.Managers
 
                         if (color == 0x7FFF)
                             color = 0x00FFFFFF;
-                        gump.Add(new HtmlControl(int.Parse(gparams[1]), int.Parse(gparams[2]), int.Parse(gparams[3]), int.Parse(gparams[4]), int.Parse(gparams[6]) == 1, int.Parse(gparams[7]) != 0, gparams[6] != "0" && gparams[7] == "2", UOFileManager.Cliloc.GetString(int.Parse(gparams[5])), color, true), page);
+                        gump.Add(new HtmlControl(int.Parse(gparams[1]), int.Parse(gparams[2]), int.Parse(gparams[3]), int.Parse(gparams[4]), int.Parse(gparams[6]) == 1, int.Parse(gparams[7]) != 0, gparams[6] != "0" && gparams[7] == "2", ClilocLoader.Instance.GetString(int.Parse(gparams[5])), color, true), page);
 
                         break;
 
@@ -553,7 +541,7 @@ namespace ClassicUO.Game.Managers
                             }
                         }
 
-                        gump.Add(new HtmlControl(int.Parse(gparams[1]), int.Parse(gparams[2]), int.Parse(gparams[3]), int.Parse(gparams[4]), int.Parse(gparams[5]) == 1, int.Parse(gparams[6]) != 0, gparams[5] != "0" && gparams[6] == "2", sb == null ? UOFileManager.Cliloc.GetString(int.Parse(gparams[8])) : UOFileManager.Cliloc.Translate(UOFileManager.Cliloc.GetString(int.Parse(gparams[8])), sb.ToString().Trim('@')), color, true), page);
+                        gump.Add(new HtmlControl(int.Parse(gparams[1]), int.Parse(gparams[2]), int.Parse(gparams[3]), int.Parse(gparams[4]), int.Parse(gparams[5]) == 1, int.Parse(gparams[6]) != 0, gparams[5] != "0" && gparams[6] == "2", sb == null ? ClilocLoader.Instance.GetString(int.Parse(gparams[8])) : ClilocLoader.Instance.Translate(ClilocLoader.Instance.GetString(int.Parse(gparams[8])), sb.ToString().Trim('@').Replace('@', '\t')), color, true), page);
 
                         break;
 
@@ -584,7 +572,7 @@ namespace ClassicUO.Game.Managers
                             textBox.SetKeyboardFocus();
                             textBoxFocused = true;
                         }
-                      
+
                         gump.Add(textBox, page);
 
                         break;
@@ -630,21 +618,21 @@ namespace ClassicUO.Game.Managers
 
                         if (World.ClientFeatures.TooltipsEnabled)
                         {
-                            string cliloc = UOFileManager.Cliloc.GetString(int.Parse(gparams[1]));
+                            string text = ClilocLoader.Instance.GetString(int.Parse(gparams[1]));
 
-                            if (gparams.Count > 2 && gparams[2][0] == '@')
+                            if (gparams.Count > 2 && gparams[2].Length != 0 && gparams[2][0] == '@')
                             {
                                 string args = gparams[2];
                                 //Convert tooltip args format to standard cliloc format
                                 args = args.Trim('@').Replace('@', '\t');
 
                                 if (args.Length > 1)
-                                    cliloc = UOFileManager.Cliloc.Translate(cliloc, args);
+                                    text = ClilocLoader.Instance.Translate(text, args);
                                 else
-                                    Log.Error( $"String '{args}' too short, something wrong with gump tooltip: {cliloc}");
+                                    Log.Error($"String '{args}' too short, something wrong with gump tooltip: {text}");
                             }
 
-                            gump.Children.Last()?.SetTooltip(cliloc);
+                            gump.Children.LastOrDefault()?.SetTooltip(text);
                         }
 
                         break;
@@ -653,11 +641,7 @@ namespace ClassicUO.Game.Managers
 
                         if (World.ClientFeatures.TooltipsEnabled)
                         {
-                            var entity = World.Get(SerialHelper.Parse(gparams[1]));
-                            var lastControl = gump.Children.LastOrDefault();
-
-                            if (lastControl != default(Control) && entity != default(Entity))
-                                lastControl.SetTooltip(entity);
+                            gump.Children.LastOrDefault()?.SetTooltip(SerialHelper.Parse(gparams[1]));
                         }
 
                         break;
@@ -667,8 +651,11 @@ namespace ClassicUO.Game.Managers
                         break;
 
                     case "mastergump":
-                        Log.Warn( "Gump part 'mastergump' not handled.");
+                        Log.Warn("Gump part 'mastergump' not handled.");
 
+                        break;
+                    default:
+                        Log.Warn(gparams[0]);
                         break;
                 }
             }
@@ -847,7 +834,7 @@ namespace ClassicUO.Game.Managers
                 _needSort = true;
             }
         }
-        
+
         public static void Clear()
         {
             foreach (Control s in Gumps)
@@ -859,8 +846,33 @@ namespace ClassicUO.Game.Managers
 
         private static void HandleKeyboardInput()
         {
-            if (KeyboardFocusControl != null && _keyboardFocusControl.IsDisposed)
+            if (_keyboardFocusControl != null && _keyboardFocusControl.IsDisposed)
                 _keyboardFocusControl = null;
+
+            if (_keyboardFocusControl == null)
+            {
+                if (SystemChat != null && !SystemChat.IsDisposed)
+                {
+                    _keyboardFocusControl = SystemChat.TextBoxControl;
+                    _keyboardFocusControl.OnFocusEnter();
+                }
+                else
+                {
+                    foreach (Control c in Gumps)
+                    {
+                        if (!c.IsDisposed && c.IsVisible && c.IsEnabled)
+                        {
+                            _keyboardFocusControl = c.GetFirstControlAcceptKeyboardInput();
+
+                            if (_keyboardFocusControl != null)
+                            {
+                                _keyboardFocusControl.OnFocusEnter();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         private static void HandleMouseInput()
@@ -1032,9 +1044,9 @@ namespace ClassicUO.Game.Managers
 
         public static void AttemptDragControl(Control control, Point mousePosition, bool attemptAlwaysSuccessful = false)
         {
-            if (_isDraggingControl || (Client.Game.Scene is GameScene gs && gs.IsHoldingItem))
+            if (_isDraggingControl || ItemHold.Enabled)
                 return;
-       
+
             Control dragTarget = control;
 
             if (!dragTarget.CanMove)
@@ -1097,6 +1109,7 @@ namespace ClassicUO.Game.Managers
             int deltaY = mousePosition.Y - _dragOriginY;
             DraggingControl.X = DraggingControl.X + deltaX;
             DraggingControl.Y = DraggingControl.Y + deltaY;
+            DraggingControl.InvokeMove(deltaX, deltaY);
             _dragOriginX = mousePosition.X;
             _dragOriginY = mousePosition.Y;
         }
