@@ -148,7 +148,7 @@ namespace ClassicUO.Game.Managers
             }
             else
             {
-                if (ProfileManager.Current == null || !ProfileManager.Current.EnableMusic)
+                if (ProfileManager.Current == null || !ProfileManager.Current.EnableMusic || (!ProfileManager.Current.EnableCombatMusic && iswarmode))
                     return;
 
                 volume = ProfileManager.Current.MusicVolume / Constants.SOUND_DELTA;
