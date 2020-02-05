@@ -44,6 +44,21 @@
     <PackageReference Include="Microsoft.DotNet.ILCompiler" Version="1.0.0-alpha-28318-01" />
   </ItemGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
+    <IlcGenerateCompleteTypeMetadata>false</IlcGenerateCompleteTypeMetadata>
+    <IlcOptimizationPreference>Size</IlcOptimizationPreference>
+    <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
+    <IlcInvariantGlobalization>true</IlcInvariantGlobalization>
+    <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
+    <IlcDisableReflection>false</IlcDisableReflection>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
+    <IlcArg Include="--removefeature:EventSource" />
+    <IlcArg Include="--removefeature:FrameworkStrings" />
+  </ItemGroup>
+
+
   <ItemGroup Condition="'$(TargetFramework)' == 'net47'">
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
