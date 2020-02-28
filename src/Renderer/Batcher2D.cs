@@ -43,6 +43,10 @@ namespace ClassicUO.Renderer
         private readonly DynamicVertexBuffer _vertexBuffer;
         private readonly Texture2D[] _textureInfo;
         private PositionNormalTextureColor4[] _vertexInfo;
+        private readonly SpriteInfo[] _spriteInfos = new SpriteInfo[MAX_SPRITES];
+        private readonly IntPtr[] _sortedSpriteInfos = new IntPtr[MAX_SPRITES];
+        private float _z;
+
         private BlendState _blendState;
         private Effect _customEffect;
         private bool _started;
@@ -50,6 +54,12 @@ namespace ClassicUO.Renderer
         private bool _useScissor;
         private BoundingBox _drawingArea;
         private int _numSprites;
+
+
+        private void IncZ()
+        {
+            _z++;
+        }
 
         public UltimaBatcher2D(GraphicsDevice device)
         {
@@ -82,8 +92,8 @@ namespace ClassicUO.Renderer
 
         public DepthStencilState Stencil { get; } = new DepthStencilState
         {
-            StencilEnable = false,
-            DepthBufferEnable = false,
+            StencilEnable = true,
+            DepthBufferEnable = true,
             StencilFunction = CompareFunction.NotEqual,
             ReferenceStencil = 1,
             StencilMask = 1,
@@ -206,7 +216,7 @@ namespace ClassicUO.Renderer
             {
                 vertex.Position0.X = x + w;
                 vertex.Position0.Y = y + h;
-                vertex.Position0.Z = 0;
+                vertex.Position0.Z = _z;
                 vertex.Normal0.X = 0;
                 vertex.Normal0.Y = 0;
                 vertex.Normal0.Z = 1;
@@ -216,7 +226,7 @@ namespace ClassicUO.Renderer
 
                 vertex.Position1.X = x;
                 vertex.Position1.Y = y + h;
-                vertex.Position0.Z = 0;
+                vertex.Position0.Z = _z;
                 vertex.Normal1.X = 0;
                 vertex.Normal1.Y = 0;
                 vertex.Normal1.Z = 1;
@@ -226,7 +236,7 @@ namespace ClassicUO.Renderer
 
                 vertex.Position2.X = x + w;
                 vertex.Position2.Y = y;
-                vertex.Position2.Z = 0;
+                vertex.Position2.Z = _z;
                 vertex.Normal2.X = 0;
                 vertex.Normal2.Y = 0;
                 vertex.Normal2.Z = 1;
@@ -236,7 +246,7 @@ namespace ClassicUO.Renderer
 
                 vertex.Position3.X = x;
                 vertex.Position3.Y = y;
-                vertex.Position3.Z = 0;
+                vertex.Position3.Z = _z;
                 vertex.Normal3.X = 0;
                 vertex.Normal3.Y = 0;
                 vertex.Normal3.Z = 1;
@@ -248,7 +258,7 @@ namespace ClassicUO.Renderer
             {
                 vertex.Position0.X = x;
                 vertex.Position0.Y = y + h;
-                vertex.Position0.Z = 0;
+                vertex.Position0.Z = _z;
                 vertex.Normal0.X = 0;
                 vertex.Normal0.Y = 0;
                 vertex.Normal0.Z = 1;
@@ -258,7 +268,7 @@ namespace ClassicUO.Renderer
 
                 vertex.Position1.X = x + w;
                 vertex.Position1.Y = y + h;
-                vertex.Position1.Z = 0;
+                vertex.Position1.Z = _z;
                 vertex.Normal1.X = 0;
                 vertex.Normal1.Y = 0;
                 vertex.Normal1.Z = 1;
@@ -268,7 +278,7 @@ namespace ClassicUO.Renderer
 
                 vertex.Position2.X = x;
                 vertex.Position2.Y = y;
-                vertex.Position2.Z = 0;
+                vertex.Position2.Z = _z;
                 vertex.Normal2.X = 0;
                 vertex.Normal2.Y = 0;
                 vertex.Normal2.Z = 1;
@@ -278,7 +288,7 @@ namespace ClassicUO.Renderer
 
                 vertex.Position3.X = x + w;
                 vertex.Position3.Y = y;
-                vertex.Position3.Z = 0;
+                vertex.Position3.Z = _z;
                 vertex.Normal3.X = 0;
                 vertex.Normal3.Y = 0;
                 vertex.Normal3.Z = 1;
@@ -293,7 +303,7 @@ namespace ClassicUO.Renderer
             vertex.Hue3 = hue;
 
             PushSprite(texture);
-
+            IncZ();
             return true;
         }
 
@@ -325,19 +335,19 @@ namespace ClassicUO.Renderer
 
             vertex.Position0.X = x + 22;
             vertex.Position0.Y = y - rect.Left;
-            vertex.Position0.Z = 0;
+            vertex.Position0.Z = _z;
 
             vertex.Position1.X = x + 44;
             vertex.Position1.Y = y + (22 - rect.Bottom);
-            vertex.Position1.Z = 0;
+            vertex.Position1.Z = _z;
 
             vertex.Position2.X = x;
             vertex.Position2.Y = y + (22 - rect.Top);
-            vertex.Position2.Z = 0;
+            vertex.Position2.Z = _z;
 
             vertex.Position3.X = x + 22;
             vertex.Position3.Y = y + (44 - rect.Right);
-            vertex.Position3.Z = 0;
+            vertex.Position3.Z = _z;
 
             vertex.Hue0 =
             vertex.Hue1 =
@@ -345,6 +355,8 @@ namespace ClassicUO.Renderer
             vertex.Hue3 = hue;
 
             PushSprite(texture);
+
+            IncZ();
 
             return true;
         }
@@ -376,6 +388,7 @@ namespace ClassicUO.Renderer
             vertex.Position0.Y = startY;
             vertex.Position0.X += cosx - -siny;
             vertex.Position0.Y -= sinx + -cosy;
+            vertex.Position0.Z = _z;
             vertex.Normal0.X = 0;
             vertex.Normal0.Y = 0;
             vertex.Normal0.Z = 1;
@@ -387,6 +400,7 @@ namespace ClassicUO.Renderer
             vertex.Position1.Y = startY;
             vertex.Position1.X += cosx - siny;
             vertex.Position1.Y += -sinx + -cosy;
+            vertex.Position1.Z = _z;
             vertex.Normal1.X = 0;
             vertex.Normal1.Y = 0;
             vertex.Normal1.Z = 1;
@@ -398,6 +412,7 @@ namespace ClassicUO.Renderer
             vertex.Position2.Y = startY;
             vertex.Position2.X += -cosx - -siny;
             vertex.Position2.Y += sinx + cosy;
+            vertex.Position2.Z = _z;
             vertex.Normal2.X = 0;
             vertex.Normal2.Y = 0;
             vertex.Normal2.Z = 1;
@@ -409,6 +424,7 @@ namespace ClassicUO.Renderer
             vertex.Position3.Y = startY;
             vertex.Position3.X += -cosx - siny;
             vertex.Position3.Y += sinx + -cosy;
+            vertex.Position3.Z = _z;
             vertex.Normal3.X = 0;
             vertex.Normal3.Y = 0;
             vertex.Normal3.Z = 1;
@@ -423,7 +439,7 @@ namespace ClassicUO.Renderer
             vertex.Hue3 = hue;
 
             PushSprite(texture);
-
+            IncZ();
             return true;
         }
 
@@ -445,7 +461,7 @@ namespace ClassicUO.Renderer
             {
                 vertex.Position0.X = x + width;
                 vertex.Position0.Y = translatedY + height;
-                vertex.Position0.Z = 0;
+                vertex.Position0.Z = _z;
                 vertex.Normal0.X = 0;
                 vertex.Normal0.Y = 0;
                 vertex.Normal0.Z = 1;
@@ -455,6 +471,7 @@ namespace ClassicUO.Renderer
 
                 vertex.Position1.X = x;
                 vertex.Position1.Y = translatedY + height;
+                vertex.Position1.Z = _z;
                 vertex.Normal1.X = 0;
                 vertex.Normal1.Y = 0;
                 vertex.Normal1.Z = 1;
@@ -464,6 +481,7 @@ namespace ClassicUO.Renderer
 
                 vertex.Position2.X = x + width * (ratio + 1f);
                 vertex.Position2.Y = translatedY;
+                vertex.Position2.Z = _z;
                 vertex.Normal2.X = 0;
                 vertex.Normal2.Y = 0;
                 vertex.Normal2.Z = 1;
@@ -473,6 +491,7 @@ namespace ClassicUO.Renderer
 
                 vertex.Position3.X = x + width * ratio;
                 vertex.Position3.Y = translatedY;
+                vertex.Position3.Z = _z;
                 vertex.Normal3.X = 0;
                 vertex.Normal3.Y = 0;
                 vertex.Normal3.Z = 1;
@@ -484,7 +503,7 @@ namespace ClassicUO.Renderer
             {
                 vertex.Position0.X = x;
                 vertex.Position0.Y = translatedY + height;
-                vertex.Position0.Z = 0;
+                vertex.Position0.Z = _z;
                 vertex.Normal0.X = 0;
                 vertex.Normal0.Y = 0;
                 vertex.Normal0.Z = 1;
@@ -494,6 +513,7 @@ namespace ClassicUO.Renderer
 
                 vertex.Position1.X = x + width;
                 vertex.Position1.Y = translatedY + height;
+                vertex.Position1.Z = _z;
                 vertex.Normal1.X = 0;
                 vertex.Normal1.Y = 0;
                 vertex.Normal1.Z = 1;
@@ -503,6 +523,7 @@ namespace ClassicUO.Renderer
 
                 vertex.Position2.X = x + width * ratio;
                 vertex.Position2.Y = translatedY;
+                vertex.Position2.Z = _z;
                 vertex.Normal2.X = 0;
                 vertex.Normal2.Y = 0;
                 vertex.Normal2.Z = 1;
@@ -512,6 +533,7 @@ namespace ClassicUO.Renderer
 
                 vertex.Position3.X = x + width * (ratio + 1f);
                 vertex.Position3.Y = translatedY;
+                vertex.Position3.Z = _z;
                 vertex.Normal3.X = 0;
                 vertex.Normal3.Y = 0;
                 vertex.Normal3.Z = 1;
@@ -535,6 +557,8 @@ namespace ClassicUO.Renderer
             vertex.Hue3.Y = ShaderHuesTraslator.SHADER_SHADOW;
 
             PushSprite(texture);
+
+            IncZ();
 
             return true;
         }
@@ -564,28 +588,28 @@ namespace ClassicUO.Renderer
 
                     vertex.Position0.X = x + width;
                     vertex.Position0.Y = y;
-                    vertex.Position0.Z = 0;
+                    vertex.Position0.Z = _z;
                     vertex.TextureCoordinate0.X = 0;
                     vertex.TextureCoordinate0.Y = 0;
                     vertex.TextureCoordinate0.Z = 0;
 
                     vertex.Position1.X = x;
                     vertex.Position1.Y = y;
-                    vertex.Position1.Z = 0;
+                    vertex.Position1.Z = _z;
                     vertex.TextureCoordinate1.X = 1;
                     vertex.TextureCoordinate1.Y = 0;
                     vertex.TextureCoordinate1.Z = 0;
 
                     vertex.Position2.X = x + width;
                     vertex.Position2.Y = y + h03;
-                    vertex.Position2.Z = 0;
+                    vertex.Position2.Z = _z;
                     vertex.TextureCoordinate2.X = 0;
                     vertex.TextureCoordinate2.Y = h3mod;
                     vertex.TextureCoordinate2.Z = 0;
 
                     vertex.Position3.X = x;
                     vertex.Position3.Y = y + h03;
-                    vertex.Position3.Z = 0;
+                    vertex.Position3.Z = _z;
                     vertex.TextureCoordinate3.X = 1;
                     vertex.TextureCoordinate3.Y = h3mod;
                     vertex.TextureCoordinate3.Z = 0;
@@ -650,14 +674,14 @@ namespace ClassicUO.Renderer
 
                     vertex.Position0.X = x + width;
                     vertex.Position0.Y = y + h03;
-                    vertex.Position0.Z = 0;
+                    vertex.Position0.Z = _z;
                     vertex.TextureCoordinate0.X = 0;
                     vertex.TextureCoordinate0.Y = h3mod;
                     vertex.TextureCoordinate0.Z = 0;
 
                     vertex.Position1.X = x;
                     vertex.Position1.Y = y + h03;
-                    vertex.Position1.Z = 0;
+                    vertex.Position1.Z = _z;
                     vertex.TextureCoordinate1.X = 1;
                     vertex.TextureCoordinate1.Y = h3mod;
                     vertex.TextureCoordinate1.Z = 0;
@@ -678,14 +702,14 @@ namespace ClassicUO.Renderer
 
                     vertex.Position2.X = x + widthOffset;
                     vertex.Position2.Y = y + h06;
-                    vertex.Position2.Z = 0;
+                    vertex.Position2.Z = _z;
                     vertex.TextureCoordinate2.X = 0;
                     vertex.TextureCoordinate2.Y = h6mod;
                     vertex.TextureCoordinate2.Z = 0;
 
                     vertex.Position3.X = x + SITTING_OFFSET;
                     vertex.Position3.Y = y + h06;
-                    vertex.Position3.Z = 0;
+                    vertex.Position3.Z = _z;
                     vertex.TextureCoordinate3.X = 1;
                     vertex.TextureCoordinate3.Y = h6mod;
                     vertex.TextureCoordinate3.Z = 0;
@@ -768,28 +792,28 @@ namespace ClassicUO.Renderer
 
                     vertex.Position0.X = x + widthOffset;
                     vertex.Position0.Y = y + h06;
-                    vertex.Position0.Z = 0;
+                    vertex.Position0.Z = _z;
                     vertex.TextureCoordinate0.X = 0;
                     vertex.TextureCoordinate0.Y = h6mod;
                     vertex.TextureCoordinate0.Z = 0;
 
                     vertex.Position1.X = x + SITTING_OFFSET;
                     vertex.Position1.Y = y + h06;
-                    vertex.Position1.Z = 0;
+                    vertex.Position1.Z = _z;
                     vertex.TextureCoordinate1.X = 1;
                     vertex.TextureCoordinate1.Y = h6mod;
                     vertex.TextureCoordinate1.Z = 0;
 
                     vertex.Position2.X = x + widthOffset;
                     vertex.Position2.Y = y + h09;
-                    vertex.Position2.Z = 0;
+                    vertex.Position2.Z = _z;
                     vertex.TextureCoordinate2.X = 0;
                     vertex.TextureCoordinate2.Y = 1;
                     vertex.TextureCoordinate2.Z = 0;
 
                     vertex.Position3.X = x + SITTING_OFFSET;
                     vertex.Position3.Y = y + h09;
-                    vertex.Position3.Z = 0;
+                    vertex.Position3.Z = _z;
                     vertex.TextureCoordinate3.X = 1;
                     vertex.TextureCoordinate3.Y = 1;
                     vertex.TextureCoordinate3.Z = 0;
@@ -848,28 +872,28 @@ namespace ClassicUO.Renderer
 
                     vertex.Position0.X = x + SITTING_OFFSET;
                     vertex.Position0.Y = y;
-                    vertex.Position0.Z = 0;
+                    vertex.Position0.Z = _z;
                     vertex.TextureCoordinate0.X = 0;
                     vertex.TextureCoordinate0.Y = 0;
                     vertex.TextureCoordinate0.Z = 0;
 
                     vertex.Position1.X = x + widthOffset;
                     vertex.Position1.Y = y;
-                    vertex.Position1.Z = 0;
+                    vertex.Position1.Z = _z;
                     vertex.TextureCoordinate1.X = 1;
                     vertex.TextureCoordinate1.Y = 0;
                     vertex.TextureCoordinate1.Z = 0;
 
                     vertex.Position2.X = x + SITTING_OFFSET;
                     vertex.Position2.Y = y + h03;
-                    vertex.Position2.Z = 0;
+                    vertex.Position2.Z = _z;
                     vertex.TextureCoordinate2.X = 0;
                     vertex.TextureCoordinate2.Y = h3mod;
                     vertex.TextureCoordinate2.Z = 0;
 
                     vertex.Position3.X = x + widthOffset;
                     vertex.Position3.Y = y + h03;
-                    vertex.Position3.Z = 0;
+                    vertex.Position3.Z = _z;
                     vertex.TextureCoordinate3.X = 1;
                     vertex.TextureCoordinate3.Y = h3mod;
                     vertex.TextureCoordinate3.Z = 0;
@@ -909,28 +933,28 @@ namespace ClassicUO.Renderer
 
                     vertex.Position0.X = x + SITTING_OFFSET;
                     vertex.Position0.Y = y + h03;
-                    vertex.Position0.Z = 0;
+                    vertex.Position0.Z = _z;
                     vertex.TextureCoordinate0.X = 0;
                     vertex.TextureCoordinate0.Y = h3mod;
                     vertex.TextureCoordinate0.Z = 0;
                           
                     vertex.Position1.X = x + widthOffset;
                     vertex.Position1.Y = y + h03;
-                    vertex.Position1.Z = 0;
+                    vertex.Position1.Z = _z;
                     vertex.TextureCoordinate1.X = 1;
                     vertex.TextureCoordinate1.Y = h3mod;
                     vertex.TextureCoordinate1.Z = 0;
                           
                     vertex.Position2.X = x;
                     vertex.Position2.Y = y + h06;
-                    vertex.Position2.Z = 0;
+                    vertex.Position2.Z = _z;
                     vertex.TextureCoordinate2.X = 0;
                     vertex.TextureCoordinate2.Y = h6mod;
                     vertex.TextureCoordinate2.Z = 0;
                           
                     vertex.Position3.X = x + width;
                     vertex.Position3.Y = y + h06;
-                    vertex.Position3.Z = 0;
+                    vertex.Position3.Z = _z;
                     vertex.TextureCoordinate3.X = 1;
                     vertex.TextureCoordinate3.Y = h6mod;
                     vertex.TextureCoordinate3.Z = 0;
@@ -970,28 +994,28 @@ namespace ClassicUO.Renderer
 
                     vertex.Position0.X = x;
                     vertex.Position0.Y = y + h06;
-                    vertex.Position0.Z = 0;
+                    vertex.Position0.Z = _z;
                     vertex.TextureCoordinate0.X = 0;
                     vertex.TextureCoordinate0.Y = h6mod;
                     vertex.TextureCoordinate0.Z = 0;
 
                     vertex.Position1.X = x + width;
                     vertex.Position1.Y = y + h06;
-                    vertex.Position1.Z = 0;
+                    vertex.Position1.Z = _z;
                     vertex.TextureCoordinate1.X = 1;
                     vertex.TextureCoordinate1.Y = h6mod;
                     vertex.TextureCoordinate1.Z = 0;
 
                     vertex.Position2.X = x;
                     vertex.Position2.Y = y + h09;
-                    vertex.Position2.Z = 0;
+                    vertex.Position2.Z = _z;
                     vertex.TextureCoordinate2.X = 0;
                     vertex.TextureCoordinate2.Y = 1;
                     vertex.TextureCoordinate2.Z = 0;
 
                     vertex.Position3.X = x + width;
                     vertex.Position3.Y = y + h09;
-                    vertex.Position3.Z = 0;
+                    vertex.Position3.Z = _z;
                     vertex.TextureCoordinate3.X = 1;
                     vertex.TextureCoordinate3.Y = 1;
                     vertex.TextureCoordinate3.Z = 0;
@@ -1015,6 +1039,8 @@ namespace ClassicUO.Renderer
                 }
             }
 
+            IncZ();
+
             return true;
         }
 
@@ -1027,7 +1053,7 @@ namespace ClassicUO.Renderer
 
             vertex.Position0.X = x;
             vertex.Position0.Y = y;
-            vertex.Position0.Z = 0;
+            vertex.Position0.Z = _z;
             vertex.Normal0.X = 0;
             vertex.Normal0.Y = 0;
             vertex.Normal0.Z = 1;
@@ -1037,7 +1063,7 @@ namespace ClassicUO.Renderer
 
             vertex.Position1.X = x + texture.Width;
             vertex.Position1.Y = y;
-            vertex.Position1.Z = 0;
+            vertex.Position1.Z = _z;
             vertex.Normal1.X = 0;
             vertex.Normal1.Y = 0;
             vertex.Normal1.Z = 1;
@@ -1047,7 +1073,7 @@ namespace ClassicUO.Renderer
 
             vertex.Position2.X = x;
             vertex.Position2.Y = y + texture.Height;
-            vertex.Position2.Z = 0;
+            vertex.Position2.Z = _z;
             vertex.Normal2.X = 0;
             vertex.Normal2.Y = 0;
             vertex.Normal2.Z = 1;
@@ -1057,7 +1083,7 @@ namespace ClassicUO.Renderer
 
             vertex.Position3.X = x + texture.Width;
             vertex.Position3.Y = y + texture.Height;
-            vertex.Position3.Z = 0;
+            vertex.Position3.Z = _z;
             vertex.Normal3.X = 0;
             vertex.Normal3.Y = 0;
             vertex.Normal3.Z = 1;
@@ -1068,6 +1094,8 @@ namespace ClassicUO.Renderer
             vertex.Hue0 = vertex.Hue1 = vertex.Hue2 = vertex.Hue3 = hue;
 
             PushSprite(texture);
+
+            IncZ();
 
             return true;
         }
@@ -1086,7 +1114,7 @@ namespace ClassicUO.Renderer
 
             vertex.Position0.X = x;
             vertex.Position0.Y = y;
-            vertex.Position0.Z = 0;
+            vertex.Position0.Z = _z;
             vertex.Normal0.X = 0;
             vertex.Normal0.Y = 0;
             vertex.Normal0.Z = 1;
@@ -1095,7 +1123,7 @@ namespace ClassicUO.Renderer
             vertex.TextureCoordinate0.Z = 0;
             vertex.Position1.X = x + swidth;
             vertex.Position1.Y = y;
-            vertex.Position1.Z = 0;
+            vertex.Position1.Z = _z;
             vertex.Normal1.X = 0;
             vertex.Normal1.Y = 0;
             vertex.Normal1.Z = 1;
@@ -1104,7 +1132,7 @@ namespace ClassicUO.Renderer
             vertex.TextureCoordinate1.Z = 0;
             vertex.Position2.X = x;
             vertex.Position2.Y = y + sheight;
-            vertex.Position2.Z = 0;
+            vertex.Position2.Z = _z;
             vertex.Normal2.X = 0;
             vertex.Normal2.Y = 0;
             vertex.Normal2.Z = 1;
@@ -1113,7 +1141,7 @@ namespace ClassicUO.Renderer
             vertex.TextureCoordinate2.Z = 0;
             vertex.Position3.X = x + swidth;
             vertex.Position3.Y = y + sheight;
-            vertex.Position3.Z = 0;
+            vertex.Position3.Z = _z;
             vertex.Normal3.X = 0;
             vertex.Normal3.Y = 0;
             vertex.Normal3.Z = 1;
@@ -1123,6 +1151,8 @@ namespace ClassicUO.Renderer
             vertex.Hue0 = vertex.Hue1 = vertex.Hue2 = vertex.Hue3 = hue;
 
             PushSprite(texture);
+
+            IncZ();
 
             return true;
         }
@@ -1221,7 +1251,7 @@ namespace ClassicUO.Renderer
                 vertex.Position3.Y = h;
             }
 
-            vertex.Position0.Z = 0;
+            vertex.Position0.Z = _z;
             vertex.Normal0.X = 0;
             vertex.Normal0.Y = 0;
             vertex.Normal0.Z = 1;
@@ -1229,7 +1259,7 @@ namespace ClassicUO.Renderer
             vertex.TextureCoordinate0.Y = minY;
             vertex.TextureCoordinate0.Z = 0;
 
-            vertex.Position1.Z = 0;
+            vertex.Position1.Z = _z;
             vertex.Normal1.X = 0;
             vertex.Normal1.Y = 0;
             vertex.Normal1.Z = 1;
@@ -1237,7 +1267,7 @@ namespace ClassicUO.Renderer
             vertex.TextureCoordinate1.Y = minY;
             vertex.TextureCoordinate1.Z = 0;
 
-            vertex.Position2.Z = 0;
+            vertex.Position2.Z = _z;
             vertex.Normal2.X = 0;
             vertex.Normal2.Y = 0;
             vertex.Normal2.Z = 1;
@@ -1245,7 +1275,7 @@ namespace ClassicUO.Renderer
             vertex.TextureCoordinate2.Y = maxY;
             vertex.TextureCoordinate2.Z = 0;
 
-            vertex.Position3.Z = 0;
+            vertex.Position3.Z = _z;
             vertex.Normal3.X = 0;
             vertex.Normal3.Y = 0;
             vertex.Normal3.Z = 1;
@@ -1255,14 +1285,11 @@ namespace ClassicUO.Renderer
             vertex.Hue0 = vertex.Hue1 = vertex.Hue2 = vertex.Hue3 = hue;
 
 
-            //if (CheckInScreen(idx))
-            {
-                PushSprite(texture);
+            PushSprite(texture);
 
-                return true;
-            }
+            IncZ();
 
-            return false;
+            return true;
         }
 
         [MethodImpl(256)]
@@ -1274,7 +1301,7 @@ namespace ClassicUO.Renderer
 
             vertex.Position0.X = x;
             vertex.Position0.Y = y;
-            vertex.Position0.Z = 0;
+            vertex.Position0.Z = _z;
             vertex.Normal0.X = 0;
             vertex.Normal0.Y = 0;
             vertex.Normal0.Z = 1;
@@ -1284,7 +1311,7 @@ namespace ClassicUO.Renderer
 
             vertex.Position1.X = x + width;
             vertex.Position1.Y = y;
-            vertex.Position1.Z = 0;
+            vertex.Position1.Z = _z;
             vertex.Normal1.X = 0;
             vertex.Normal1.Y = 0;
             vertex.Normal1.Z = 1;
@@ -1294,7 +1321,7 @@ namespace ClassicUO.Renderer
 
             vertex.Position2.X = x;
             vertex.Position2.Y = y + height;
-            vertex.Position2.Z = 0;
+            vertex.Position2.Z = _z;
             vertex.Normal2.X = 0;
             vertex.Normal2.Y = 0;
             vertex.Normal2.Z = 1;
@@ -1304,7 +1331,7 @@ namespace ClassicUO.Renderer
 
             vertex.Position3.X = x + width;
             vertex.Position3.Y = y + height;
-            vertex.Position3.Z = 0;
+            vertex.Position3.Z = _z;
             vertex.Normal3.X = 0;
             vertex.Normal3.Y = 0;
             vertex.Normal3.Z = 1;
@@ -1316,12 +1343,16 @@ namespace ClassicUO.Renderer
 
             PushSprite(texture);
 
+            IncZ();
+
             return true;
         }
 
         [MethodImpl(256)]
         public bool Draw2DTiled(Texture2D texture, int dx, int dy, float dwidth, float dheight, ref Vector3 hue)
         {
+            return true;
+
             int y = dy;
             int h = (int) dheight;
 
@@ -1338,6 +1369,7 @@ namespace ClassicUO.Renderer
                     if (w < texture.Width)
                         rw = w;
                     Draw2D(texture, x, y, 0, 0, rw, rh, ref hue);
+                    _z--;
                     w -= texture.Width;
                     x += texture.Width;
                 }
@@ -1345,6 +1377,8 @@ namespace ClassicUO.Renderer
                 h -= texture.Height;
                 y += texture.Height;
             }
+
+            IncZ();
 
             return true;
         }
@@ -1356,6 +1390,8 @@ namespace ClassicUO.Renderer
             Draw2D(texture, x + width, y, 1, height + 1, ref hue);
             Draw2D(texture, x, y + height, width, 1, ref hue);
             Draw2D(texture, x, y, 1, height, ref hue);
+
+            IncZ();
 
             return true;
         }
@@ -1442,6 +1478,9 @@ namespace ClassicUO.Renderer
             vertex.Hue3 = Vector3.Zero;
 
             PushSprite(texture);
+
+            IncZ();
+
             return true;
         }
 
@@ -1480,6 +1519,7 @@ namespace ClassicUO.Renderer
             Flush();
             _started = false;
             _customEffect = null;
+            _z = 0;
         }
 
 
@@ -1493,9 +1533,14 @@ namespace ClassicUO.Renderer
         }
 
         [MethodImpl(256)]
-        private bool PushSprite(Texture2D texture)
+        private unsafe bool PushSprite(Texture2D texture)
         {
             EnsureSize();
+
+            ref var info = ref _spriteInfos[_numSprites];
+            info.TextureHash = texture.GetHashCode();
+            info.VertexIndex = _numSprites;
+
             _textureInfo[_numSprites++] = texture;
 
             return true;
@@ -1531,6 +1576,8 @@ namespace ClassicUO.Renderer
             DefaultEffect.ApplyStates();
         }
 
+        private static readonly TextureComparer _comparer = new TextureComparer();
+
         private unsafe void Flush()
         {
             ApplyStates();
@@ -1538,18 +1585,44 @@ namespace ClassicUO.Renderer
             if (_numSprites == 0)
                 return;
 
-            int start = UpdateVertexBuffer(_numSprites);
 
-            //int start = 0;
+            fixed (IntPtr* sortedSpriteInfo = &_sortedSpriteInfos[0])
+            fixed (SpriteInfo* spriteInfo = &_spriteInfos[0])
+            {
+                for (int i = 0; i < _numSprites; i++)
+                {
+                    sortedSpriteInfo[i] = (IntPtr) (&spriteInfo[i]);
+                }
 
-            //fixed (PositionNormalTextureColor4* p = &_vertexInfo[0])
-            //{
-            //    _vertexBuffer.SetDataPointerEXT(
-            //                                    0,
-            //                                    (IntPtr) p,
-            //                                    _numSprites * PositionNormalTextureColor4.SIZE_IN_BYTES,
-            //                                    SetDataOptions.None);
-            //}
+                Array.Sort(_sortedSpriteInfos, _textureInfo, 0, _numSprites, _comparer);
+
+                for (int i = 0; i < _numSprites; i++)
+                {
+                    SpriteInfo* info = (SpriteInfo*) sortedSpriteInfo[i];
+
+                    var vertex = _vertexInfo[i];
+                    _vertexInfo[i] = _vertexInfo[info->VertexIndex];
+                    _vertexInfo[info->VertexIndex] = vertex;
+
+                    //var vertex = _vertexInfo[info->VertexIndex];
+                    //_vertexInfo[info->VertexIndex] = _vertexInfo[i];
+                    //_vertexInfo[i] = vertex;
+                }
+            }
+
+
+            //int start = UpdateVertexBuffer(_numSprites);
+
+            int start = 0;
+
+            fixed (PositionNormalTextureColor4* p = &_vertexInfo[0])
+            {
+                _vertexBuffer.SetDataPointerEXT(
+                                                0,
+                                                (IntPtr) p,
+                                                _numSprites * PositionNormalTextureColor4.SIZE_IN_BYTES,
+                                                SetDataOptions.None);
+            }
 
             Texture2D current = _textureInfo[0];
             int offset = 0;
@@ -1750,6 +1823,25 @@ namespace ClassicUO.Renderer
 //            return string.Format("VPNTH: <{0}> <{1}>", Position.ToString(), TextureCoordinate.ToString());
 //        }
 //#endif
+        }
+
+
+        private class TextureComparer : IComparer<IntPtr>
+        {
+            public unsafe int Compare(IntPtr i1, IntPtr i2)
+            {
+                SpriteInfo* p1 = (SpriteInfo*) i1;
+                SpriteInfo* p2 = (SpriteInfo*) i2;
+                return p1->TextureHash.CompareTo(p2->TextureHash);
+            }
+        }
+
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        private struct SpriteInfo
+        {
+            public int TextureHash;
+            public int VertexIndex;
         }
     }
 

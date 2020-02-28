@@ -51,11 +51,13 @@ namespace ClassicUO.Renderer
         public virtual void ApplyStates()
         {
             Viewport viewport = GraphicsDevice.Viewport;
-            _projectionMatrix.M11 = (float) (2.0 / viewport.Width);
-            _projectionMatrix.M22 = (float) (-2.0 / viewport.Height);
+            //_projectionMatrix.M11 = (float) (2.0 / viewport.Width);
+            //_projectionMatrix.M22 = (float) (-2.0 / viewport.Height);
 
-            Matrix idendity = Matrix.Identity;
-            Matrix.Multiply(ref idendity, ref _projectionMatrix, out var matrixTransform);
+            //Matrix idendity = Matrix.Identity;
+            //Matrix.Multiply(ref idendity, ref _projectionMatrix, out var matrixTransform);
+
+            Matrix matrixTransform = Matrix.CreateOrthographicOffCenter(0, viewport.Width, viewport.Height, 0, short.MinValue, short.MaxValue);
 
             MatrixTransform.SetValue(matrixTransform);
 
