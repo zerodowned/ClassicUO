@@ -22,6 +22,7 @@
 using ClassicUO.Configuration;
 using ClassicUO.Input;
 using ClassicUO.Renderer;
+using ClassicUO.Utility;
 
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -90,6 +91,7 @@ namespace ClassicUO.Game.Managers
                         value = 0xFF;
 
                     pixel = (uint) ((value << 24) | (value << 16) | (value << 8) | value);
+
                 }
             }
 

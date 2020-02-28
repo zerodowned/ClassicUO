@@ -43,6 +43,8 @@ namespace ClassicUO.Renderer
         private readonly DynamicVertexBuffer _vertexBuffer;
         private readonly Texture2D[] _textureInfo;
         private PositionNormalTextureColor4[] _vertexInfo;
+        private PositionNormalTextureColor4[] _vertexInfoSorted = new PositionNormalTextureColor4[MAX_SPRITES];
+
         private readonly SpriteInfo[] _spriteInfos = new SpriteInfo[MAX_SPRITES];
         private readonly IntPtr[] _sortedSpriteInfos = new IntPtr[MAX_SPRITES];
         private float _z;
@@ -52,14 +54,14 @@ namespace ClassicUO.Renderer
         private bool _started;
         private DepthStencilState _stencil;
         private bool _useScissor;
-        private BoundingBox _drawingArea;
         private int _numSprites;
 
 
-        private void IncZ()
+        public void IncZ()
         {
-            _z++;
+            //_z++;
         }
+
 
         public UltimaBatcher2D(GraphicsDevice device)
         {
@@ -226,7 +228,7 @@ namespace ClassicUO.Renderer
 
                 vertex.Position1.X = x;
                 vertex.Position1.Y = y + h;
-                vertex.Position0.Z = _z;
+                vertex.Position1.Z = _z;
                 vertex.Normal1.X = 0;
                 vertex.Normal1.Y = 0;
                 vertex.Normal1.Z = 1;
@@ -1351,8 +1353,6 @@ namespace ClassicUO.Renderer
         [MethodImpl(256)]
         public bool Draw2DTiled(Texture2D texture, int dx, int dy, float dwidth, float dheight, ref Vector3 hue)
         {
-            return true;
-
             int y = dy;
             int h = (int) dheight;
 
@@ -1431,6 +1431,7 @@ namespace ClassicUO.Renderer
             vertex.Position0.Y = originY;
             vertex.Position0.X += cosx - -siny;
             vertex.Position0.Y -= sinx + -cosy;
+            vertex.Position0.Z = _z;
             vertex.Normal0.X = 0;
             vertex.Normal0.Y = 0;
             vertex.Normal0.Z = 1;
@@ -1442,6 +1443,7 @@ namespace ClassicUO.Renderer
             vertex.Position1.Y = originY;
             vertex.Position1.X += cosx - siny;
             vertex.Position1.Y += -sinx + -cosy;
+            vertex.Position1.Z = _z;
             vertex.Normal1.X = 0;
             vertex.Normal1.Y = 0;
             vertex.Normal1.Z = 1;
@@ -1453,6 +1455,7 @@ namespace ClassicUO.Renderer
             vertex.Position2.Y = originY;
             vertex.Position2.X += -cosx - -siny;
             vertex.Position2.Y += sinx + cosy;
+            vertex.Position2.Z = _z;
             vertex.Normal2.X = 0;
             vertex.Normal2.Y = 0;
             vertex.Normal2.Z = 1;
@@ -1464,6 +1467,7 @@ namespace ClassicUO.Renderer
             vertex.Position3.Y = originY;
             vertex.Position3.X += -cosx - siny;
             vertex.Position3.Y += sinx + -cosy;
+            vertex.Position3.Z = _z;
             vertex.Normal3.X = 0;
             vertex.Normal3.Y = 0;
             vertex.Normal3.Z = 1;
@@ -1501,15 +1505,8 @@ namespace ClassicUO.Renderer
         {
             EnsureNotStarted();
             _started = true;
-
-            _drawingArea.Min.X = 0;
-            _drawingArea.Min.Y = 0;
-            _drawingArea.Min.Z = -150;
-            _drawingArea.Max.X = GraphicsDevice.Viewport.Width;
-            _drawingArea.Max.Y = GraphicsDevice.Viewport.Height;
-            _drawingArea.Max.Z = 150;
-
             _customEffect = customEffect;
+            _z = 0;
         }
 
         [MethodImpl(256)]
@@ -1533,7 +1530,7 @@ namespace ClassicUO.Renderer
         }
 
         [MethodImpl(256)]
-        private unsafe bool PushSprite(Texture2D texture)
+        private bool PushSprite(Texture2D texture)
         {
             EnsureSize();
 
@@ -1542,6 +1539,8 @@ namespace ClassicUO.Renderer
             info.VertexIndex = _numSprites;
 
             _textureInfo[_numSprites++] = texture;
+
+            _z++;
 
             return true;
         }
@@ -1595,14 +1594,17 @@ namespace ClassicUO.Renderer
                 }
 
                 Array.Sort(_sortedSpriteInfos, _textureInfo, 0, _numSprites, _comparer);
+                //Array.Sort(_sortedSpriteInfos, _vertexInfo, 0, _numSprites, _comparer);
 
                 for (int i = 0; i < _numSprites; i++)
                 {
                     SpriteInfo* info = (SpriteInfo*) sortedSpriteInfo[i];
 
-                    var vertex = _vertexInfo[i];
-                    _vertexInfo[i] = _vertexInfo[info->VertexIndex];
-                    _vertexInfo[info->VertexIndex] = vertex;
+                    _vertexInfoSorted[i] = _vertexInfo[info->VertexIndex];
+
+                    //var vertex = _vertexInfo[i];
+                    //_vertexInfo[i] = _vertexInfo[info->VertexIndex];
+                    //_vertexInfo[info->VertexIndex] = vertex;
 
                     //var vertex = _vertexInfo[info->VertexIndex];
                     //_vertexInfo[info->VertexIndex] = _vertexInfo[i];
@@ -1611,18 +1613,18 @@ namespace ClassicUO.Renderer
             }
 
 
-            //int start = UpdateVertexBuffer(_numSprites);
+            int start = UpdateVertexBuffer(_numSprites);
 
-            int start = 0;
+            //int start = 0;
 
-            fixed (PositionNormalTextureColor4* p = &_vertexInfo[0])
-            {
-                _vertexBuffer.SetDataPointerEXT(
-                                                0,
-                                                (IntPtr) p,
-                                                _numSprites * PositionNormalTextureColor4.SIZE_IN_BYTES,
-                                                SetDataOptions.None);
-            }
+            //fixed (PositionNormalTextureColor4* p = &_vertexInfoSorted[0])
+            //{
+            //    _vertexBuffer.SetDataPointerEXT(
+            //                                    0,
+            //                                    (IntPtr) p,
+            //                                    _numSprites * PositionNormalTextureColor4.SIZE_IN_BYTES,
+            //                                    SetDataOptions.None);
+            //}
 
             Texture2D current = _textureInfo[0];
             int offset = 0;
@@ -1710,7 +1712,7 @@ namespace ClassicUO.Renderer
                 hint = SetDataOptions.NoOverwrite;
             }
 
-            fixed (PositionNormalTextureColor4* p = &_vertexInfo[0])
+            fixed (PositionNormalTextureColor4* p = &_vertexInfoSorted[0])
             {
                 _vertexBuffer.SetDataPointerEXT(
                                                 pos * PositionNormalTextureColor4.SIZE_IN_BYTES,

@@ -62,7 +62,7 @@ namespace ClassicUO.Game.GameObjects
                 StencilFunction = CompareFunction.GreaterEqual,
                 StencilPass = StencilOperation.Keep,
                 ReferenceStencil = 0,
-                //DepthBufferEnable = true,
+                DepthBufferEnable = true,
                 //DepthBufferWriteEnable = true,
             };
 

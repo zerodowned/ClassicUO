@@ -39,7 +39,7 @@ namespace ClassicUO.Game
                 StencilFunction = CompareFunction.Always,
                 StencilPass = StencilOperation.Replace,
                 ReferenceStencil = 1,
-                //DepthBufferEnable = true,
+                DepthBufferEnable = true,
                 //DepthBufferWriteEnable = true,
             };
 
@@ -122,13 +122,14 @@ namespace ClassicUO.Game
 
                 if (pixel != 0)
                 {
-                    pixel = HuesHelper.RgbaToArgb(pixel);
-                    //ushort value = (ushort)(pixel << 3);
+                   pixel = HuesHelper.RgbaToArgb(pixel);
+
+                    //ushort value = (ushort) (pixel << 3);
 
                     //if (value > 0xFF)
                     //    value = 0xFF;
 
-                    //pixel = (uint)((value << 24) | (value << 16) | (value << 8) | value);
+                    //pixel = (uint) ((value << 24) | (value << 16) | (value << 8) | value);
                 }
             }
 
