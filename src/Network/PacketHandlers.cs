@@ -138,6 +138,7 @@ namespace ClassicUO.Network
             Handlers.Add(0x93, OpenBook);
             Handlers.Add(0x95, DyeData);
             Handlers.Add(0x97, MovePlayer);
+            Handlers.Add(0x98, UpdateName);
             Handlers.Add(0x99, MultiPlacement);
             Handlers.Add(0x9A, ASCIIPrompt);
             Handlers.Add(0x9E, SellList);
@@ -1025,7 +1026,7 @@ namespace ClassicUO.Network
                         list = list.Reverse().ToArray();
 
                     foreach (var i in list) 
-                        gump.AddItem(i.Serial, i.Graphic, i.Hue, i.Amount, (ushort) i.Price, i.Name, false);
+                        gump.AddItem(i.Serial, i.Graphic, i.Hue, i.Amount, i.Price, i.Name, false);
                 }
             }
             else
@@ -2076,13 +2077,10 @@ namespace ClassicUO.Network
             {
                 byte count = p.ReadByte();
 
-                var list = container.Items /*.OrderBy(s => s.Serial.Value)*/.ToArray();
+                var list = container.Items /*.OrderBy(s => s.Serial.Value)*/.Reverse().ToArray();
 
                 if (list.Length == 0)
                     return;
-
-                if (list[0].X > 1)
-                    list = list.Reverse().ToArray();
 
 
                 foreach (Item it in list.Take(count))
@@ -2097,7 +2095,15 @@ namespace ClassicUO.Network
                         it.Name = ClilocLoader.Instance.GetString(cliloc);
                         fromcliloc = true;
                     }
-                    else if (string.IsNullOrEmpty(it.Name))
+                    else if (string.IsNullOrEmpty(name))
+                    {
+                        bool success = World.OPL.TryGetNameAndData(it.Serial, out it.Name, out _);
+                        if (!success)
+                        {
+                            it.Name = it.ItemData.Name;
+                        }
+                    }
+                    if (string.IsNullOrEmpty(it.Name))
                         it.Name = name;
 
                     gump.SetIfNameIsFromCliloc(it, fromcliloc);
@@ -2550,6 +2556,25 @@ namespace ClassicUO.Network
             World.Player.Walk(direction & Direction.Mask, (direction & Direction.Running) != 0);
         }
 
+        private static void UpdateName(Packet p)
+        {
+            if (!World.InGame)
+                return;
+
+            uint serial = p.ReadUInt();
+            string name = p.ReadASCII();
+
+            Entity entity = World.Get(serial);
+            if (entity == null)
+                return;
+            entity.Name = name;
+
+            NameOverheadGump gump = UIManager.GetGump<NameOverheadGump>(serial);
+            if (gump == null)
+                return;
+            gump.SetName();
+        }
+
         private static void MultiPlacement(Packet p)
         {
             if (World.Player == null)
@@ -2612,6 +2637,14 @@ namespace ClassicUO.Network
                 {
                     name = ClilocLoader.Instance.GetString(clilocnum);
                     fromcliloc = true;
+                }
+                else if (string.IsNullOrEmpty(name))
+                {
+                    bool success = World.OPL.TryGetNameAndData(serial, out name, out _);
+                    if (!success)
+                    {
+                        name = TileDataLoader.Instance.StaticData[graphic].Name;
+                    }
                 }
 
                 //if (string.IsNullOrEmpty(item.Name))
@@ -2874,7 +2907,15 @@ namespace ClassicUO.Network
             for (int i = 0, index = p.Position; i < textLinesCount; i++)
             {
                 int length = ((buffer[index++] << 8) | buffer[index++]) << 1;
-                lines[i] = Encoding.BigEndianUnicode.GetString(buffer, index, length);
+                int true_length = 0;
+
+                while (true_length < length)
+                {
+                    if (((buffer[index + true_length++] << 8) | buffer[index + true_length++]) << 1 == '\0')
+                        break;
+                }
+
+                lines[i] = Encoding.BigEndianUnicode.GetString(buffer, index, true_length);
                 index += length;
             }
 
@@ -4015,7 +4056,17 @@ namespace ClassicUO.Network
                 for (int i = 0, index = 0; i < linesNum; i++)
                 {
                     int length = ((decData[index++] << 8) | decData[index++]) << 1;
-                    lines[i] = Encoding.BigEndianUnicode.GetString(decData, index, length);
+
+                    int true_length = 0;
+
+                    while (true_length < length)
+                    {
+                        if (((decData[index + true_length++] << 8) | decData[index + true_length++]) << 1 == '\0')
+                            break;
+                    }
+
+                    lines[i] = Encoding.BigEndianUnicode.GetString(decData, index, true_length);
+
                     index += length;
                 }
             }
@@ -4133,7 +4184,7 @@ namespace ClassicUO.Network
                             byte map = p.ReadByte();
                             int hits = type == 1 ? 0 : p.ReadByte();
 
-                            World.WMapManager.AddOrUpdate(serial, x, y, hits, map, type == 0x02);
+                            World.WMapManager.AddOrUpdate(serial, x, y, hits, map, type == 0x02, null, true);
                         }
                     }
 

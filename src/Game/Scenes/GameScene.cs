@@ -225,6 +225,7 @@ namespace ClassicUO.Game.Scenes
             switch (e.Type)
             {
                 case MessageType.Regular:
+                case MessageType.Limit3Spell:
 
                     if (e.Parent == null || !SerialHelper.IsValid(e.Parent.Serial))
                         name = "System";
@@ -243,7 +244,7 @@ namespace ClassicUO.Game.Scenes
 
                 case MessageType.Emote:
                     name = e.Name;
-                    text = $"*{e.Text}*";
+                    text = $"{e.Text}";
 
                     if (e.Hue == 0)
                         hue = ProfileManager.Current.EmoteHue;
@@ -623,6 +624,11 @@ namespace ClassicUO.Game.Scenes
             }
 
             Macros.Update();
+
+            if (((ProfileManager.Current.CorpseOpenOptions == 1 || ProfileManager.Current.CorpseOpenOptions == 3) && TargetManager.IsTargeting) ||
+                ((ProfileManager.Current.CorpseOpenOptions == 2 || ProfileManager.Current.CorpseOpenOptions == 3) && World.Player.IsHidden))
+                    _useItemQueue.ClearCorpses();
+
             _useItemQueue.Update(totalMS, frameMS);
 
             if (!IsMouseOverViewport)
