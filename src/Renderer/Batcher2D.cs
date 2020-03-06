@@ -96,6 +96,7 @@ namespace ClassicUO.Renderer
         {
             StencilEnable = true,
             DepthBufferEnable = true,
+            DepthBufferWriteEnable = true,
             StencilFunction = CompareFunction.NotEqual,
             ReferenceStencil = 1,
             StencilMask = 1,
@@ -1369,7 +1370,7 @@ namespace ClassicUO.Renderer
                     if (w < texture.Width)
                         rw = w;
                     Draw2D(texture, x, y, 0, 0, rw, rh, ref hue);
-                    _z--;
+                    //_z--;
                     w -= texture.Width;
                     x += texture.Width;
                 }
@@ -1390,6 +1391,8 @@ namespace ClassicUO.Renderer
             Draw2D(texture, x + width, y, 1, height + 1, ref hue);
             Draw2D(texture, x, y + height, width, 1, ref hue);
             Draw2D(texture, x, y, 1, height, ref hue);
+
+           // _z -= 4;
 
             IncZ();
 
