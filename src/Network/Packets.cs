@@ -198,24 +198,25 @@ namespace ClassicUO.Network
                 WriteUShort(0x00);
             }
 
-            if (Client.Version >= ClientVersion.CV_70160)
-            {
-                ushort location = (ushort) cityIndex;
+            WriteUShort((ushort) cityIndex);
+            WriteUShort(0x0000);
+            WriteUShort((ushort) slot);
 
-                WriteUShort(location);
-                WriteUShort(0x0000);
-                WriteUShort((ushort) slot);
-            }
-            else
-            {
-                WriteByte((byte) serverIndex);
-                if (Client.Version < ClientVersion.CV_70130 && cityIndex > 0)
-                    cityIndex--;
+            //if (Client.Version >= ClientVersion.CV_70160)
+            //{
+            //    WriteUShort((ushort) cityIndex);
+            //    WriteUShort(0x0000);
+            //    WriteUShort((ushort) slot);
+            //}
+            //else
+            //{
+            //    WriteByte((byte) serverIndex);
+            //    if (Client.Version < ClientVersion.CV_70130 && cityIndex > 0)
+            //        cityIndex--;
 
-                WriteByte((byte) cityIndex);
-                WriteUInt(slot);
-
-            }
+            //    WriteByte((byte) cityIndex);
+            //    WriteUInt(slot);
+            //}
 
             WriteUInt(clientIP);
 
@@ -453,7 +454,7 @@ namespace ClassicUO.Network
             }
             else
             {
-                WriteUnicode(text, 14 + text.Length * 2);
+                WriteUnicode(text);
             }
         }
     }
@@ -726,7 +727,10 @@ namespace ClassicUO.Network
             WriteBytes(MessageManager.PromptData.Data, 0, 8);
             WriteUInt((uint) (cancel ? 0 : 1));
             WriteASCII(lang, 3);
-            WriteUnicode(text);
+            WriteUnicode(text, text.Length);
+            //This must be terminated with EXACTLY one null byte, unlike most unicode-containing packets which are terminated with two.
+            //Some servers are fussy about this and will reject the packet otherwise!
+            WriteByte(0x00);
         }
     }
 
@@ -879,23 +883,25 @@ namespace ClassicUO.Network
 
     internal sealed class PBulletinBoardPostMessage : PacketWriter
     {
-        public PBulletinBoardPostMessage(uint serial, uint msgserial, string subject, string message) : base(0x71)
+        public PBulletinBoardPostMessage(uint serial, uint msgserial, string subject, string _textBox) :
+            base(0x71)
         {
             WriteByte(0x05);
             WriteUInt(serial);
             WriteUInt(msgserial);
-            WriteByte((byte) (subject.Length + 1));
-            WriteASCII(subject);
-
-            string[] lines = message.Split(new[]
+            WriteByte((byte)(subject.Length + 1));
+            var titolo = Encoding.UTF8.GetBytes(subject); 
+            WriteBytes(titolo, 0, titolo.Length);
+            WriteByte(0);
+            var splits = _textBox.Split('\n');
+            var numlinee = splits.Length;
+            WriteByte((byte)numlinee);
+            for (var L = 0; L < numlinee; L++)
             {
-                '\n'
-            }, StringSplitOptions.RemoveEmptyEntries);
-
-            for (int i = 0; i < lines.Length; i++)
-            {
-                WriteByte((byte) lines[i].Length);
-                WriteASCII(lines[i]);
+                var buf = Encoding.UTF8.GetBytes(splits[L].Trim());
+                WriteByte((byte)(buf.Length + 1));
+                WriteBytes(buf, 0, buf.Length);
+                WriteByte(0);
             }
         }
     }

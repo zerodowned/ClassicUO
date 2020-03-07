@@ -119,7 +119,7 @@ namespace ClassicUO.Game.UI.Gumps
         private ColorBox _poisonColorPickerBox, _paralyzedColorPickerBox, _invulnerableColorPickerBox;
         private TextBox _spellFormatBox;
         private Checkbox _useStandardSkillsGump, _showMobileNameIncoming, _showCorpseNameIncoming;
-        private Checkbox _holdShiftForContext, _holdShiftToSplitStack, _reduceFPSWhenInactive, _sallosEasyGrab, _partyInviteGump, _objectsFading, _holdAltToMoveGumps;
+        private Checkbox _holdShiftForContext, _holdShiftToSplitStack, _reduceFPSWhenInactive, _sallosEasyGrab, _partyInviteGump, _objectsFading, _textFading, _holdAltToMoveGumps;
         private Checkbox _showHouseContent;
         private Combobox _cotType;
 
@@ -289,7 +289,8 @@ namespace ClassicUO.Game.UI.Gumps
             _paralyzedColorPickerBox = CreateClickableColorBox(rightArea, 20, 0, ProfileManager.Current.ParalyzedHue, "Paralyzed Color", 40, 0);
             _invulnerableColorPickerBox = CreateClickableColorBox(rightArea, 20, 0, ProfileManager.Current.InvulnerableHue, "Invulnerable Color", 40, 0);
             _noColorOutOfRangeObjects = CreateCheckBox(rightArea, "No color for object out of range", ProfileManager.Current.NoColorObjectsOutOfRange, 0, 5);
-            _objectsFading = CreateCheckBox(rightArea, "Objects fading", ProfileManager.Current.UseObjectsFading, 0, 0);
+            _objectsFading = CreateCheckBox(rightArea, "Objects alpha fading", ProfileManager.Current.UseObjectsFading, 0, 0);
+            _textFading = CreateCheckBox(rightArea, "Text alpha fading", ProfileManager.Current.TextFading, 0, 0);
             _useStandardSkillsGump = CreateCheckBox(rightArea, "Use standard skills gump", ProfileManager.Current.StandardSkillsGump, 0, 0);
             _showMobileNameIncoming = CreateCheckBox(rightArea, "Show incoming new mobiles", ProfileManager.Current.ShowNewMobileNameIncoming, 0, 0);
             _showCorpseNameIncoming = CreateCheckBox(rightArea, "Show incoming new corpses", ProfileManager.Current.ShowNewCorpseNameIncoming, 0, 0);
@@ -1272,7 +1273,7 @@ namespace ClassicUO.Game.UI.Gumps
                 IsChecked = ProfileManager.Current.OverrideContainerLocation,
             };
 
-            _overrideContainerLocationSetting = new Combobox(_overrideContainerLocation.Width + 20, 0, 200, new[] { "Near container position", "Top right", "Last dragged position" }, ProfileManager.Current.OverrideContainerLocationSetting);
+            _overrideContainerLocationSetting = new Combobox(_overrideContainerLocation.Width + 20, 0, 200, new[] { "Near container position", "Top right", "Last dragged position" , "Remember every container" }, ProfileManager.Current.OverrideContainerLocationSetting);
 
             _containerGumpLocation.Add(_overrideContainerLocation);
             _containerGumpLocation.Add(_overrideContainerLocationSetting);
@@ -1470,6 +1471,7 @@ namespace ClassicUO.Game.UI.Gumps
                     _partyInviteGump.IsChecked = false;
                     _showHouseContent.IsChecked = false;
                     _objectsFading.IsChecked = true;
+                    _textFading.IsChecked = true;
 
                     break;
 
@@ -1730,6 +1732,7 @@ namespace ClassicUO.Game.UI.Gumps
             ProfileManager.Current.SallosEasyGrab = _sallosEasyGrab.IsChecked;
             ProfileManager.Current.PartyInviteGump = _partyInviteGump.IsChecked;
             ProfileManager.Current.UseObjectsFading = _objectsFading.IsChecked;
+            ProfileManager.Current.TextFading = _textFading.IsChecked;
 
             if (ProfileManager.Current.ShowHouseContent != _showHouseContent.IsChecked)
             {
@@ -2065,6 +2068,29 @@ namespace ClassicUO.Game.UI.Gumps
 
             // network
             ProfileManager.Current.ShowNetworkStats = _showNetStats.IsChecked;
+
+            NetworkStatsGump networkStatsGump = UIManager.GetGump<NetworkStatsGump>();
+
+            if (ProfileManager.Current.ShowNetworkStats)
+            {
+                if (networkStatsGump == null)
+                {
+                    UIManager.Add(new NetworkStatsGump() { X = ProfileManager.Current.NetworkStatsPosition.X, Y = ProfileManager.Current.NetworkStatsPosition.Y });
+                }
+                else
+                {
+                    networkStatsGump.IsVisible = true;
+                    networkStatsGump.SetInScreen();
+                }
+            }
+            else
+            {
+                if (networkStatsGump != null)
+                {
+                    networkStatsGump.Dispose();
+                }
+            }
+
 
             // infobar
             ProfileManager.Current.ShowInfoBar = _showInfoBar.IsChecked;

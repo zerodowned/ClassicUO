@@ -223,7 +223,7 @@ namespace ClassicUO.Game.UI.Gumps
             if (_shopItems.TryGetValue(it, out var shopItem)) shopItem.NameFromCliloc = fromcliloc;
         }
 
-        public void AddItem(uint serial, ushort graphic, ushort hue, ushort amount, ushort price, string name, bool fromcliloc)
+        public void AddItem(uint serial, ushort graphic, ushort hue, ushort amount, uint price, string name, bool fromcliloc)
         {
             ShopItem shopItem;
 
@@ -410,6 +410,11 @@ namespace ClassicUO.Game.UI.Gumps
 
             private static AnimationDirection GetMobileAnimationDirection(ushort graphic, ref ushort hue, byte dirIndex)
             {
+                if (graphic >= Constants.MAX_ANIMATIONS_DATA_INDEX_COUNT)
+                {
+                    return null;
+                }
+
                 byte group = GetAnimGroup(graphic);
                 var index = AnimationsLoader.Instance.DataIndex[graphic];
 
@@ -437,7 +442,7 @@ namespace ClassicUO.Game.UI.Gumps
                 return direction;
             }
 
-            public ShopItem(uint serial, ushort graphic, ushort hue, int count, int price, string name)
+            public ShopItem(uint serial, ushort graphic, ushort hue, int count, uint price, string name)
             {
                 LocalSerial = serial;
                 Graphic = graphic;
@@ -456,7 +461,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                     Add(control = new TextureControl
                     {
-                        Texture = direction.FrameCount != 0 ? direction.Frames[0] : null,
+                        Texture = direction != null ? direction.FrameCount != 0 ? direction.Frames[0] : null : null,
                         X = 5,
                         Y = 5,
                         AcceptMouseInput = false,
@@ -547,7 +552,7 @@ namespace ClassicUO.Game.UI.Gumps
                 }
             }
 
-            public int Price { get; set; }
+            public uint Price { get; set; }
             public ushort Hue { get; set; }
             public ushort Graphic { get; set; }
             public string Name { get; set; }
@@ -572,7 +577,9 @@ namespace ClassicUO.Game.UI.Gumps
                 if (SerialHelper.IsMobile(LocalSerial))
                 {
                     ushort hue = Hue;
-                    GetMobileAnimationDirection(Graphic, ref hue, 1).LastAccessTime = Time.Ticks;
+                    var dir = GetMobileAnimationDirection(Graphic, ref hue, 1);
+                    if (dir != null)
+                        dir.LastAccessTime = Time.Ticks;
                 }
             }
         }

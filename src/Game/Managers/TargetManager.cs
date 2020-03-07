@@ -147,7 +147,7 @@ namespace ClassicUO.Game.Managers
         {
             SetTargeting(CursorTarget.MultiPlacement, deedSerial, TargetType.Neutral);
 
-            if (model != 0)
+            //if (model != 0)
                 MultiTargetInfo = new MultiTargetInfo(model, x, y, z, hue);
         }
 
@@ -202,14 +202,18 @@ namespace ClassicUO.Game.Managers
                             }
                         }
 
-                        var packet = new PTargetObject(entity, entity.Graphic, entity.X, entity.Y, entity.Z, _targetCursorId, (byte) TargeringType);
-                       
-                        for (int i = 0; i < _lastDataBuffer.Length; i++)
+                        if (TargetingState != CursorTarget.SetTargetClientSide)
                         {
-                            _lastDataBuffer[i] = packet[i];
-                        }
+                            var packet = new PTargetObject(entity, entity.Graphic, entity.X, entity.Y, entity.Z, _targetCursorId, (byte) TargeringType);
 
-                        NetClient.Socket.Send(packet);
+                            for (int i = 0; i < _lastDataBuffer.Length; i++)
+                            {
+                                _lastDataBuffer[i] = packet[i];
+                            }
+
+                            NetClient.Socket.Send(packet);
+                        }
+                      
                         ClearTargetingWithoutTargetCancelPacket();
 
                         Mouse.CancelDoubleClick = true;
@@ -239,15 +243,15 @@ namespace ClassicUO.Game.Managers
             }
         }
 
-        public static void Target(ushort graphic, ushort x, ushort y, short z)
+        public static void Target(ushort graphic, ushort x, ushort y, short z, bool wet = false)
         {
             if (!IsTargeting)
                 return;
 
             if (graphic == 0)
             {
-                if (TargeringType != TargetType.Neutral)
-                    return;
+                //if (TargeringType != TargetType.Neutral && !wet)
+                //    return;
             }
             else
             {

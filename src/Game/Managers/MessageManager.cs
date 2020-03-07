@@ -115,6 +115,7 @@ namespace ClassicUO.Game.Managers
                 case MessageType.Yell:
                 case MessageType.Regular:
                 case MessageType.Label:
+                case MessageType.Limit3Spell:
 
                     if (parent == null)
                         break;
@@ -179,7 +180,7 @@ namespace ClassicUO.Game.Managers
                     if (parent == null)
                         break;
 
-                    msg = CreateMessage($"*{text}*", hue, font, unicode, type);
+                    msg = CreateMessage($"{text}", hue, font, unicode, type);
 
                     parent.AddMessage(msg);
 

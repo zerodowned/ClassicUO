@@ -61,7 +61,10 @@ namespace ClassicUO.Utility
         [MethodImpl(256)]
         public static int PercetangeOf(int current, int max)
         {
-            return current / max * 100;
+            if (current <= 0 || max <= 0)
+                return 0;
+
+            return (current * 100) / max;
         }
 
         [MethodImpl(256)]

@@ -62,6 +62,7 @@ namespace ClassicUO.Game.UI.Gumps
             Load();
             OnResize();
 
+            World.WMapManager.SetEnable(true);
             BuildGump();
         }
 
@@ -82,7 +83,8 @@ namespace ClassicUO.Game.UI.Gumps
             TopMost = bool.Parse(xml.GetAttribute("topmost"));
             FreeView = bool.Parse(xml.GetAttribute("freeview"));
             _showPartyMembers = bool.Parse(xml.GetAttribute("showpartymembers"));
-
+            if (int.TryParse(xml.GetAttribute("zoomindex"), out int value))
+                _zoomIndex = (value >= 0 && value < _zooms.Length) ? value : 4;
 
             BuildGump();
         }
@@ -98,6 +100,7 @@ namespace ClassicUO.Game.UI.Gumps
             writer.WriteAttributeString("topmost", _isTopMost.ToString());
             writer.WriteAttributeString("freeview", _freeView.ToString());
             writer.WriteAttributeString("showpartymembers", _showPartyMembers.ToString());
+            writer.WriteAttributeString("zoomindex", _zoomIndex.ToString());
         }
 
         private void BuildGump()
@@ -232,28 +235,7 @@ namespace ClassicUO.Game.UI.Gumps
                 Load();
             }
 
-            if (_nextQueryPacket < Time.Ticks)
-            {
-                _nextQueryPacket = Time.Ticks + 250;
-                NetClient.Socket.Send(new PQueryGuildPosition());
-
-                if (World.InGame && World.Party != null && World.Party.Leader != 0)
-                {
-                    foreach (var e in World.Party.Members)
-                    {
-                        if (e != null && SerialHelper.IsValid(e.Serial))
-                        {
-                            var mob = World.Mobiles.Get(e.Serial);
-
-                            if (mob == null || mob.Distance > World.ClientViewRange)
-                            {
-                                NetClient.Socket.Send(new PQueryPartyPosition());
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
+            World.WMapManager.RequestServerPartyGuildInfo();
         }
 
         private unsafe Task Load()
@@ -494,10 +476,40 @@ namespace ClassicUO.Game.UI.Gumps
 
         private void DrawAll(UltimaBatcher2D batcher, int gX, int gY, int halfWidth, int halfHeight)
         {
-            foreach (Mobile mobile in World.Mobiles)
+            foreach (Mobile mob in World.Mobiles)
             {
-                if (mobile != World.Player)
-                    DrawMobile(batcher, mobile, gX, gY, halfWidth, halfHeight, Zoom, Color.Red);
+                if (mob == World.Player)
+                    continue;
+
+                if (mob.NotorietyFlag != NotorietyFlag.Ally)
+                    DrawMobile(batcher, mob, gX, gY, halfWidth, halfHeight, Zoom, Color.Red);
+                else
+                {
+                    if (mob != null && mob.Distance <= World.ClientViewRange)
+                    {
+                        var wme = World.WMapManager.GetEntity(mob);
+                        if (wme != null)
+                            wme.Name = mob.Name;
+                        else
+                            DrawMobile(batcher, mob, gX, gY, halfWidth, halfHeight, Zoom, Color.Lime, true, true, true);
+                    }
+                    else
+                    {
+                        var wme = World.WMapManager.GetEntity(mob.Serial);
+                        if (wme != null && wme.IsGuild)
+                        {
+                            DrawWMEntity(batcher, wme, gX, gY, halfWidth, halfHeight, Zoom);
+                        }
+                    }
+                }
+            }
+
+            foreach (var wme in World.WMapManager.Entities.Values)
+            {
+                if (wme.IsGuild && !World.Party.Contains(wme.Serial))
+                {
+                    DrawWMEntity(batcher, wme, gX, gY, halfWidth, halfHeight, Zoom);
+                }
             }
 
             if (_showPartyMembers)
@@ -529,27 +541,6 @@ namespace ClassicUO.Game.UI.Gumps
                     }
                 }
             }
-
-            foreach (var wme in World.WMapManager.Entities.Values)
-            {
-                if (!wme.IsGuild)
-                {
-                    continue;
-                }
-
-                if (string.IsNullOrEmpty(wme.Name))
-                {
-                    Mobile m = World.Mobiles.Get(wme.Serial);
-
-                    if (m != null && !string.IsNullOrEmpty(m.Name))
-                    {
-                        wme.Name = m.Name;
-                    }
-                }
-
-                DrawWMEntity(batcher, wme, gX, gY, halfWidth, halfHeight, Zoom);
-            }
-
 
             DrawMobile(batcher, World.Player, gX, gY, halfWidth, halfHeight, Zoom, Color.White, true, false, true);
         }
@@ -822,6 +813,8 @@ namespace ClassicUO.Game.UI.Gumps
 
         public override void Dispose()
         {
+            World.WMapManager.SetEnable(false);
+
             UIManager.GameCursor.IsDraggingCursorForced = false;
 
             _mapTexture?.Dispose();
