@@ -247,10 +247,12 @@ namespace ClassicUO.Game.UI.Controls
             {
                 if (_gameText != null)
                 {
-                    foreach (WebLinkRect link in _gameText.Links)
+                    //foreach (WebLinkRect link in _gameText.Links)
+                    for (int i = 0; i < _gameText.Links.Count; i++)
                     {
-                        Rectangle rect = new Rectangle(link.StartX, link.StartY, link.EndX, link.EndY);
-                        bool inbounds = rect.Contains(x, (_scrollBar == null ? 0 : _scrollBar.Value) + y);
+                        ref var link = ref _gameText.Links[i];
+
+                        bool inbounds = link.Bounds.Contains(x, (_scrollBar == null ? 0 : _scrollBar.Value) + y);
 
                         if (inbounds && FontsLoader.Instance.GetWebLink(link.LinkID, out WebLink result))
                         {
