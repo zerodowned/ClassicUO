@@ -77,22 +77,32 @@ namespace ClassicUO.Game.UI.Controls
 
                 ResetHueVector();
 
+                float zoom = 1f / _scene.Scale;
+                zoom = 1f;
+                Matrix m =
+                    Matrix.CreateTranslation(new Vector3(-x + (Width) * .5f, -y + (Height) * .5f, 0)) *
+                    Matrix.CreateScale(new Vector3(zoom, zoom, 1)) *
+                    Matrix.CreateTranslation(new Vector3( + (Width) * .5f * zoom, + ( Height) * .5f * zoom, 0));
+
+                batcher.End();
+
                 if (ProfileManager.Current != null && ProfileManager.Current.UseXBR)
                 {
                     // draw regular world
                     _xBR.SetSize(_scene.ViewportTexture.Width, _scene.ViewportTexture.Height);
 
-                    batcher.End();
-
-                    batcher.Begin(_xBR);
+                    batcher.Begin(_xBR, m);
                     batcher.Draw2D(_scene.ViewportTexture, x, y, Width, Height, ref _hueVector);
-                    batcher.End();
-
-                    batcher.Begin();
                 }
                 else
+                {
+                    batcher.Begin(null, m);
                     batcher.Draw2D(_scene.ViewportTexture, x, y, Width, Height, ref _hueVector);
+                }
 
+                batcher.End();
+
+                batcher.Begin();
 
                 // draw lights
                 if (_scene.UseAltLights)
@@ -123,6 +133,7 @@ namespace ClassicUO.Game.UI.Controls
             return true;
         }
 
+        private static RenderTarget2D _target;
 
         public override void Dispose()
         {
@@ -163,7 +174,7 @@ namespace ClassicUO.Game.UI.Controls
                 _textureSizeParam = Parameters["textureSize"];
             }
             
-            public void SetSize(int w, int h)
+            public void SetSize(float w, float h)
             {
                 _vectorSize.X = w;
                 _vectorSize.Y = h;

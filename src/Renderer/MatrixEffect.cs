@@ -48,14 +48,14 @@ namespace ClassicUO.Renderer
 
 
 
-        public virtual void ApplyStates()
+        public virtual void ApplyStates(ref Matrix transform)
         {
             Viewport viewport = GraphicsDevice.Viewport;
+
             _projectionMatrix.M11 = (float) (2.0 / viewport.Width);
             _projectionMatrix.M22 = (float) (-2.0 / viewport.Height);
 
-            Matrix idendity = Matrix.Identity;
-            Matrix.Multiply(ref idendity, ref _projectionMatrix, out var matrixTransform);
+            Matrix.Multiply(ref transform, ref _projectionMatrix, out var matrixTransform);
 
             MatrixTransform.SetValue(matrixTransform);
 
