@@ -47,7 +47,7 @@ namespace ClassicUO.Game.GameObjects
 
         static Item()
         {
-            for (int i = 0; i < 5000; i++)
+            for (int i = 0; i < Constants.PREDICTABLE_TILE_COUNT; i++)
                 _pool.Enqueue(new Item(0));
         }
 
@@ -94,8 +94,9 @@ namespace ClassicUO.Game.GameObjects
                 i.HitsMax = 0;
                 i.LastStepTime = 0;
                 i.LastAnimationChangeTime = 0;
-                if (i.Items == null || i.Items.Count != 0)
-                    i.Items = new EntityCollection<Item>();
+
+                i.Clear();
+
                 i.IsClicked = false;
                 i.IsDamageable = false;
                 i.Offset = Vector3.Zero;
@@ -772,6 +773,11 @@ namespace ClassicUO.Game.GameObjects
 
                     {
                         graphic = 0x02D4;
+
+                        break;
+                    }
+                    case 0x3ECE: // serpentine dragon
+                    {
 
                         break;
                     }

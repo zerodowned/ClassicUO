@@ -19,6 +19,8 @@
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
+using System;
+
 using Microsoft.Xna.Framework;
 
 using SDL2;
@@ -55,8 +57,6 @@ namespace ClassicUO.Input
 
         public static Point MDropPosition;
 
-        public static Point LastClickPosition;
-
         public static Point LDroppedOffset => LButtonPressed ? RealPosition - LDropPosition : Point.Zero;
 
         public static Point RDroppedOffset => RButtonPressed ? RealPosition - RDropPosition : Point.Zero;
@@ -85,8 +85,17 @@ namespace ClassicUO.Input
                 Position.X = x - winX;
                 Position.Y = y - winY;
             }
+            //else if (SDL.SDL_GetRelativeMouseMode() == SDL.SDL_bool.SDL_TRUE)
+            //{
+            //    Console.WriteLine("MOUSE RELATIVE!");
+            //    SDL.SDL_GetRelativeMouseState(out Position.X, out Position.Y);
+            //}
             else
                 SDL.SDL_GetMouseState(out Position.X, out Position.Y);
+
+            // Scale the mouse coordinates for the faux-backbuffer
+            Position.X = (int) ((double) Position.X * Client.Game.GraphicManager.PreferredBackBufferWidth / Client.Game.Window.ClientBounds.Width);
+            Position.Y = (int) ((double) Position.Y * Client.Game.GraphicManager.PreferredBackBufferHeight / Client.Game.Window.ClientBounds.Height);
 
             IsDragging = LButtonPressed || RButtonPressed || MButtonPressed;
             RealPosition = Position;

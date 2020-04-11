@@ -69,11 +69,12 @@ namespace ClassicUO.Game.UI.Gumps
 
         public bool BlockMovement { get; set; }
 
-        public bool CloseIfClickOutside { get; set; }
-
         public bool CanBeSaved => GumpType != GUMP_TYPE.NONE;
 
         public virtual GUMP_TYPE GumpType { get; }
+
+        public bool InvalidateContents { get; set; }
+
 
         public override bool CanMove
         {
@@ -83,8 +84,15 @@ namespace ClassicUO.Game.UI.Gumps
 
         public override void Update(double totalMS, double frameMS)
         {
+            if (InvalidateContents)
+            {
+                UpdateContents();
+                InvalidateContents = false;
+            }
+
             if (ActivePage == 0)
                 ActivePage = 1;
+
             base.Update(totalMS, frameMS);
         }
 
@@ -123,6 +131,14 @@ namespace ClassicUO.Game.UI.Gumps
         }
 
         public virtual void Restore(XmlElement xml)
+        {
+
+        }
+
+        public void RequestUpdateContents()
+            => InvalidateContents = true;
+
+        protected virtual void UpdateContents()
         {
 
         }
